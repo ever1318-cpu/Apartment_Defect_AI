@@ -171,6 +171,42 @@ model_metadata.json
 run_manifest.json
 ```
 
+Install the production training stack separately; importing `vision_ai` does not
+import PyTorch, torchvision, Pillow, NumPy, ONNX, or download pretrained weights:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[pytorch]"
+```
+
+The PyTorch backend uses a small three-layer CNN with task classification heads,
+a single-box detection head, and a severity head. It supports CPU by default and
+selects CUDA only when available:
+
+```powershell
+apartment-data vision-train `
+  training-dataset/training_spec.json training-runs/run-002 `
+  --backend pytorch --device cpu
+```
+
+`model.pt` is the latest epoch checkpoint. `best-model.pt` is selected by highest
+validation accuracy, with lowest validation loss as the tie breaker. Runs also
+record checkpoint, environment, duration, dependency/device, and export metadata.
+
+ONNX export uses input `images` and the seven named outputs consumed by
+`OnnxVisionBackend`: `quality`, `space_scores`, `trade_scores`,
+`component_scores`, `boxes`, `detection_scores`, and `detection_labels`.
+The default is opset 17 with a dynamic batch axis.
+
+```powershell
+apartment-data vision-export-onnx `
+  training-runs/run-002 training-runs/run-002/model.onnx `
+  --opset 17
+```
+
+The reference detection architecture predicts one normalized XYXY box per image
+and uses the first ground-truth detection during training. It is a minimal
+offline baseline, not a production detector.
+
 The run manifest records the run ID, UTC creation time, backend, stage states,
 artifact list, final metrics, and either `completed` or a structured `failed`
 status.

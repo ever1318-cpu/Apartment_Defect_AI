@@ -38,6 +38,12 @@ from .models import (
 )
 from .onnx_backend import OnnxVisionBackend, create_onnx_session
 from .pipeline import PipelineConfig, VisionBackend, VisionPipeline
+from .pytorch_training import (
+    ONNX_OUTPUT_NAMES,
+    PyTorchTrainingBackend,
+    TrainingDatasetLoader,
+    export_pytorch_checkpoint,
+)
 from .training import (
     ReferenceTrainingBackend,
     TrainingBackend,
@@ -80,10 +86,12 @@ __all__ = [
     "PipelineConfig",
     "OnnxVisionBackend",
     "PolygonMask",
+    "PyTorchTrainingBackend",
     "ReferenceVisionBackend",
     "ReferenceTrainingBackend",
     "SeverityMetrics",
     "TrainingBackend",
+    "TrainingDatasetLoader",
     "TrainingDatasetBuildResult",
     "TrainingRunner",
     "TrainingRunResult",
@@ -93,12 +101,14 @@ __all__ = [
     "VisionBackend",
     "VisionPipeline",
     "VisionPrediction",
+    "ONNX_OUTPUT_NAMES",
     "build_default_registry",
     "build_training_dataset",
     "ClassificationMetrics",
     "create_backend",
     "create_onnx_session",
     "evaluate_predictions",
+    "export_pytorch_checkpoint",
     "inspect_image_file",
     "load_backend",
     "load_training_backend",

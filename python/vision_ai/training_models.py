@@ -144,6 +144,13 @@ class TrainingSpec:
     random_seed: int
     output_directory: str
     model_artifact_name: str
+    onnx_export: Mapping[str, Any] = field(
+        default_factory=lambda: {
+            "opset": 17,
+            "dynamic_batch": True,
+            "input_shape": [1, 3, 224, 224],
+        }
+    )
 
     def __post_init__(self) -> None:
         if not self.dataset_version.strip():
@@ -163,6 +170,16 @@ class TrainingSpec:
         artifact = Path(self.model_artifact_name)
         if artifact.is_absolute() or len(artifact.parts) != 1:
             raise ValueError("model_artifact_name must be a relative file name")
+        opset = self.onnx_export.get("opset", 17)
+        input_shape = self.onnx_export.get("input_shape", [1, 3, 224, 224])
+        if not isinstance(opset, int) or opset <= 0:
+            raise ValueError("ONNX opset must be a positive integer")
+        if (
+            not isinstance(input_shape, (list, tuple))
+            or len(input_shape) != 4
+            or any(not isinstance(value, int) or value <= 0 for value in input_shape)
+        ):
+            raise ValueError("ONNX input_shape must contain four positive integers")
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -182,6 +199,16 @@ class TrainingSpec:
             random_seed=value["random_seed"],
             output_directory=value["output_directory"],
             model_artifact_name=value["model_artifact_name"],
+            onnx_export=dict(
+                value.get(
+                    "onnx_export",
+                    {
+                        "opset": 17,
+                        "dynamic_batch": True,
+                        "input_shape": [1, 3, 224, 224],
+                    },
+                )
+            ),
         )
 
 

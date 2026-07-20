@@ -150,7 +150,9 @@ class TrainingRunner:
             write_json(run_dir / "label_mapping.json", mapping.to_dict())
             artifacts.append("label_mapping.json")
 
-            prepared = self.backend.prepare(spec, spec_dir)
+            prepared = dict(self.backend.prepare(spec, spec_dir))
+            prepared.setdefault("run_directory", str(run_dir))
+            prepared.setdefault("artifacts", [])
             stages["prepare"] = "completed"
             history = tuple(self.backend.train(prepared, spec))
             stages["train"] = "completed"
@@ -169,6 +171,9 @@ class TrainingRunner:
                 self.backend.export(prepared, final_metrics, spec)
             )
             stages["export"] = "completed"
+            for artifact in prepared.get("artifacts", ()):
+                if artifact not in artifacts:
+                    artifacts.append(artifact)
             write_json(run_dir / spec.model_artifact_name, model_metadata)
             artifacts.append(spec.model_artifact_name)
             write_json(
@@ -223,9 +228,15 @@ class TrainingRunner:
             )
 
 
-def load_training_backend(specification: str) -> TrainingBackend:
+def load_training_backend(specification: str, **options: Any) -> TrainingBackend:
     if specification.strip().lower() == "reference":
+        if options:
+            raise ValueError("reference training backend does not accept options")
         return ReferenceTrainingBackend()
+    if specification.strip().lower() == "pytorch":
+        from .pytorch_training import PyTorchTrainingBackend
+
+        return PyTorchTrainingBackend(**options)
     module_name, separator, attribute_name = specification.partition(":")
     if not separator:
         raise ValueError(f"unknown training backend {specification!r}")
@@ -235,7 +246,7 @@ def load_training_backend(specification: str) -> TrainingBackend:
         raise ValueError(
             f"cannot load training backend {specification!r}: {exc}"
         ) from exc
-    backend = value() if callable(value) else value
+    backend = value(**options) if callable(value) else value
     required = ("backend_name", "prepare", "train", "validate", "export")
     missing = [name for name in required if not hasattr(backend, name)]
     if missing:
