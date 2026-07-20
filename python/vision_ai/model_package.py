@@ -28,7 +28,7 @@ from .package_models import (
 )
 from .training_models import LabelMapping, TrainingSpec
 
-APPLICATION_VERSION = "0.9.0"
+APPLICATION_VERSION = "0.11.0"
 CHECKSUM_ALGORITHM = "sha256"
 
 

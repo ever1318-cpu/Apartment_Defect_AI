@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/release_manifest.schema.json",
+  "title": "Vision Release Manifest",
+  "type": "object",
+  "required": ["application_version", "git_commit", "model_name", "model_version", "package_checksum_digest", "registry_revision", "dataset_version", "schema_versions", "python_version", "dependency_versions", "target_deployment_profile", "generated_at", "validation_summary", "known_limitations"],
+  "properties": {
+    "application_version": {"type": "string"},
+    "git_commit": {"type": "string"},
+    "model_name": {"type": "string"},
+    "model_version": {"type": "string"},
+    "package_checksum_digest": {"type": "string"},
+    "registry_revision": {"type": "integer", "minimum": 0},
+    "dataset_version": {"type": "string"},
+    "schema_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "python_version": {"type": "string"},
+    "dependency_versions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "target_deployment_profile": {"type": "string"},
+    "generated_at": {"type": "string"},
+    "validation_summary": {
+      "type": "object",
+      "required": ["pass", "warning", "fail"],
+      "properties": {
+        "pass": {"type": "integer"},
+        "warning": {"type": "integer"},
+        "fail": {"type": "integer"}
+      },
+      "additionalProperties": false
+    },
+    "known_limitations": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

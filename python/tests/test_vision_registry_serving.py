@@ -2,6 +2,8 @@ import base64
 import json
 import os
 import sys
+import time
+import threading
 from pathlib import Path
 
 import pytest
@@ -10,6 +12,11 @@ from data_engineering.cli import main
 from data_engineering.io import write_json
 from vision_ai.model_package import build_model_package
 from vision_ai.model_registry import ModelRegistry
+from vision_ai.release_readiness import (
+    ReleaseCheckReport,
+    ReleaseManifest,
+    run_release_check,
+)
 from vision_ai.models import BoundingBox, Classification, DefectDetection, ImageQuality
 from vision_ai.serving import (
     InferenceCache,
@@ -103,6 +110,16 @@ def _vocabulary(labels):
     }
 
 
+def _png(width=1, height=1):
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + b"\x00\x00\x00\rIHDR"
+        + width.to_bytes(4, "big")
+        + height.to_bytes(4, "big")
+        + b"\x08\x02\x00\x00\x00"
+    )
+
+
 def test_registry_registers_owned_copy_and_rejects_duplicates(tmp_path) -> None:
     package = _package(tmp_path)
     registry = ModelRegistry(tmp_path / "registry")
@@ -161,6 +178,59 @@ def test_registry_promotion_replaces_production_and_increments_revision(tmp_path
     assert registry.production("apartment-defect").model_version == "2.0.0"
     assert registry.get("apartment-defect", "1.0.0").stage == "archived"
     assert registry.read().revision == 3
+
+
+def test_registry_recovers_corruption_stale_lock_and_times_out_live_lock(tmp_path) -> None:
+    registry = ModelRegistry(
+        tmp_path / "registry", lock_timeout_seconds=0.01, stale_lock_seconds=0.01
+    )
+    registry.register(
+        _package(tmp_path),
+        "apartment-defect",
+        "1.0.0",
+        stage="production",
+    )
+    registry.index_path.write_text("{broken", encoding="utf-8")
+    assert registry.read().revision == 1
+    assert json.loads(registry.index_path.read_text())["revision"] == 1
+
+    lock = registry.locks_directory / "registry.lock"
+    lock.write_text("stale", encoding="utf-8")
+    old = time.time() - 10
+    os.utime(lock, (old, old))
+    registry.promote("apartment-defect", "1.0.0", "staging")
+    assert registry.read().revision == 2
+
+    registry.stale_lock_seconds = 100
+    lock.write_text("live", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="timed out"):
+        registry.promote("apartment-defect", "1.0.0", "production")
+
+
+def test_registry_mutation_failures_leave_state_and_copy_clean(
+    tmp_path, monkeypatch
+) -> None:
+    registry = ModelRegistry(tmp_path / "registry")
+    registry.register(
+        _package(tmp_path), "apartment-defect", "1.0.0", stage="development"
+    )
+    before = registry.read().to_dict()
+
+    def fail_write(index):
+        raise RuntimeError("atomic replacement failed")
+
+    monkeypatch.setattr(registry, "_write", fail_write)
+    with pytest.raises(RuntimeError, match="atomic replacement"):
+        registry.promote("apartment-defect", "1.0.0", "production")
+    assert registry.read().to_dict() == before
+
+    second_registry = ModelRegistry(tmp_path / "copy-registry")
+    package = _package(tmp_path / "copy", "2.0.0")
+    monkeypatch.setattr("vision_ai.model_registry.shutil.copytree", lambda *a, **k: (_ for _ in ()).throw(OSError("copy failed")))
+    with pytest.raises(OSError, match="copy failed"):
+        second_registry.register(package, "apartment-defect", "2.0.0")
+    assert not (second_registry.models_directory / "apartment-defect" / "2.0.0").exists()
+    assert not list(second_registry.models_directory.rglob("*.tmp-*"))
 
 
 class FakeBackend:
@@ -224,7 +294,7 @@ def test_serving_config_environment_and_optional_app_import(tmp_path, monkeypatc
 
 def test_service_predict_cache_metrics_and_image_id_replacement(tmp_path) -> None:
     service, created = _service(tmp_path, cache=True)
-    image = b"\x89PNG\r\n\x1a\npayload"
+    image = _png()
     first = service.predict(
         image, mime_type="image/png", image_id="first"
     )
@@ -262,7 +332,7 @@ def test_readiness_changes_after_production_registration(tmp_path) -> None:
 
 def test_service_batch_partial_errors_and_limits_are_sanitized(tmp_path) -> None:
     service, _ = _service(tmp_path)
-    image = b"\x89PNG\r\n\x1a\npayload"
+    image = _png()
     results = service.predict_batch(
         [
             {"image": image, "mime_type": "image/png", "image_id": "ok"},
@@ -319,9 +389,64 @@ def test_model_manager_lru_and_registry_revision_refresh(tmp_path) -> None:
     assert not created[0].closed
     registry.promote("apartment-defect", "2.0.0", "production")
     assert manager.resolve()[0].model_version == "2.0.0"
-    assert len(created) == 3
+    assert len(created) == 2
     manager.close()
     assert all(item.closed for item in created)
+
+
+def test_reload_failure_keeps_previous_production_session(tmp_path) -> None:
+    registry = ModelRegistry(tmp_path / "registry")
+    registry.register(
+        _package(tmp_path / "one", "1.0.0"),
+        "apartment-defect",
+        "1.0.0",
+        stage="production",
+    )
+    registry.register(
+        _package(tmp_path / "two", "2.0.0"),
+        "apartment-defect",
+        "2.0.0",
+    )
+
+    def factory(entry, path):
+        if entry.model_version == "2.0.0":
+            raise RuntimeError("new model broken")
+        return FakeBackend(entry.model_version)
+
+    metrics = ServiceMetrics()
+    manager = ModelManager(
+        registry,
+        "apartment-defect",
+        backend_factory=factory,
+        metrics=metrics,
+    )
+    old_entry, old_backend = manager.resolve()
+    registry.promote("apartment-defect", "2.0.0", "production")
+    fallback_entry, fallback_backend = manager.resolve()
+    assert fallback_entry == old_entry
+    assert fallback_backend is old_backend
+    assert metrics.snapshot()["model_reload_failure_count"] == 1
+
+
+def test_serving_concurrency_timeout_dimensions_and_extended_metrics(tmp_path) -> None:
+    service, _ = _service(tmp_path)
+    object.__setattr__(service.config, "request_timeout_seconds", 0.01)
+    service._concurrency = threading.BoundedSemaphore(1)
+    service._concurrency.acquire()
+    with pytest.raises(ServiceError) as timeout:
+        service.predict(_png(), mime_type="image/png", image_id="timeout")
+    service._concurrency.release()
+    assert timeout.value.code == "REQUEST_TIMEOUT"
+    with pytest.raises(ServiceError) as dimensions:
+        service.predict(
+            _png(100_000, 100_000), mime_type="image/png", image_id="bomb"
+        )
+    assert dimensions.value.code == "INVALID_IMAGE"
+    metrics = service.metrics.snapshot()
+    assert metrics["request_rejection_count"] >= 1
+    assert metrics["timeout_count"] >= 1
+    assert metrics["concurrent_requests"] == 0
+    assert "batch_size_buckets" in metrics
 
 
 def test_inference_cache_lru_returns_independent_predictions() -> None:
@@ -368,6 +493,88 @@ def test_registry_cli_register_promote_and_list_json(tmp_path, capsys) -> None:
     assert '"stage": "production"' in output
 
 
+def test_release_check_pass_warning_fail_and_manifest_round_trip(
+    tmp_path, monkeypatch
+) -> None:
+    registry = ModelRegistry(tmp_path / "registry")
+    registry.register(
+        _package(tmp_path),
+        "apartment-defect",
+        "1.0.0",
+        stage="production",
+    )
+    warning, warning_manifest = run_release_check(
+        registry.directory,
+        "apartment-defect",
+        "1.0.0",
+        generated_at="2026-07-20T00:00:00+00:00",
+    )
+    assert warning.status == "warning"
+    assert ReleaseCheckReport.from_dict(warning.to_dict()) == warning
+    assert ReleaseManifest.from_dict(warning_manifest.to_dict()) == warning_manifest
+
+    monkeypatch.setattr(
+        "vision_ai.release_readiness.importlib.util.find_spec",
+        lambda name: object(),
+    )
+    passed, _ = run_release_check(
+        registry.directory,
+        "apartment-defect",
+        "1.0.0",
+        smoke_inference=lambda package: None,
+    )
+    assert passed.status == "pass"
+
+    registry.promote("apartment-defect", "1.0.0", "staging")
+    failed, _ = run_release_check(
+        registry.directory,
+        "apartment-defect",
+        "1.0.0",
+        smoke_inference=lambda package: None,
+    )
+    assert failed.status == "fail"
+
+
+def test_release_check_cli_writes_machine_readable_artifacts(tmp_path) -> None:
+    registry = ModelRegistry(tmp_path / "registry")
+    registry.register(
+        _package(tmp_path),
+        "apartment-defect",
+        "1.0.0",
+        stage="production",
+    )
+    output = tmp_path / "release"
+    assert main(
+        [
+            "vision-release-check",
+            "--registry",
+            str(registry.directory),
+            "--model",
+            "apartment-defect",
+            "--version",
+            "1.0.0",
+            "--output",
+            str(output),
+        ]
+    ) == 0
+    assert (output / "release_check_report.json").is_file()
+    assert (output / "release_manifest.json").is_file()
+    assert main(
+        [
+            "vision-release-check",
+            "--registry",
+            str(registry.directory),
+            "--model",
+            "apartment-defect",
+            "--version",
+            "1.0.0",
+            "--output",
+            str(tmp_path / "strict-release"),
+            "--strict",
+        ]
+    ) == 1
+
+
 def test_serve_cli_reports_missing_optional_dependency(monkeypatch, tmp_path) -> None:
     monkeypatch.setitem(sys.modules, "uvicorn", None)
     with pytest.raises(RuntimeError, match=r"\[serving\]"):
@@ -382,24 +589,34 @@ def test_serve_cli_reports_missing_optional_dependency(monkeypatch, tmp_path) ->
         )
 
 
+@pytest.mark.docker
 def test_dockerfile_and_ci_have_required_security_and_validation() -> None:
     root = Path(__file__).parents[2]
     dockerfile = (root / "Dockerfile").read_text(encoding="utf-8")
     workflow = (root / ".github" / "workflows" / "ci.yml").read_text(
         encoding="utf-8"
     )
-    assert "python:3.11-slim" in dockerfile
+    assert "python:3.11-slim-bookworm" in dockerfile
     assert "USER app" in dockerfile
     assert "HEALTHCHECK" in dockerfile and "/ready" in dockerfile
     assert "VOLUME" in dockerfile
+    assert "STOPSIGNAL SIGTERM" in dockerfile
+    assert "TMPDIR=/tmp/apartment-defect-ai" in dockerfile
     assert "actions/setup-python@v5" in workflow
     assert '["3.11", "3.12", "3.13"]' in workflow
     assert "compileall" in workflow
     assert "git diff --check" in workflow
     assert "dataset/schemas" in workflow
     assert ".[test,serving]" in workflow
+    assert "onnx-smoke:" in workflow
+    assert "training-smoke:" in workflow
+    assert "schema-static:" in workflow
+    assert "docker-build:" in workflow
+    assert "windows-latest" in workflow
 
 
+@pytest.mark.integration
+@pytest.mark.serving
 def test_fastapi_endpoints_when_optional_dependencies_are_installed(tmp_path) -> None:
     pytest.importorskip("fastapi")
     pytest.importorskip("httpx")
@@ -407,7 +624,7 @@ def test_fastapi_endpoints_when_optional_dependencies_are_installed(tmp_path) ->
 
     service, _ = _service(tmp_path, cache=True)
     app = create_serving_app(service.config, service=service)
-    image = base64.b64encode(b"\x89PNG\r\n\x1a\npayload").decode()
+    image = base64.b64encode(_png()).decode()
     with TestClient(app) as client:
         assert client.get("/health").json() == {"status": "healthy"}
         assert client.get("/ready").status_code == 200

@@ -3,7 +3,7 @@
   "$id": "https://apartment-defect-ai.local/schemas/serving_config.schema.json",
   "title": "Vision Serving Configuration",
   "type": "object",
-  "required": ["registry_directory", "default_model_name", "host", "port", "workers", "max_upload_bytes", "max_batch_size", "confidence_threshold", "session_cache_size", "inference_cache_enabled", "inference_cache_size", "compatibility_strictness", "allowed_mime_types", "temp_directory", "logging_level"],
+  "required": ["registry_directory", "default_model_name", "host", "port", "workers", "max_upload_bytes", "max_batch_size", "confidence_threshold", "session_cache_size", "inference_cache_enabled", "inference_cache_size", "compatibility_strictness", "allowed_mime_types", "temp_directory", "logging_level", "request_timeout_seconds", "model_load_timeout_seconds", "max_concurrent_requests", "max_batch_bytes", "max_image_pixels", "max_json_depth"],
   "properties": {
     "registry_directory": {"type": "string", "minLength": 1},
     "default_model_name": {"type": "string", "minLength": 1},
@@ -19,7 +19,13 @@
     "compatibility_strictness": {"enum": ["warning", "fail"]},
     "allowed_mime_types": {"type": "array", "items": {"type": "string"}},
     "temp_directory": {"type": ["string", "null"]},
-    "logging_level": {"type": "string"}
+    "logging_level": {"type": "string"},
+    "request_timeout_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "model_load_timeout_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "max_concurrent_requests": {"type": "integer", "minimum": 1},
+    "max_batch_bytes": {"type": "integer", "minimum": 1},
+    "max_image_pixels": {"type": "integer", "minimum": 1},
+    "max_json_depth": {"type": "integer", "minimum": 1}
   },
   "additionalProperties": false
 }

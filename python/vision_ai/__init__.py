@@ -83,6 +83,13 @@ from .serving import (
     ServingConfig,
     ServingService,
 )
+from .release_readiness import (
+    ReleaseCheckItem,
+    ReleaseCheckReport,
+    ReleaseManifest,
+    run_release_check,
+    write_release_artifacts,
+)
 
 __all__ = [
     "BoundingBox",
@@ -123,6 +130,9 @@ __all__ = [
     "RegistryEntry",
     "RegistryIndex",
     "ReferenceTrainingBackend",
+    "ReleaseCheckItem",
+    "ReleaseCheckReport",
+    "ReleaseManifest",
     "SeverityMetrics",
     "ServiceMetrics",
     "ServingConfig",
@@ -153,6 +163,8 @@ __all__ = [
     "load_package_configuration",
     "load_training_backend",
     "resolve_image_path",
+    "run_release_check",
     "validate_model_package",
+    "write_release_artifacts",
     "default_deployment_profiles",
 ]

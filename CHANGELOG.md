@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.11.0] - 2026-07-20
+
+### Added
+
+- Registry backup recovery, stale-lock expiry, writer timeout, rollback-safe
+  mutation handling, and explicit corruption/read-only errors.
+- Serving concurrency, timeout, batch-byte, JSON-depth, MIME/header, and image
+  dimension defenses with reload fallback and graceful cache shutdown.
+- Expanded readiness, active model, reload, rejection, timeout, concurrency,
+  cache, batch bucket, and response-status metrics.
+- Release-check report and release manifest models, schemas, and CLI workflow.
+- Optional environment pytest markers and separated serving/ONNX/training/Docker
+  CI jobs, including Windows core coverage.
+- Hardened read-only-capable CPU container policy and operations runbook.
+
 ## [0.10.0] - 2026-07-20
 
 ### Added

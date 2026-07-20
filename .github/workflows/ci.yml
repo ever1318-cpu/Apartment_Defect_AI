@@ -17,11 +17,19 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: python -m pip install -e ".[test]"
-      - run: python -c "import vision_ai; print(vision_ai.__name__)"
-      - run: python -m pytest -q -p no:cacheprovider
-      - run: python -m compileall -q python
-      - run: git diff --check
-      - run: python -c "import json,pathlib; [json.loads(p.read_text(encoding='utf-8-sig')) for p in pathlib.Path('dataset/schemas').glob('*.json')]"
+      - run: python -m pytest -q -m "not serving and not onnx and not training and not docker"
+      - run: python -c "import sys,vision_ai; assert not any(name in sys.modules for name in ('fastapi','onnxruntime','torch'))"
+
+  windows-core:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[test]"
+      - run: python -m pytest -q -m "not serving and not onnx and not training and not docker"
 
   serving:
     runs-on: ubuntu-latest
@@ -29,7 +37,55 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
       - run: python -m pip install -e ".[test,serving]"
-      - run: python -m pytest python/tests/test_vision_registry_serving.py -q
+      - run: python -m pytest -q -m serving
+
+  onnx-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[test,onnx]"
+      - run: python -m pytest -q -m onnx
+
+  training-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[test,pytorch,onnx]"
+      - run: python -m pytest -q -m training
+
+  schema-static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[test]"
+      - run: python -m compileall -q python
+      - run: git diff --check
+      - run: python -c "import json,pathlib; [json.loads(p.read_text(encoding='utf-8-sig')) for p in pathlib.Path('dataset/schemas').glob('*.json')]"
+      - run: python -m py_compile python/vision_ai/model_registry.py python/vision_ai/serving.py python/vision_ai/release_readiness.py
+      - run: python -m pytest -q -m docker
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: apartment-defect-ai:test

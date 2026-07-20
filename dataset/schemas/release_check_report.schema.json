@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/release_check_report.schema.json",
+  "title": "Vision Release Check Report",
+  "type": "object",
+  "required": ["generated_at", "model_name", "model_version", "registry_revision", "status", "checks", "summary"],
+  "properties": {
+    "generated_at": {"type": "string"},
+    "model_name": {"type": "string", "minLength": 1},
+    "model_version": {"type": "string", "minLength": 1},
+    "registry_revision": {"type": "integer", "minimum": 0},
+    "status": {"enum": ["pass", "warning", "fail"]},
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["check", "status", "message"],
+        "properties": {
+          "check": {"type": "string"},
+          "status": {"enum": ["pass", "warning", "fail"]},
+          "message": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["pass", "warning", "fail"],
+      "properties": {
+        "pass": {"type": "integer", "minimum": 0},
+        "warning": {"type": "integer", "minimum": 0},
+        "fail": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
