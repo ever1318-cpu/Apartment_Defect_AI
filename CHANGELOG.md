@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.10.0] - 2026-07-20
+
+### Added
+
+- Revisioned filesystem model registry with validated package copies, atomic
+  index writes, writer lock, promotion/demotion, and production replacement.
+- Optional FastAPI application factory with health, readiness, model, prediction,
+  batch, metrics, request ID, and sanitized error endpoints.
+- Environment-driven serving configuration, thread-safe metrics, session
+  lifecycle cache, and optional SHA-256 inference cache.
+- Registry/serving CLI workflows, six JSON schemas, a non-root CPU Dockerfile,
+  and Python matrix/optional-serving GitHub Actions validation.
+
 ## [0.9.0] - 2026-07-20
 
 ### Added

@@ -44,16 +44,24 @@ Last updated: 2026-07-20
   - Path traversal, symbolic-link, missing, mismatch, and strict-extra checks.
   - CPU/GPU profiles with pass, warning, and fail compatibility results.
   - Validated package-directory loading by the ONNX inference adapter.
+- Sprint 2-8: model registry and serving operations.
+  - Revisioned local registry with immutable package copies and stage policy.
+  - Optional FastAPI factory with health/readiness/model/prediction/metrics APIs.
+  - Revision-aware session lifecycle and optional inference result cache.
+  - Thread-safe operational metrics and sanitized request-scoped errors/logging.
+  - Non-root CPU Docker foundation and Python matrix CI workflow.
 
 ## Verification
 
-- Full suite: 80 tests passed, 1 skipped (symbolic-link capability dependent).
+- Full suite: 91 tests passed, 3 skipped.
+- Skips: two Windows symbolic-link capability checks and the optional FastAPI
+  integration test (serving dependencies are not installed locally).
 - Command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
-  --basetemp=output\pytest-sprint-2-7-final`
+  --basetemp=output\pytest-sprint-2-8-final-3`
 - Existing Sprint 2-1 interfaces and tests remain intact.
 
 ## Current Boundary
 
-The repository now covers training through portable model-package validation.
-Production weights, remote distribution, serving, and operational monitoring
-remain intentionally out of scope.
+The repository now covers training, packaging, registry lifecycle, and optional
+CPU serving foundations. Production weights, remote artifact distribution,
+authentication, and durable telemetry remain intentionally out of scope.

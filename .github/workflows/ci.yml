@@ -1,0 +1,35 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install -e ".[test]"
+      - run: python -c "import vision_ai; print(vision_ai.__name__)"
+      - run: python -m pytest -q -p no:cacheprovider
+      - run: python -m compileall -q python
+      - run: git diff --check
+      - run: python -c "import json,pathlib; [json.loads(p.read_text(encoding='utf-8-sig')) for p in pathlib.Path('dataset/schemas').glob('*.json')]"
+
+  serving:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: python -m pip install -e ".[test,serving]"
+      - run: python -m pytest python/tests/test_vision_registry_serving.py -q

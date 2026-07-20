@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/prediction_batch_request.schema.json",
+  "title": "Serving Batch Prediction Request",
+  "type": "object",
+  "required": ["items"],
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {"$ref": "prediction_request.schema.json"}
+    },
+    "fail_fast": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

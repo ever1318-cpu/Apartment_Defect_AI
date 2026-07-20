@@ -1,14 +1,13 @@
 # Next Task
 
-## Sprint 2-8 — Model Distribution and Serving Lifecycle
+## Sprint 2-9 — Serving Security and Production Rollout
 
-Distribute validated packages and operate inference services without coupling
-the stable Vision contracts to a hosting framework:
+Harden the serving foundation for controlled multi-environment rollout:
 
-1. Define artifact repository and immutable release promotion boundaries.
-2. Add service health, readiness, and model-version reporting.
-3. Record structured latency, throughput, failure, and drift signals.
-4. Support safe package activation and rollback.
-5. Add offline serving fixtures and lifecycle integration tests.
+1. Add authentication, authorization, and request rate-limit boundaries.
+2. Define signed remote artifact promotion and rollback policies.
+3. Export durable metrics, traces, audit events, and drift signals.
+4. Add canary activation, traffic splitting, and automated rollback controls.
+5. Add production configuration validation and security integration tests.
 
-Preserve Sprint 2-1 through Sprint 2-7 interfaces and serialized artifacts.
+Preserve Sprint 2-1 through Sprint 2-8 interfaces and serialized artifacts.
