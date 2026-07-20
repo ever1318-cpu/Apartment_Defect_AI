@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/vision_prediction.schema.json",
+  "title": "Apartment Defect Vision Prediction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_id", "model_version", "quality", "classifications", "detections", "metadata"],
+  "properties": {
+    "image_id": {"type": "string", "minLength": 1},
+    "model_version": {"type": "string", "minLength": 1},
+    "quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["score", "acceptable", "issues"],
+      "properties": {
+        "score": {"type": "number", "minimum": 0, "maximum": 1},
+        "acceptable": {"type": "boolean"},
+        "issues": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "classifications": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["label", "confidence"],
+          "properties": {
+            "label": {"type": "string", "minLength": 1},
+            "confidence": {"type": "number", "minimum": 0, "maximum": 1}
+          }
+        }
+      }
+    },
+    "detections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "confidence", "box", "mask", "severity"],
+        "properties": {
+          "label": {"type": "string", "minLength": 1},
+          "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "box": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["x_min", "y_min", "x_max", "y_max"],
+            "properties": {
+              "x_min": {"type": "number", "minimum": 0, "maximum": 1},
+              "y_min": {"type": "number", "minimum": 0, "maximum": 1},
+              "x_max": {"type": "number", "minimum": 0, "maximum": 1},
+              "y_max": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+          },
+          "mask": {
+            "oneOf": [
+              {"type": "null"},
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["points"],
+                "properties": {
+                  "points": {
+                    "type": "array",
+                    "minItems": 3,
+                    "items": {
+                      "type": "array",
+                      "prefixItems": [
+                        {"type": "number", "minimum": 0, "maximum": 1},
+                        {"type": "number", "minimum": 0, "maximum": 1}
+                      ],
+                      "minItems": 2,
+                      "maxItems": 2
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "severity": {"enum": ["low", "medium", "high", null]}
+        }
+      }
+    },
+    "metadata": {"type": "object"}
+  }
+}

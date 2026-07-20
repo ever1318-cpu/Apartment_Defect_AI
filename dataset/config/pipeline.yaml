@@ -37,3 +37,18 @@ augmentation:
 active_learning:
   strategy: entropy
   max_per_group: 1
+
+vision:
+  model_version: vision-mvp-1
+  quality:
+    reject_unacceptable: true
+  classification:
+    tasks: [space, trade, component]
+    confidence_threshold: 0.25
+    top_k: 3
+  detection:
+    confidence_threshold: 0.25
+    nms_iou_threshold: 0.50
+  severity:
+    medium_area: 0.02
+    high_area: 0.10

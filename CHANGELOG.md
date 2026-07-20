@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.0] - 2026-07-20
+
+### Added
+
+- Framework-neutral Vision AI contracts for quality, hierarchical classification,
+  defect detection, polygon segmentation, and severity.
+- Backend protocol and deterministic multi-stage inference orchestration.
+- Confidence filtering, stable top-k selection, class-aware non-maximum
+  suppression, and area-based severity assignment.
+- Vision prediction validation against dataset image identifiers.
+- JSON Schema and pipeline configuration for serialized Vision AI predictions.
+- `vision-validate` CLI workflow.
+- Unit and integration coverage for Vision AI models, post-processing, pipeline,
+  serialization, and validation.
+
 ## [0.2.0] - 2026-07-20
 
 ### Added

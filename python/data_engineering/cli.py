@@ -9,11 +9,13 @@ from pathlib import Path
 from typing import Sequence
 
 from .etl.legacy_import import deduplicate_records, import_legacy_csv
-from .io import read_records, write_jsonl, write_records
+from .io import read_jsonl, read_records, write_jsonl, write_records
 from .models import SplitRatios
 from .splitters.group_stratified import group_stratified_split
 from .validators.manifest import validate_records
 from .versioning.manifest import build_manifest
+from vision_ai.models import VisionPrediction
+from vision_ai.validators import validate_predictions
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -42,6 +44,12 @@ def _parser() -> argparse.ArgumentParser:
     version.add_argument("input", type=Path)
     version.add_argument("output", type=Path)
     version.add_argument("--version", required=True)
+
+    vision = commands.add_parser(
+        "vision-validate", help="validate serialized Vision AI predictions"
+    )
+    vision.add_argument("input", type=Path)
+    vision.add_argument("--records", type=Path)
     return parser
 
 
@@ -70,6 +78,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         manifest = build_manifest(read_records(args.input), version=args.version)
         write_jsonl(args.output, [manifest])
         return 0
+    if args.command == "vision-validate":
+        predictions = [
+            VisionPrediction.from_dict(value) for value in read_jsonl(args.input)
+        ]
+        expected_ids = (
+            {record.image_id for record in read_records(args.records)}
+            if args.records is not None
+            else None
+        )
+        issues = validate_predictions(predictions, expected_image_ids=expected_ids)
+        for issue in issues:
+            print(json.dumps(asdict(issue), ensure_ascii=False))
+        return 1 if issues else 0
     raise AssertionError("unreachable")
 
 
