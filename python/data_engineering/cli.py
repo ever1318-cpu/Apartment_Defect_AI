@@ -60,10 +60,28 @@ def _parser() -> argparse.ArgumentParser:
     predict.add_argument("input", type=Path, help="ImageRecord JSONL")
     predict.add_argument("output", type=Path, help="prediction JSONL")
     predict.add_argument(
-        "--backend", required=True, help="backend instance or factory as module:attribute"
+        "--backend",
+        default="reference",
+        help="'reference' or backend instance/factory as module:attribute",
+    )
+    predict.add_argument(
+        "--root", type=Path, help="base directory for relative manifest image paths"
     )
     predict.add_argument("--errors", type=Path, help="optional inference error JSONL")
     predict.add_argument("--fail-fast", action="store_true")
+
+    predict_image = commands.add_parser(
+        "vision-predict-image", help="run Vision inference for one image file"
+    )
+    predict_image.add_argument("image", type=Path)
+    predict_image.add_argument("output", type=Path, help="prediction JSONL")
+    predict_image.add_argument(
+        "--backend",
+        default="reference",
+        help="'reference' or backend instance/factory as module:attribute",
+    )
+    predict_image.add_argument("--image-id")
+    predict_image.add_argument("--fail-fast", action="store_true")
     return parser
 
 
@@ -108,11 +126,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "vision-predict":
         backend = load_backend(args.backend)
         result = InferenceRunner(
-            VisionPipeline(backend), fail_fast=args.fail_fast
+            VisionPipeline(backend),
+            fail_fast=args.fail_fast,
+            validate_images=True,
+            root=args.root if args.root is not None else args.input.parent,
         ).run(read_records(args.input))
-        write_jsonl(args.output, (item.to_dict() for item in result.predictions))
+        write_jsonl(args.output, (item.to_dict() for item in result.outputs))
         if args.errors is not None:
             write_jsonl(args.errors, (item.to_dict() for item in result.failures))
+        print(json.dumps(result.summary.to_dict(), ensure_ascii=False, sort_keys=True))
+        return 1 if result.failures else 0
+    if args.command == "vision-predict-image":
+        backend = load_backend(args.backend)
+        result = InferenceRunner(
+            VisionPipeline(backend),
+            fail_fast=args.fail_fast,
+            validate_images=True,
+        ).predict_image(args.image, image_id=args.image_id)
+        write_jsonl(args.output, (item.to_dict() for item in result.outputs))
         print(json.dumps(result.summary.to_dict(), ensure_ascii=False, sort_keys=True))
         return 1 if result.failures else 0
     raise AssertionError("unreachable")

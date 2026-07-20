@@ -1,6 +1,7 @@
 """Framework-neutral Vision AI inference foundations."""
 
-from .backends import CallableVisionBackend, load_backend
+from .backends import CallableVisionBackend, ReferenceVisionBackend, load_backend
+from .image_io import ImageFileInfo, inspect_image_file, resolve_image_path
 from .inference import (
     InferenceFailure,
     InferenceResult,
@@ -22,6 +23,7 @@ __all__ = [
     "CallableVisionBackend",
     "Classification",
     "DefectDetection",
+    "ImageFileInfo",
     "ImageQuality",
     "InferenceFailure",
     "InferenceResult",
@@ -29,8 +31,11 @@ __all__ = [
     "InferenceSummary",
     "PipelineConfig",
     "PolygonMask",
+    "ReferenceVisionBackend",
     "VisionBackend",
     "VisionPipeline",
     "VisionPrediction",
+    "inspect_image_file",
     "load_backend",
+    "resolve_image_path",
 ]

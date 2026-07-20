@@ -9,15 +9,18 @@ Last updated: 2026-07-20
   post-processing, schema, and tests.
 - Sprint 2-2: backend-neutral batch inference execution.
   - Callable backend adapter and dynamic backend loading.
-  - Deterministic batch runner with quality-rejection accounting.
-  - Record-level error isolation and optional fail-fast execution.
-  - Atomic prediction/error JSONL output through `vision-predict`.
+  - Deterministic reference backend for real image files.
+  - Basic JPEG, PNG, WebP, and TIFF file validation.
+  - Manifest batch and single-image inference.
+  - Timing/backend/status metadata, schema-compatible error predictions, and
+    optional fail-fast execution.
+  - Atomic prediction/error JSONL output through inference CLI commands.
 
 ## Verification
 
-- Full suite: 29 tests passed.
+- Full suite: 33 tests passed.
 - Command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
-  --basetemp=output\pytest-sprint-2-2-final`
+  --basetemp=output\pytest-sprint-2-2-full`
 - Existing Sprint 2-1 interfaces and tests remain intact.
 
 ## Current Boundary
