@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/duplicate_groups.schema.json",
+  "title": "Duplicate Image Groups",
+  "type": "object",
+  "required": ["similarity_threshold", "groups"],
+  "properties": {
+    "similarity_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+    "groups": {"type": "array", "items": {"$ref": "#/$defs/group"}}
+  },
+  "$defs": {
+    "group": {
+      "type": "object",
+      "required": ["group_id", "kind", "canonical_image_id", "image_ids", "similarity", "policy"],
+      "properties": {
+        "group_id": {"type": "string"},
+        "kind": {"enum": ["exact", "near"]},
+        "canonical_image_id": {"type": "string"},
+        "image_ids": {"type": "array", "minItems": 2, "items": {"type": "string"}},
+        "similarity": {"type": "number", "minimum": 0, "maximum": 1},
+        "policy": {"const": "exclude_non_canonical"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

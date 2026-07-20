@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/annotation_qa_report.schema.json",
+  "title": "Annotation QA Report",
+  "type": "object",
+  "required": ["valid", "issues", "label_distribution", "agreement"],
+  "properties": {
+    "valid": {"type": "boolean"},
+    "issues": {"type": "array", "items": {"type": "object", "required": ["code", "severity", "message", "image_id"], "properties": {"code": {"type": "string"}, "severity": {"enum": ["warning", "error"]}, "message": {"type": "string"}, "image_id": {"type": "string"}}, "additionalProperties": false}},
+    "label_distribution": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+    "agreement": {"type": ["number", "null"], "minimum": 0, "maximum": 1}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/image_ingestion_manifest.schema.json",
+  "title": "Field Image Ingestion Manifest",
+  "type": "object",
+  "required": ["format_version", "source_batch", "operator", "ingested_at", "record_count", "error_count", "records_file", "errors_file"],
+  "properties": {
+    "format_version": {"const": "1.0"},
+    "source_batch": {"type": "string", "minLength": 1},
+    "operator": {"type": "string", "minLength": 1},
+    "ingested_at": {"type": "string", "format": "date-time"},
+    "record_count": {"type": "integer", "minimum": 0},
+    "error_count": {"type": "integer", "minimum": 0},
+    "records_file": {"type": "string", "pattern": "^[^/\\\\]+$"},
+    "errors_file": {"type": "string", "pattern": "^[^/\\\\]+$"}
+  },
+  "additionalProperties": false
+}

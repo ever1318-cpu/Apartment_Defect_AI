@@ -1,13 +1,13 @@
 # Next Task
 
-## Sprint 3-1 — Controlled Production Rollout
+## Sprint 3-2 — Labeling Integration and Drift Gates
 
-Extend the local release-ready baseline into controlled shared environments:
+Extend the Sprint 3-1 offline workflow into controlled shared labeling operations:
 
-1. Add authentication, authorization, and request rate-limit boundaries.
-2. Define signed remote artifact promotion and rollback policies.
-3. Export durable metrics, traces, audit events, and drift signals.
-4. Add canary activation, traffic splitting, and automated rollback controls.
-5. Add production configuration validation and security integration tests.
+1. Add optional labeling-platform import/export adapters.
+2. Add optional face/license-plate/document detector adapters.
+3. Add reviewer sampling and adjudication queues.
+4. Compare dataset versions and enforce configurable drift gates.
+5. Add signed audit export and retention-policy automation.
 
-Preserve Sprint 2-1 through Sprint 2-9 interfaces and serialized artifacts.
+Preserve Sprint 2-1 through Sprint 3-1 interfaces and serialized artifacts.
