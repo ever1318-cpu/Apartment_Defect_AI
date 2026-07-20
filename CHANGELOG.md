@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.6.0] - 2026-07-20
+
+### Added
+
+- Ground-truth annotation and JSON evaluation report contracts.
+- Task-level classification accuracy, macro precision/recall/F1, confusion
+  matrices, thresholds, and per-label support/count metrics.
+- Class-aware greedy IoU detection matching with aggregate and per-label metrics.
+- Matched-detection severity evaluation with an explicit missing-severity policy.
+- Fatal input errors and partial-evaluation warnings in serialized reports.
+- Atomic `vision-evaluate` CLI workflow and ground-truth/report JSON schemas.
+- Unit and end-to-end coverage for exact, incorrect, missing, duplicate,
+  thresholded, IoU, class mismatch, severity, round-trip, and zero-denominator
+  cases.
+
 ## [0.5.0] - 2026-07-20
 
 ### Added

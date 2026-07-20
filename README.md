@@ -87,3 +87,42 @@ The ONNX adapter expects one model input and these named outputs:
 Session creation is separate from inference and can be injected for testing or
 runtime customization. `onnxruntime`, NumPy, and Pillow are imported only when
 the default ONNX session or image loader is actually used.
+
+## Vision evaluation
+
+Ground truth is JSONL keyed by `image_id`. Each line contains task labels and
+zero or more normalized XYXY detections:
+
+```json
+{"image_id":"image-1","dataset_version":"dataset-7","classifications":{"space":"bathroom"},"detections":[{"label":"crack","box":{"x_min":0.1,"y_min":0.1,"x_max":0.5,"y_max":0.5},"severity":"low"}]}
+```
+
+Generate an atomic JSON evaluation report:
+
+```powershell
+apartment-data vision-evaluate `
+  ground-truth.jsonl predictions.jsonl evaluation-report.json `
+  --iou-threshold 0.5 --confidence-threshold 0.25 `
+  --dataset-version dataset-7
+```
+
+Classification evaluation selects the highest-confidence prediction at or above
+the threshold for each task. If none remains, the prediction is recorded as
+`__none__`. Reports include accuracy, macro precision/recall/F1, confusion
+matrices, and label support with TP/FP/FN.
+
+Detection evaluation filters by confidence and processes predictions from highest
+confidence to lowest. A prediction matches the unmatched ground-truth box of the
+same class with the highest IoU when that IoU is at least the configured
+threshold. Each ground-truth box can match once. Remaining predictions are false
+positives and remaining annotations are false negatives.
+
+Severity is evaluated only for matched detection pairs where both sides provide
+`low`, `medium`, or `high`. A pair missing either severity is excluded and counted
+in `ignored_missing`. The report stores this policy, severity accuracy, macro
+metrics, confusion matrix, and per-label metrics. Zero-denominator precision,
+recall, and F1 values are reported as `0.0`.
+
+Duplicate IDs are fatal report errors. Missing predictions, unknown prediction
+IDs, mixed versions, and inference-error predictions are warnings; valid
+`image_id` intersections are still evaluated.

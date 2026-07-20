@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/vision_ground_truth.schema.json",
+  "title": "Apartment Defect Vision Ground Truth",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_id", "classifications", "detections"],
+  "properties": {
+    "image_id": {"type": "string", "minLength": 1},
+    "dataset_version": {"type": "string", "minLength": 1, "default": "unknown"},
+    "classifications": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "minLength": 1}
+    },
+    "detections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "box"],
+        "properties": {
+          "label": {"type": "string", "minLength": 1},
+          "box": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["x_min", "y_min", "x_max", "y_max"],
+            "properties": {
+              "x_min": {"type": "number", "minimum": 0, "maximum": 1},
+              "y_min": {"type": "number", "minimum": 0, "maximum": 1},
+              "x_max": {"type": "number", "minimum": 0, "maximum": 1},
+              "y_max": {"type": "number", "minimum": 0, "maximum": 1}
+            }
+          },
+          "mask": {"type": ["object", "null"]},
+          "severity": {"enum": ["low", "medium", "high", null]}
+        }
+      }
+    }
+  }
+}

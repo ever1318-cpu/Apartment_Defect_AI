@@ -11,7 +11,8 @@
 - Sprint 2-2 (complete): validated real-image inference, deterministic reference
   backend, resilient batch runner, and CLI integration.
 - Sprint 2-3 (complete): production backend registry and optional ONNX adapter.
-- Sprint 2-4 (recommended): evaluation metrics and threshold calibration.
+- Sprint 2-4 (complete): classification, detection, and severity evaluation with
+  machine-readable reports.
 - Sprint 2-5 (planned): model packaging, compatibility manifests, and deployment
   profiles.
 
