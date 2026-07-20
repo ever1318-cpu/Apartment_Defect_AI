@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.0] - 2026-07-20
+
+### Added
+
+- Named backend registry/factory with built-in `reference` and `onnx` adapters.
+- Optional ONNX Runtime adapter with model validation, lazy dependencies, separate
+  session creation, injectable preprocessing, and cached per-image inference.
+- Strict ONNX output shape and label validation.
+- CLI model, model-version, and execution-provider selection.
+- Fake Session tests covering registry errors, missing models, session separation,
+  successful parsing, caching, and invalid output shapes.
+
 ## [0.4.0] - 2026-07-20
 
 ### Added

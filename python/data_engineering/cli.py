@@ -14,7 +14,7 @@ from .models import SplitRatios
 from .splitters.group_stratified import group_stratified_split
 from .validators.manifest import validate_records
 from .versioning.manifest import build_manifest
-from vision_ai.backends import load_backend
+from vision_ai.backends import create_backend
 from vision_ai.inference import InferenceRunner
 from vision_ai.models import VisionPrediction
 from vision_ai.pipeline import VisionPipeline
@@ -62,8 +62,11 @@ def _parser() -> argparse.ArgumentParser:
     predict.add_argument(
         "--backend",
         default="reference",
-        help="'reference' or backend instance/factory as module:attribute",
+        help="registered name (reference/onnx) or module:attribute",
     )
+    predict.add_argument("--model", type=Path, help="model path for model backends")
+    predict.add_argument("--model-version")
+    predict.add_argument("--provider", action="append", dest="providers")
     predict.add_argument(
         "--root", type=Path, help="base directory for relative manifest image paths"
     )
@@ -78,8 +81,11 @@ def _parser() -> argparse.ArgumentParser:
     predict_image.add_argument(
         "--backend",
         default="reference",
-        help="'reference' or backend instance/factory as module:attribute",
+        help="registered name (reference/onnx) or module:attribute",
     )
+    predict_image.add_argument("--model", type=Path, help="model path for model backends")
+    predict_image.add_argument("--model-version")
+    predict_image.add_argument("--provider", action="append", dest="providers")
     predict_image.add_argument("--image-id")
     predict_image.add_argument("--fail-fast", action="store_true")
     return parser
@@ -124,7 +130,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             print(json.dumps(asdict(issue), ensure_ascii=False))
         return 1 if issues else 0
     if args.command == "vision-predict":
-        backend = load_backend(args.backend)
+        backend = _create_cli_backend(args)
         result = InferenceRunner(
             VisionPipeline(backend),
             fail_fast=args.fail_fast,
@@ -137,7 +143,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(result.summary.to_dict(), ensure_ascii=False, sort_keys=True))
         return 1 if result.failures else 0
     if args.command == "vision-predict-image":
-        backend = load_backend(args.backend)
+        backend = _create_cli_backend(args)
         result = InferenceRunner(
             VisionPipeline(backend),
             fail_fast=args.fail_fast,
@@ -147,6 +153,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(result.summary.to_dict(), ensure_ascii=False, sort_keys=True))
         return 1 if result.failures else 0
     raise AssertionError("unreachable")
+
+
+def _create_cli_backend(args: argparse.Namespace):
+    options: dict[str, object] = {}
+    backend_name = args.backend.strip().lower()
+    if backend_name == "onnx":
+        if args.model is None:
+            raise ValueError("--model is required for the onnx backend")
+        options["model_path"] = args.model
+        if args.providers:
+            options["providers"] = tuple(args.providers)
+    elif args.model is not None or args.providers:
+        raise ValueError("--model and --provider are only valid for the onnx backend")
+    if args.model_version:
+        options["model_version"] = args.model_version
+    return create_backend(args.backend, **options)
 
 
 if __name__ == "__main__":

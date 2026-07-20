@@ -41,6 +41,8 @@ active_learning:
 vision:
   inference:
     backend: reference
+    model: null
+    providers: []
     validate_images: true
     continue_on_error: true
   model_version: vision-mvp-1

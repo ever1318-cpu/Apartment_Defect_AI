@@ -56,3 +56,34 @@ requiring an installed model framework.
 polygon masks from image bytes. It is intended for workflow verification rather
 than defect accuracy. Every execution result records `backend_name`,
 `model_version`, `duration_ms`, and `status` in prediction metadata.
+
+## Production backends
+
+Backends are created through `BackendRegistry`. The default registry contains
+`reference` and `onnx`; `module:attribute` factories remain available for custom
+integrations.
+
+Install ONNX support separately so the base package stays framework-neutral:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[onnx]"
+```
+
+Then select the registered backend and model from either inference command:
+
+```powershell
+apartment-data vision-predict records.jsonl predictions.jsonl `
+  --backend onnx --model models/defect.onnx `
+  --model-version defect-2026-07 --provider CPUExecutionProvider
+```
+
+The ONNX adapter expects one model input and these named outputs:
+
+- `quality`: `[1, 1]`
+- `space_scores`, `trade_scores`, `component_scores`: `[1, class_count]`
+- `boxes`: `[1, detection_count, 4]`, normalized XYXY
+- `detection_scores`, `detection_labels`: `[1, detection_count]`
+
+Session creation is separate from inference and can be injected for testing or
+runtime customization. `onnxruntime`, NumPy, and Pillow are imported only when
+the default ONNX session or image loader is actually used.
