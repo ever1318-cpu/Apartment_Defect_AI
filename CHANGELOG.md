@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.8.0] - 2026-07-20
+
+### Added
+
+- Optional, lazily imported PyTorch training backend with CPU/CUDA selection and
+  no pretrained downloads.
+- Independently testable split loader, DataLoader construction, and validation.
+- Small multi-task CNN, reproducible loop, finite-loss checks, latest/best
+  checkpoints, and environment metadata.
+- Configurable ONNX export with the named `OnnxVisionBackend` output contract.
+- PyTorch training/device and standalone ONNX export CLI workflows.
+
 ## [0.7.0] - 2026-07-20
 
 ### Added

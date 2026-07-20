@@ -37,6 +37,26 @@
     "learning_rate": {"type": "number", "exclusiveMinimum": 0},
     "random_seed": {"type": "integer"},
     "output_directory": {"type": "string", "minLength": 1},
-    "model_artifact_name": {"type": "string", "minLength": 1}
+    "model_artifact_name": {"type": "string", "minLength": 1},
+    "onnx_export": {
+      "type": "object",
+      "required": ["opset", "dynamic_batch", "input_shape"],
+      "properties": {
+        "opset": {"type": "integer", "minimum": 1},
+        "dynamic_batch": {"type": "boolean"},
+        "input_shape": {
+          "type": "array",
+          "prefixItems": [
+            {"type": "integer", "minimum": 1},
+            {"type": "integer", "minimum": 1},
+            {"type": "integer", "minimum": 1},
+            {"type": "integer", "minimum": 1}
+          ],
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "additionalProperties": false
+    }
   }
 }

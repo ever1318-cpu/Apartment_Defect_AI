@@ -15,7 +15,9 @@
   machine-readable reports.
 - Sprint 2-5 (complete): training dataset preparation, framework-neutral training
   specification, backend boundary, and deterministic run artifacts.
-- Sprint 2-6 (planned): model packaging, compatibility manifests, and deployment
+- Sprint 2-6 (complete): optional PyTorch training, reproducible checkpoints, and
+  ONNX export compatible with the production inference adapter.
+- Sprint 2-7 (planned): model packaging, compatibility manifests, and deployment
   profiles.
 
 ## Architectural Constraints

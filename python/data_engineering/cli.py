@@ -96,6 +96,23 @@ def _parser() -> argparse.ArgumentParser:
     train.add_argument("spec", type=Path)
     train.add_argument("run_directory", type=Path)
     train.add_argument("--backend", default="reference")
+    train.add_argument(
+        "--device", choices=("auto", "cpu", "cuda"), default="auto"
+    )
+
+    export = commands.add_parser(
+        "vision-export-onnx", help="export a PyTorch checkpoint to ONNX"
+    )
+    export.add_argument("run_directory", type=Path)
+    export.add_argument("output", type=Path)
+    export.add_argument("--checkpoint", default="best-model.pt")
+    export.add_argument("--opset", type=int, default=17)
+    export.add_argument(
+        "--static-batch",
+        action="store_false",
+        dest="dynamic_batch",
+        default=True,
+    )
 
     predict = commands.add_parser(
         "vision-predict", help="run backend-neutral batch Vision inference"
@@ -222,13 +239,34 @@ def main(argv: Sequence[str] | None = None) -> int:
         spec = TrainingSpec.from_dict(
             json.loads(args.spec.read_text(encoding="utf-8-sig"))
         )
-        result = TrainingRunner(load_training_backend(args.backend)).run(
+        backend_options = (
+            {"device": args.device}
+            if args.backend.strip().lower() == "pytorch"
+            else {}
+        )
+        if args.device != "auto" and not backend_options:
+            raise ValueError("--device is only supported by the pytorch backend")
+        result = TrainingRunner(
+            load_training_backend(args.backend, **backend_options)
+        ).run(
             spec,
             args.run_directory,
             spec_directory=args.spec.parent,
         )
         print(result.manifest_path)
         return 0 if result.status == "completed" else 1
+    if args.command == "vision-export-onnx":
+        from vision_ai.pytorch_training import export_pytorch_checkpoint
+
+        metadata = export_pytorch_checkpoint(
+            args.run_directory / args.checkpoint,
+            args.output,
+            opset=args.opset,
+            dynamic_batch=args.dynamic_batch,
+        )
+        write_json(args.output.with_suffix(".metadata.json"), metadata)
+        print(args.output)
+        return 0
     if args.command == "vision-predict":
         backend = _create_cli_backend(args)
         result = InferenceRunner(

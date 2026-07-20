@@ -32,16 +32,22 @@ Last updated: 2026-07-20
   - Framework-neutral training specification and backend protocol.
   - Deterministic reference training with collision-safe run artifacts.
   - Dataset build and training CLI workflows.
+- Sprint 2-6: optional PyTorch training and ONNX export.
+  - Lazy optional dependencies and explicit CPU/CUDA device selection.
+  - Validated split loader and independently testable DataLoader boundary.
+  - Offline small CNN with classification, one-box detection, and severity heads.
+  - Reproducible training, latest/best checkpoints, and runtime metadata.
+  - Seven-output ONNX contract compatible with `OnnxVisionBackend`.
 
 ## Verification
 
-- Full suite: 64 tests passed.
+- Full suite: 71 tests passed.
 - Command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
-  --basetemp=output\pytest-sprint-2-5-release`
+  --basetemp=output\pytest-sprint-2-6-release`
 - Existing Sprint 2-1 interfaces and tests remain intact.
 
 ## Current Boundary
 
-The repository defines stable domain, inference, evaluation, and training workflow
-contracts. Production training implementations and trained weights are
-intentionally not included.
+The repository includes a minimal production training adapter and export
+boundary. Trained production weights, model packaging, and deployment profiles
+remain intentionally out of scope.
