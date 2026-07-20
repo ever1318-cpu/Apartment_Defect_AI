@@ -39,6 +39,10 @@ active_learning:
   max_per_group: 1
 
 vision:
+  inference:
+    backend: reference
+    validate_images: true
+    continue_on_error: true
   model_version: vision-mvp-1
   quality:
     reject_unacceptable: true

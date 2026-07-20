@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] - 2026-07-20
+
+### Added
+
+- Callable backend adapter and dynamic `module:attribute` backend loading.
+- Deterministic, file-backed reference backend requiring no external AI framework
+  or model weights.
+- JPEG, PNG, WebP, and TIFF existence, extension, and signature validation.
+- Backend-neutral batch inference runner with deterministic summaries, duplicate
+  protection, timing/backend metadata, quality-rejection accounting, fail-fast
+  mode, and schema-compatible per-image error predictions.
+- Manifest `vision-predict` and single-image `vision-predict-image` CLI workflows
+  with atomic prediction and optional error JSONL output.
+- Unit and integration coverage for backend loading, batch execution, and CLI
+  inference.
+
 ## [0.3.0] - 2026-07-20
 
 ### Added
