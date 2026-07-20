@@ -1,6 +1,6 @@
 # Next Task
 
-## Sprint 2-3 — Evaluation and Calibration
+## Sprint 2-4 — Evaluation and Calibration
 
 Build backend-neutral evaluation around the stable `VisionPrediction` contract:
 
@@ -12,4 +12,4 @@ Build backend-neutral evaluation around the stable `VisionPrediction` contract:
 6. Add unit and end-to-end tests using small synthetic fixtures.
 
 Keep evaluation independent from trained weights and do not change existing
-Sprint 2-1 or Sprint 2-2 serialized prediction fields.
+Sprint 2-1 through Sprint 2-3 interfaces or serialized prediction fields.

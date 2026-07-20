@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from importlib import import_module
 from pathlib import Path
-from typing import Callable, Sequence, cast
+from typing import Any, Callable, Sequence
 
 from .image_io import inspect_image_file
 from .models import (
@@ -113,29 +112,11 @@ def _image_digest(image_path: str) -> bytes:
 
 
 def load_backend(specification: str) -> VisionBackend:
-    """Load a backend instance or zero-argument factory from ``module:attribute``."""
-    if specification == "reference":
-        return ReferenceVisionBackend()
-    module_name, separator, attribute_name = specification.partition(":")
-    if not separator or not module_name or not attribute_name:
-        raise ValueError("backend must use module:attribute syntax")
-    try:
-        value = getattr(import_module(module_name), attribute_name)
-    except (ImportError, AttributeError) as exc:
-        raise ValueError(f"cannot load backend {specification!r}: {exc}") from exc
-    required = ("model_version", "assess_quality", "classify", "detect")
-    backend = (
-        value
-        if all(hasattr(value, name) for name in required)
-        else value()
-        if callable(value)
-        else value
-    )
-    missing = [name for name in required if not hasattr(backend, name)]
-    if missing:
-        raise ValueError(f"backend is missing required members: {', '.join(missing)}")
-    if not isinstance(backend.model_version, str) or not backend.model_version.strip():
-        raise ValueError("backend model_version must be a non-empty string")
-    if any(not callable(getattr(backend, name)) for name in required[1:]):
-        raise ValueError("backend inference members must be callable")
-    return cast(VisionBackend, backend)
+    """Create a registered or ``module:attribute`` backend."""
+    return create_backend(specification)
+
+
+def create_backend(specification: str, **options: Any) -> VisionBackend:
+    from .backend_registry import DEFAULT_BACKEND_REGISTRY
+
+    return DEFAULT_BACKEND_REGISTRY.create(specification, **options)

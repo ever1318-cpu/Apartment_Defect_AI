@@ -83,7 +83,7 @@ def test_runner_can_fail_fast() -> None:
 def test_backend_loader_loads_factory_and_validates_specification() -> None:
     loaded = load_backend("tests.fixture_vision_backend:create_backend")
     assert loaded.model_version == "fixture-1"
-    with pytest.raises(ValueError, match="module:attribute"):
+    with pytest.raises(ValueError, match="unknown backend"):
         load_backend("invalid")
     assert isinstance(load_backend("reference"), ReferenceVisionBackend)
 
@@ -187,3 +187,63 @@ def test_single_image_cli_uses_reference_backend_by_default(tmp_path, capsys) ->
     assert prediction["metadata"]["model_version"] == "reference-1"
     assert prediction["metadata"]["duration_ms"] >= 0
     assert json.loads(capsys.readouterr().out)["completed"] == 1
+
+
+def test_cli_passes_onnx_options_to_backend_registry(
+    tmp_path, capsys, monkeypatch
+) -> None:
+    image = tmp_path / "single.png"
+    model = tmp_path / "model.onnx"
+    output = tmp_path / "prediction.jsonl"
+    write_png(image)
+    model.write_bytes(b"model")
+    calls = []
+
+    def factory(name, **options):
+        calls.append((name, options))
+        return backend()
+
+    monkeypatch.setattr("data_engineering.cli.create_backend", factory)
+    code = main(
+        [
+            "vision-predict-image",
+            str(image),
+            str(output),
+            "--backend",
+            "onnx",
+            "--model",
+            str(model),
+            "--model-version",
+            "production-2",
+            "--provider",
+            "CPUExecutionProvider",
+        ]
+    )
+
+    assert code == 0
+    assert calls == [
+        (
+            "onnx",
+            {
+                "model_path": model,
+                "providers": ("CPUExecutionProvider",),
+                "model_version": "production-2",
+            },
+        )
+    ]
+    capsys.readouterr()
+
+
+def test_cli_requires_model_for_onnx_backend(tmp_path) -> None:
+    image = tmp_path / "single.png"
+    write_png(image)
+    with pytest.raises(ValueError, match="--model is required"):
+        main(
+            [
+                "vision-predict-image",
+                str(image),
+                str(tmp_path / "prediction.jsonl"),
+                "--backend",
+                "onnx",
+            ]
+        )
