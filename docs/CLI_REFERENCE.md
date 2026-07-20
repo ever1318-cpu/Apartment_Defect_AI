@@ -3,6 +3,8 @@
 실행 형식은 `apartment-data <command> [arguments]`이다. 정확한 현재 옵션은
 `apartment-data <command> --help`로 확인한다.
 
+이 문서는 25개 public subcommand를 모두 다룬다.
+
 ## Data engineering
 
 | 명령 | 위치 인자 | 주요 옵션 | 성공 결과 |

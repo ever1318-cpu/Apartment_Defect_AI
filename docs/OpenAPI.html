@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Apartment Defect AI OpenAPI</title>
+  <style>
+    :root { color-scheme: light dark; --accent:#2563eb; --muted:#64748b; }
+    body { font-family: system-ui,sans-serif; max-width:1100px; margin:0 auto; padding:32px; line-height:1.55; }
+    header { border-bottom:2px solid var(--accent); margin-bottom:24px; }
+    .route { border:1px solid #94a3b8; border-radius:8px; margin:14px 0; padding:16px; }
+    .method { display:inline-block; min-width:48px; color:white; background:var(--accent); padding:3px 8px; border-radius:5px; font-weight:700; }
+    .path { font-family:ui-monospace,monospace; font-weight:700; margin-left:8px; }
+    code,pre { font-family:ui-monospace,monospace; }
+    pre { overflow:auto; padding:14px; background:#0f172a; color:#e2e8f0; border-radius:7px; }
+    .muted { color:var(--muted); }
+    table { border-collapse:collapse; width:100%; }
+    th,td { border:1px solid #94a3b8; padding:7px; text-align:left; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Apartment Defect AI API</h1>
+    <p>OpenAPI 3.1 · release v1.0.0-rc1 · JSON/base64 serving API</p>
+  </header>
+  <section>
+    <h2>Authentication</h2>
+    <p>이 release candidate에는 인증 계층이 없다. 신뢰된 내부 network 또는 reverse
+      proxy 뒤에서 사용해야 한다. 모든 응답은 <code>x-request-id</code>를 포함한다.</p>
+  </section>
+  <section id="routes"><h2>Endpoints</h2></section>
+  <section>
+    <h2>Prediction request</h2>
+    <pre>{
+  "image_base64": "iVBORw0KGgo...",
+  "mime_type": "image/png",
+  "image_id": "field-001",
+  "model_name": "apartment-defect",
+  "model_version": "1.0.0",
+  "confidence_threshold": 0.25
+}</pre>
+  </section>
+  <section>
+    <h2>Error response</h2>
+    <pre>{"error":{"code":"MODEL_NOT_READY","message":"production model is not ready","details":{},"request_id":"..."}}</pre>
+  </section>
+  <section>
+    <h2>Embedded OpenAPI document</h2>
+    <p class="muted">아래 버튼은 이 HTML에 내장된 machine-readable OpenAPI JSON을 표시한다.</p>
+    <button id="toggle">OpenAPI JSON 열기</button>
+    <pre id="json" hidden></pre>
+  </section>
+  <script id="openapi" type="application/json">
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Apartment Defect AI", "version": "1.0.0-rc1"},
+  "servers": [{"url": "http://127.0.0.1:8000"}],
+  "paths": {
+    "/health": {"get": {"summary": "Process health", "responses": {"200": {"description": "Healthy"}}}},
+    "/ready": {"get": {"summary": "Production model readiness", "responses": {"200": {"description": "Ready"}, "503": {"description": "Model not ready"}}}},
+    "/v1/models": {"get": {"summary": "List registry models", "responses": {"200": {"description": "Registry revision and entries"}}}},
+    "/v1/models/{model_name}": {"get": {"summary": "List model versions", "parameters": [{"name": "model_name", "in": "path", "required": true, "schema": {"type": "string"}}], "responses": {"200": {"description": "Versions"}, "404": {"description": "Not found"}}}},
+    "/v1/models/{model_name}/{model_version}": {"get": {"summary": "Inspect model version", "parameters": [{"name": "model_name", "in": "path", "required": true, "schema": {"type": "string"}}, {"name": "model_version", "in": "path", "required": true, "schema": {"type": "string"}}], "responses": {"200": {"description": "Registry entry"}, "404": {"description": "Not found"}}}},
+    "/v1/predict": {"post": {"summary": "Predict one base64 image", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PredictionRequest"}}}}, "responses": {"200": {"description": "VisionPrediction"}, "400": {"description": "Invalid request"}, "413": {"description": "Payload too large"}, "415": {"description": "Unsupported media type"}, "500": {"description": "Inference failure"}}}},
+    "/v1/predict/batch": {"post": {"summary": "Predict an ordered image batch", "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/BatchRequest"}}}}, "responses": {"200": {"description": "Ordered per-image results"}, "413": {"description": "Batch or payload too large"}}}},
+    "/v1/metrics": {"get": {"summary": "Process-local service metrics", "responses": {"200": {"description": "Metrics snapshot"}}}}
+  },
+  "components": {
+    "schemas": {
+      "PredictionRequest": {"type": "object", "required": ["image_base64", "mime_type"], "properties": {"image_base64": {"type": "string"}, "mime_type": {"type": "string"}, "image_id": {"type": "string"}, "model_name": {"type": "string"}, "model_version": {"type": "string"}, "confidence_threshold": {"type": "number", "minimum": 0, "maximum": 1}}, "additionalProperties": false},
+      "BatchRequest": {"type": "object", "required": ["items"], "properties": {"items": {"type": "array", "items": {"$ref": "#/components/schemas/PredictionRequest"}}, "fail_fast": {"type": "boolean"}}, "additionalProperties": false},
+      "APIError": {"type": "object", "required": ["error"], "properties": {"error": {"type": "object", "required": ["code", "message", "details", "request_id"], "properties": {"code": {"type": "string"}, "message": {"type": "string"}, "details": {"type": "object"}, "request_id": {"type": "string"}}}}}
+    }
+  }
+}
+  </script>
+  <script>
+    const spec = JSON.parse(document.getElementById("openapi").textContent);
+    const routes = document.getElementById("routes");
+    for (const [path, operations] of Object.entries(spec.paths)) {
+      for (const [method, operation] of Object.entries(operations)) {
+        const item = document.createElement("article");
+        item.className = "route";
+        item.innerHTML = `<span class="method">${method.toUpperCase()}</span><span class="path">${path}</span><p>${operation.summary}</p>`;
+        routes.appendChild(item);
+      }
+    }
+    const output = document.getElementById("json");
+    document.getElementById("toggle").onclick = event => {
+      output.hidden = !output.hidden;
+      output.textContent = JSON.stringify(spec, null, 2);
+      event.target.textContent = output.hidden ? "OpenAPI JSON 열기" : "OpenAPI JSON 닫기";
+    };
+  </script>
+</body>
+</html>

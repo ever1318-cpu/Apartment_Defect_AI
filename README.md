@@ -16,6 +16,11 @@ Release documentation:
 - [Serving Guide](docs/SERVING_GUIDE.md)
 - [Testing Guide](docs/TESTING_GUIDE.md)
 - [Release Notes](docs/RELEASE_NOTES.md)
+- [Standalone OpenAPI](docs/OpenAPI.html)
+- [Schema Index](docs/SCHEMA_INDEX.md)
+- [Architecture Diagram](docs/ARCHITECTURE_DIAGRAM.md)
+- [Dependency Graph](docs/DEPENDENCY_GRAPH.md)
+- [Coverage Report](docs/COVERAGE_REPORT.md)
 
 ## Development
 
