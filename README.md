@@ -3,6 +3,20 @@
 Reproducible data-engineering and framework-neutral Vision AI foundations for
 apartment-defect image analysis.
 
+Release documentation:
+
+- [Architecture](docs/Architecture.md)
+- [Developer Guide](docs/DeveloperGuide.md)
+- [User Guide](docs/UserGuide.md)
+- [CLI Reference](docs/CLI_REFERENCE.md)
+- [API Reference](docs/API_REFERENCE.md)
+- [JSON Schema Reference](docs/JSON_SCHEMA_REFERENCE.md)
+- [Model Package Specification](docs/MODEL_PACKAGE_SPEC.md)
+- [Registry Specification](docs/REGISTRY_SPEC.md)
+- [Serving Guide](docs/SERVING_GUIDE.md)
+- [Testing Guide](docs/TESTING_GUIDE.md)
+- [Release Notes](docs/RELEASE_NOTES.md)
+
 ## Development
 
 ```powershell
