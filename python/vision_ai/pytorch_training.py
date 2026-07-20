@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 import math
 import platform
 import random
@@ -633,15 +634,16 @@ def export_pytorch_checkpoint(
         else None
     )
     export = exporter or deps.torch.onnx.export
-    export(
-        model,
-        dummy,
-        str(output),
-        input_names=["images"],
-        output_names=list(ONNX_OUTPUT_NAMES),
-        dynamic_axes=dynamic_axes,
-        opset_version=opset,
-    )
+    export_options: dict[str, Any] = {
+        "input_names": ["images"],
+        "output_names": list(ONNX_OUTPUT_NAMES),
+        "dynamic_axes": dynamic_axes,
+        "opset_version": opset,
+    }
+    if exporter is None and "external_data" in inspect.signature(export).parameters:
+        # Model packages intentionally contain one portable ONNX artifact.
+        export_options["external_data"] = False
+    export(model, dummy, str(output), **export_options)
     if not output.is_file() or output.stat().st_size == 0:
         raise RuntimeError("ONNX export did not create a non-empty model file")
     if checker is not None:

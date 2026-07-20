@@ -10,6 +10,7 @@ dependencies = []
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
+database = ["psycopg[binary]>=3.2,<4"]
 serving = [
   "fastapi>=0.115,<1",
   "uvicorn>=0.30,<1",
@@ -28,6 +29,7 @@ pytorch = [
   "numpy>=1.26,<3",
   "Pillow>=10,<12",
   "onnx>=1.16,<2",
+  "onnxscript>=0.3,<1",
 ]
 full = [
   "pytest>=8",
@@ -41,6 +43,8 @@ full = [
   "torch>=2.2,<3",
   "torchvision>=0.17,<1",
   "onnx>=1.16,<2",
+  "onnxscript>=0.3,<1",
+  "psycopg[binary]>=3.2,<4",
 ]
 
 [project.scripts]

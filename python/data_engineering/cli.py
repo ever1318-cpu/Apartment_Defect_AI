@@ -11,6 +11,14 @@ from pathlib import Path
 from typing import Sequence
 
 from .etl.legacy_import import deduplicate_records, import_legacy_csv
+from .database import (
+    DatabaseConfig,
+    DatabaseConfigurationError,
+    DatabaseConnectionError,
+    DatabaseQueryError,
+    inspect_database,
+    test_database_connection,
+)
 from .io import read_jsonl, read_records, write_json, write_jsonl, write_records
 from .models import SplitRatios
 from .splitters.group_stratified import group_stratified_split
@@ -194,6 +202,20 @@ def _parser() -> argparse.ArgumentParser:
     release_check.add_argument("--deployment-profile", default="cpu")
     release_check.add_argument("--output", type=Path, default=Path("release-check"))
     release_check.add_argument("--strict", action="store_true")
+
+    db_test = commands.add_parser(
+        "vision-db-test", help="test a read-only PostgreSQL connection"
+    )
+    db_test.add_argument("--json", action="store_true")
+
+    db_inspect = commands.add_parser(
+        "vision-db-inspect", help="inspect PostgreSQL schemas and relations"
+    )
+    db_inspect.add_argument("--schema")
+    db_inspect.add_argument("--table")
+    db_inspect.add_argument("--json", action="store_true")
+    db_inspect.add_argument("--output", type=Path)
+    db_inspect.add_argument("--include-system", action="store_true")
 
     ingest = commands.add_parser(
         "vision-ingest-images", help="ingest field images into a content-addressed batch"
@@ -509,6 +531,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1 if report.status == "fail" or (
             args.strict and report.status == "warning"
         ) else 0
+    if args.command == "vision-db-test":
+        return _run_database_test(args)
+    if args.command == "vision-db-inspect":
+        return _run_database_inspection(args)
     if args.command == "vision-ingest-images":
         metadata = (
             json.loads(args.device_metadata.read_text(encoding="utf-8-sig"))
@@ -660,6 +686,105 @@ def _create_cli_backend(args: argparse.Namespace):
     if args.model_version:
         options["model_version"] = args.model_version
     return create_backend(args.backend, **options)
+
+
+def _database_error(
+    message: str, exit_code: int, *, json_output: bool
+) -> int:
+    if json_output:
+        print(
+            json.dumps(
+                {"status": "error", "error": {"message": message}},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+    else:
+        print(f"Error: {message}")
+    return exit_code
+
+
+def _run_database_test(args: argparse.Namespace) -> int:
+    try:
+        config = DatabaseConfig.from_environment()
+    except DatabaseConfigurationError as exc:
+        return _database_error(str(exc), 2, json_output=args.json)
+    try:
+        result = test_database_connection(config)
+    except DatabaseConnectionError:
+        return _database_error(
+            "Database connection failed. Verify configuration and network access.",
+            3,
+            json_output=args.json,
+        )
+    except DatabaseQueryError:
+        return _database_error(
+            "Database connection query failed.",
+            4,
+            json_output=args.json,
+        )
+    if args.json:
+        print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
+    else:
+        print("Database connection successful")
+        print(f"Host: {result.host}")
+        print(f"Database: {result.database}")
+        print(f"User: {result.user}")
+        print(f"PostgreSQL version: {result.postgres_version}")
+        print(f"SSL mode: {result.sslmode}")
+    return 0
+
+
+def _run_database_inspection(args: argparse.Namespace) -> int:
+    try:
+        config = DatabaseConfig.from_environment()
+    except DatabaseConfigurationError as exc:
+        return _database_error(str(exc), 2, json_output=args.json)
+    try:
+        report = inspect_database(
+            config,
+            schema=args.schema,
+            table=args.table,
+            include_system=args.include_system,
+        )
+    except DatabaseConnectionError:
+        return _database_error(
+            "Database connection failed. Verify configuration and network access.",
+            3,
+            json_output=args.json,
+        )
+    except DatabaseQueryError:
+        return _database_error(
+            "Database catalog inspection failed.",
+            4,
+            json_output=args.json,
+        )
+    value = report.to_dict()
+    if args.output is not None:
+        write_json(args.output, value)
+    if args.json:
+        print(json.dumps(value, ensure_ascii=False, sort_keys=True))
+    else:
+        summary = value["summary"]
+        print("Database inspection successful")
+        print(f"Database: {report.database}")
+        print(f"User: {report.user}")
+        print(f"SSL mode: {report.sslmode}")
+        print()
+        print(f"Schemas: {summary['schema_count']}")
+        print(f"Tables: {summary['table_count']}")
+        print(f"Views: {summary['view_count']}")
+        print()
+        print("Image/label candidates:")
+        if report.candidates:
+            for candidate in report.candidates:
+                print(f"{candidate.schema}.{candidate.table}.{candidate.column}")
+        else:
+            print("(none)")
+        if args.output is not None:
+            print()
+            print(f"Report: {args.output}")
+    return 0
 
 
 if __name__ == "__main__":
