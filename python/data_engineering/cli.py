@@ -19,6 +19,7 @@ from vision_ai.evaluation import EvaluationConfig, evaluate_predictions
 from vision_ai.evaluation_models import GroundTruthAnnotation
 from vision_ai.inference import InferenceRunner
 from vision_ai.models import VisionPrediction
+from vision_ai.model_package import build_model_package, validate_model_package
 from vision_ai.pipeline import VisionPipeline
 from vision_ai.training import TrainingRunner, load_training_backend
 from vision_ai.training_dataset import build_training_dataset
@@ -114,6 +115,27 @@ def _parser() -> argparse.ArgumentParser:
         default=True,
     )
 
+    package = commands.add_parser(
+        "vision-package-model", help="build a deployable model package"
+    )
+    package.add_argument("training_run_directory", type=Path)
+    package.add_argument("output_package_directory", type=Path)
+    package.add_argument("--model-name", required=True)
+    package.add_argument("--model-version", required=True)
+    package.add_argument("--notes", default="")
+
+    validate_package = commands.add_parser(
+        "vision-validate-model-package", help="validate a model package"
+    )
+    validate_package.add_argument("package_directory", type=Path)
+    validate_package.add_argument("--output", type=Path)
+    validate_package.add_argument("--strict", action="store_true")
+
+    inspect_package = commands.add_parser(
+        "vision-inspect-model-package", help="inspect a model package manifest"
+    )
+    inspect_package.add_argument("package_directory", type=Path)
+
     predict = commands.add_parser(
         "vision-predict", help="run backend-neutral batch Vision inference"
     )
@@ -127,6 +149,7 @@ def _parser() -> argparse.ArgumentParser:
     predict.add_argument("--model", type=Path, help="model path for model backends")
     predict.add_argument("--model-version")
     predict.add_argument("--provider", action="append", dest="providers")
+    predict.add_argument("--deployment-profile")
     predict.add_argument(
         "--root", type=Path, help="base directory for relative manifest image paths"
     )
@@ -146,6 +169,7 @@ def _parser() -> argparse.ArgumentParser:
     predict_image.add_argument("--model", type=Path, help="model path for model backends")
     predict_image.add_argument("--model-version")
     predict_image.add_argument("--provider", action="append", dest="providers")
+    predict_image.add_argument("--deployment-profile")
     predict_image.add_argument("--image-id")
     predict_image.add_argument("--fail-fast", action="store_true")
     return parser
@@ -255,6 +279,33 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(result.manifest_path)
         return 0 if result.status == "completed" else 1
+    if args.command == "vision-package-model":
+        manifest = build_model_package(
+            args.training_run_directory,
+            args.output_package_directory,
+            args.model_name,
+            args.model_version,
+            notes=args.notes,
+        )
+        print(manifest)
+        return 0
+    if args.command == "vision-validate-model-package":
+        result = validate_model_package(
+            args.package_directory, strict=args.strict
+        )
+        output = args.output or args.package_directory.with_name(
+            f"{args.package_directory.name}-validation.json"
+        )
+        write_json(output, result.to_dict())
+        print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
+        print(output)
+        return 0 if result.valid else 1
+    if args.command == "vision-inspect-model-package":
+        manifest = args.package_directory / "model_manifest.json"
+        value = json.loads(manifest.read_text(encoding="utf-8-sig"))
+        print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
+        print(manifest)
+        return 0
     if args.command == "vision-export-onnx":
         from vision_ai.pytorch_training import export_pytorch_checkpoint
 
@@ -302,8 +353,13 @@ def _create_cli_backend(args: argparse.Namespace):
         options["model_path"] = args.model
         if args.providers:
             options["providers"] = tuple(args.providers)
-    elif args.model is not None or args.providers:
-        raise ValueError("--model and --provider are only valid for the onnx backend")
+        if args.deployment_profile:
+            options["deployment_profile"] = args.deployment_profile
+    elif args.model is not None or args.providers or args.deployment_profile:
+        raise ValueError(
+            "--model, --provider, and --deployment-profile are only valid "
+            "for the onnx backend"
+        )
     if args.model_version:
         options["model_version"] = args.model_version
     return create_backend(args.backend, **options)

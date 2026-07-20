@@ -17,8 +17,10 @@
   specification, backend boundary, and deterministic run artifacts.
 - Sprint 2-6 (complete): optional PyTorch training, reproducible checkpoints, and
   ONNX export compatible with the production inference adapter.
-- Sprint 2-7 (planned): model packaging, compatibility manifests, and deployment
-  profiles.
+- Sprint 2-7 (complete): atomic model packaging, compatibility/checksum manifests,
+  CPU/GPU profiles, validation CLI, and ONNX package loading.
+- Sprint 2-8 (planned): model distribution, serving lifecycle, and operational
+  observability.
 
 ## Architectural Constraints
 

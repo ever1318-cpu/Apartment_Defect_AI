@@ -38,16 +38,22 @@ Last updated: 2026-07-20
   - Offline small CNN with classification, one-box detection, and severity heads.
   - Reproducible training, latest/best checkpoints, and runtime metadata.
   - Seven-output ONNX contract compatible with `OnnxVisionBackend`.
+- Sprint 2-7: model packaging and deployment profiles.
+  - Atomic portable package construction from completed training runs.
+  - Model/compatibility manifests and deterministic SHA-256 verification.
+  - Path traversal, symbolic-link, missing, mismatch, and strict-extra checks.
+  - CPU/GPU profiles with pass, warning, and fail compatibility results.
+  - Validated package-directory loading by the ONNX inference adapter.
 
 ## Verification
 
-- Full suite: 71 tests passed.
+- Full suite: 80 tests passed, 1 skipped (symbolic-link capability dependent).
 - Command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
-  --basetemp=output\pytest-sprint-2-6-release`
+  --basetemp=output\pytest-sprint-2-7-final`
 - Existing Sprint 2-1 interfaces and tests remain intact.
 
 ## Current Boundary
 
-The repository includes a minimal production training adapter and export
-boundary. Trained production weights, model packaging, and deployment profiles
+The repository now covers training through portable model-package validation.
+Production weights, remote distribution, serving, and operational monitoring
 remain intentionally out of scope.

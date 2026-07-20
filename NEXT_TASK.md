@@ -1,15 +1,14 @@
 # Next Task
 
-## Sprint 2-7 — Model Packaging and Deployment Profiles
+## Sprint 2-8 — Model Distribution and Serving Lifecycle
 
-Package production models without coupling the stable Vision contracts to a
-runtime:
+Distribute validated packages and operate inference services without coupling
+the stable Vision contracts to a hosting framework:
 
-1. Define model compatibility manifests and checksum validation.
-2. Record input/output contracts, label sets, preprocessing, and runtime versions.
-3. Add CPU/GPU deployment profiles without local absolute paths.
-4. Validate model packages before backend session creation.
-5. Add CLI inspection and verification commands.
-6. Add synthetic package fixtures and end-to-end tests.
+1. Define artifact repository and immutable release promotion boundaries.
+2. Add service health, readiness, and model-version reporting.
+3. Record structured latency, throughput, failure, and drift signals.
+4. Support safe package activation and rollback.
+5. Add offline serving fixtures and lifecycle integration tests.
 
-Preserve Sprint 2-1 through Sprint 2-6 interfaces and serialized artifacts.
+Preserve Sprint 2-1 through Sprint 2-7 interfaces and serialized artifacts.

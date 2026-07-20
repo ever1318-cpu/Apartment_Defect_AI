@@ -36,6 +36,20 @@ from .models import (
     PolygonMask,
     VisionPrediction,
 )
+from .model_package import (
+    build_model_package,
+    generate_checksums,
+    load_package_configuration,
+    validate_model_package,
+)
+from .package_models import (
+    CompatibilityManifest,
+    CompatibilityResult,
+    DeploymentProfile,
+    ModelManifest,
+    ModelPackageValidation,
+    default_deployment_profiles,
+)
 from .onnx_backend import OnnxVisionBackend, create_onnx_session
 from .pipeline import PipelineConfig, VisionBackend, VisionPipeline
 from .pytorch_training import (
@@ -66,9 +80,12 @@ __all__ = [
     "BackendRegistry",
     "CallableVisionBackend",
     "Classification",
+    "CompatibilityManifest",
+    "CompatibilityResult",
     "DefectDetection",
     "DEFAULT_BACKEND_REGISTRY",
     "DetectionMetrics",
+    "DeploymentProfile",
     "EvaluationConfig",
     "EvaluationIssue",
     "EvaluationReport",
@@ -83,6 +100,8 @@ __all__ = [
     "LabelMapping",
     "LabelVocabulary",
     "MetricEntry",
+    "ModelManifest",
+    "ModelPackageValidation",
     "PipelineConfig",
     "OnnxVisionBackend",
     "PolygonMask",
@@ -103,14 +122,19 @@ __all__ = [
     "VisionPrediction",
     "ONNX_OUTPUT_NAMES",
     "build_default_registry",
+    "build_model_package",
     "build_training_dataset",
     "ClassificationMetrics",
     "create_backend",
     "create_onnx_session",
     "evaluate_predictions",
     "export_pytorch_checkpoint",
+    "generate_checksums",
     "inspect_image_file",
     "load_backend",
+    "load_package_configuration",
     "load_training_backend",
     "resolve_image_path",
+    "validate_model_package",
+    "default_deployment_profiles",
 ]

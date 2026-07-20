@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/model_compatibility_manifest.schema.json",
+  "title": "Model Compatibility Manifest",
+  "type": "object",
+  "required": ["python_min", "python_max", "onnxruntime_min", "cuda_provider_required", "supported_execution_providers", "cpu_architectures", "operating_system_profiles", "input_dtype", "input_shape", "dynamic_dimensions", "outputs", "required_application_schema", "label_vocabulary_version", "preprocessing_version"],
+  "properties": {
+    "python_min": {"type": "string"},
+    "python_max": {"type": "string"},
+    "onnxruntime_min": {"type": "string"},
+    "cuda_provider_required": {"type": "boolean"},
+    "supported_execution_providers": {"type": "array", "items": {"type": "string"}},
+    "cpu_architectures": {"type": "array", "items": {"type": "string"}},
+    "operating_system_profiles": {"type": "array", "items": {"type": "string"}},
+    "input_dtype": {"type": "string"},
+    "input_shape": {"type": "array"},
+    "dynamic_dimensions": {"type": "object", "additionalProperties": {"type": "string"}},
+    "outputs": {"type": "array", "items": {"type": "object"}},
+    "required_application_schema": {"type": "string"},
+    "label_vocabulary_version": {"type": "string"},
+    "preprocessing_version": {"type": "string"}
+  },
+  "additionalProperties": false
+}

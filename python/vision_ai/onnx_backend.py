@@ -71,6 +71,7 @@ class OnnxVisionBackend:
     model_path: str | Path
     model_version: str = "onnx-1"
     providers: Sequence[str] | None = None
+    deployment_profile: str = "cpu"
     session_factory: SessionFactory = create_onnx_session
     input_loader: InputLoader = load_onnx_image
     classification_labels: Mapping[str, tuple[str, ...]] = field(
@@ -91,6 +92,30 @@ class OnnxVisionBackend:
 
     def __post_init__(self) -> None:
         path = Path(self.model_path)
+        if path.is_dir():
+            from .model_package import load_package_configuration
+
+            package = load_package_configuration(
+                path, deployment_profile=self.deployment_profile
+            )
+            self.model_path = package["model_path"]
+            self.model_version = package["model_version"]
+            self.classification_labels = package["classification_labels"]
+            self.detection_labels = package["detection_labels"]
+            if self.providers is None:
+                self.providers = package[
+                    "deployment_profile"
+                ].execution_providers
+            preprocessing = package["preprocessing"].get(
+                "image_preprocessing", {}
+            )
+            resize = preprocessing.get("resize")
+            if resize and self.input_loader is load_onnx_image:
+                size = tuple(int(value) for value in resize)
+                self.input_loader = lambda image_path: load_onnx_image(
+                    image_path, size=size
+                )
+            path = Path(self.model_path)
         if not path.is_file():
             raise FileNotFoundError(f"ONNX model file does not exist: {path}")
         if not self.model_version.strip():
