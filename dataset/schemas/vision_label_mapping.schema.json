@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/vision_label_mapping.schema.json",
+  "title": "Vision Training Label Mapping",
+  "type": "object",
+  "required": ["tasks"],
+  "properties": {
+    "tasks": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "labels",
+          "label_to_index",
+          "index_to_label",
+          "unknown_policy",
+          "reserved_labels"
+        ],
+        "properties": {
+          "labels": {"type": "array", "items": {"type": "string"}},
+          "label_to_index": {"type": "object"},
+          "index_to_label": {"type": "object"},
+          "unknown_policy": {"const": "error"},
+          "reserved_labels": {"type": "array", "maxItems": 0}
+        }
+      }
+    }
+  }
+}

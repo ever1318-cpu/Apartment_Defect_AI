@@ -126,3 +126,51 @@ recall, and F1 values are reported as `0.0`.
 Duplicate IDs are fatal report errors. Missing predictions, unknown prediction
 IDs, mixed versions, and inference-error predictions are warnings; valid
 `image_id` intersections are still evaluated.
+
+## Training workflow
+
+Build framework-neutral training inputs from split `ImageRecord` JSONL and the
+ground-truth JSONL used by evaluation:
+
+```powershell
+apartment-data vision-build-training-dataset `
+  records.jsonl annotations.jsonl training-dataset `
+  --dataset-version dataset-7 --root dataset/raw `
+  --tasks classification detection severity
+```
+
+Every record must have a train, validation, or test split. The builder validates
+real image files, joins annotations by `image_id`, rejects duplicate/missing IDs
+and group leakage, then learns vocabularies from the train split. Labels are
+sorted lexically for stable zero-based indices. Labels formatted as `__name__`
+are reserved, and validation/test labels absent from train fail under the explicit
+`unknown_policy: error`.
+
+The generated `training_spec.json` is runtime-neutral and contains dataset
+version, enabled tasks, relative split and mapping locations, preprocessing,
+augmentation, batch size, epochs, learning rate, random seed, output directory,
+and model artifact name. Execute it without a GPU or ML framework:
+
+```powershell
+apartment-data vision-train `
+  training-dataset/training_spec.json training-runs/run-001 `
+  --backend reference
+```
+
+`TrainingBackend` separates `prepare`, `train`, `validate`, and `export`.
+`ReferenceTrainingBackend` produces deterministic synthetic metric history for
+workflow verification. A run directory is never overwritten and contains:
+
+```text
+training_spec.json
+label_mapping.json
+metric_history.json
+final_metrics.json
+model-artifact.json
+model_metadata.json
+run_manifest.json
+```
+
+The run manifest records the run ID, UTC creation time, backend, stage states,
+artifact list, final metrics, and either `completed` or a structured `failed`
+status.

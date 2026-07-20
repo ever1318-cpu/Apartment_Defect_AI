@@ -1,6 +1,6 @@
 # Next Task
 
-## Sprint 2-5 — Model Packaging and Deployment Profiles
+## Sprint 2-6 — Model Packaging and Deployment Profiles
 
 Package production models without coupling the stable Vision contracts to a
 runtime:
@@ -12,4 +12,4 @@ runtime:
 5. Add CLI inspection and verification commands.
 6. Add synthetic package fixtures and end-to-end tests.
 
-Preserve Sprint 2-1 through Sprint 2-4 interfaces and serialized artifacts.
+Preserve Sprint 2-1 through Sprint 2-5 interfaces and serialized artifacts.

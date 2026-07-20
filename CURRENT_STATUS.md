@@ -26,15 +26,22 @@ Last updated: 2026-07-20
   - JSON evaluation reports with versions, thresholds, confusion matrices, and
     per-label counts.
   - Atomic `vision-evaluate` CLI workflow.
+- Sprint 2-5: training workflow foundation.
+  - Split-aware training dataset builder and label distribution statistics.
+  - Stable classification/detection/severity vocabularies.
+  - Framework-neutral training specification and backend protocol.
+  - Deterministic reference training with collision-safe run artifacts.
+  - Dataset build and training CLI workflows.
 
 ## Verification
 
-- Full suite: 55 tests passed.
+- Full suite: 64 tests passed.
 - Command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
-  --basetemp=output\pytest-sprint-2-4-release`
+  --basetemp=output\pytest-sprint-2-5-release`
 - Existing Sprint 2-1 interfaces and tests remain intact.
 
 ## Current Boundary
 
-The repository defines stable domain, execution, backend adapter, and evaluation
-contracts. Trained weights are intentionally not included.
+The repository defines stable domain, inference, evaluation, and training workflow
+contracts. Production training implementations and trained weights are
+intentionally not included.

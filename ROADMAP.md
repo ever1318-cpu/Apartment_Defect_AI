@@ -13,7 +13,9 @@
 - Sprint 2-3 (complete): production backend registry and optional ONNX adapter.
 - Sprint 2-4 (complete): classification, detection, and severity evaluation with
   machine-readable reports.
-- Sprint 2-5 (planned): model packaging, compatibility manifests, and deployment
+- Sprint 2-5 (complete): training dataset preparation, framework-neutral training
+  specification, backend boundary, and deterministic run artifacts.
+- Sprint 2-6 (planned): model packaging, compatibility manifests, and deployment
   profiles.
 
 ## Architectural Constraints

@@ -20,6 +20,9 @@ from vision_ai.evaluation_models import GroundTruthAnnotation
 from vision_ai.inference import InferenceRunner
 from vision_ai.models import VisionPrediction
 from vision_ai.pipeline import VisionPipeline
+from vision_ai.training import TrainingRunner, load_training_backend
+from vision_ai.training_dataset import build_training_dataset
+from vision_ai.training_models import TrainingSpec, TrainingTasks
 from vision_ai.validators import validate_predictions
 
 
@@ -65,6 +68,34 @@ def _parser() -> argparse.ArgumentParser:
     evaluate.add_argument("--iou-threshold", type=float, default=0.5)
     evaluate.add_argument("--confidence-threshold", type=float, default=0.25)
     evaluate.add_argument("--dataset-version")
+
+    build_training = commands.add_parser(
+        "vision-build-training-dataset",
+        help="join split records and annotations into training inputs",
+    )
+    build_training.add_argument("records", type=Path)
+    build_training.add_argument("annotations", type=Path)
+    build_training.add_argument("output", type=Path)
+    build_training.add_argument("--dataset-version", required=True)
+    build_training.add_argument("--root", type=Path)
+    build_training.add_argument(
+        "--tasks",
+        nargs="+",
+        choices=("classification", "detection", "severity"),
+        default=("classification", "detection", "severity"),
+    )
+    build_training.add_argument(
+        "--classification-task",
+        action="append",
+        dest="classification_tasks",
+    )
+
+    train = commands.add_parser(
+        "vision-train", help="execute a framework-neutral training workflow"
+    )
+    train.add_argument("spec", type=Path)
+    train.add_argument("run_directory", type=Path)
+    train.add_argument("--backend", default="reference")
 
     predict = commands.add_parser(
         "vision-predict", help="run backend-neutral batch Vision inference"
@@ -163,6 +194,41 @@ def main(argv: Sequence[str] | None = None) -> int:
         for issue in (*report.errors, *report.warnings):
             print(json.dumps(asdict(issue), ensure_ascii=False, sort_keys=True))
         return 1 if report.errors else 0
+    if args.command == "vision-build-training-dataset":
+        selected = set(args.tasks)
+        tasks = TrainingTasks(
+            classification="classification" in selected,
+            detection="detection" in selected,
+            severity="severity" in selected,
+            classification_tasks=tuple(
+                args.classification_tasks or ("space", "trade", "component")
+            ),
+        )
+        annotations = [
+            GroundTruthAnnotation.from_dict(value)
+            for value in read_jsonl(args.annotations)
+        ]
+        result = build_training_dataset(
+            read_records(args.records),
+            annotations,
+            args.output,
+            dataset_version=args.dataset_version,
+            tasks=tasks,
+            image_root=args.root if args.root is not None else args.records.parent,
+        )
+        print(result.training_spec_path)
+        return 0
+    if args.command == "vision-train":
+        spec = TrainingSpec.from_dict(
+            json.loads(args.spec.read_text(encoding="utf-8-sig"))
+        )
+        result = TrainingRunner(load_training_backend(args.backend)).run(
+            spec,
+            args.run_directory,
+            spec_directory=args.spec.parent,
+        )
+        print(result.manifest_path)
+        return 0 if result.status == "completed" else 1
     if args.command == "vision-predict":
         backend = _create_cli_backend(args)
         result = InferenceRunner(

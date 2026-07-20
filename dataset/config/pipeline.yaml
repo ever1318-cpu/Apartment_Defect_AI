@@ -61,3 +61,9 @@ vision:
   evaluation:
     confidence_threshold: 0.25
     iou_threshold: 0.50
+  training:
+    tasks: [classification, detection, severity]
+    batch_size: 16
+    epochs: 5
+    learning_rate: 0.001
+    random_seed: 42
