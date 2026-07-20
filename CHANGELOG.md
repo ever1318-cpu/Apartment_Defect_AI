@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0 - 2026-07-20
+
+- Added content-addressed field-image ingestion with per-file error isolation.
+- Added dependency-free quality checks and exact/near duplicate grouping.
+- Added manual/optional privacy-mask derivatives with provenance.
+- Added labeling tasks, annotation revisions, QA, agreement, and drift distribution.
+- Added approved-only, duplicate-aware, privacy-aware dataset version exports.
+- Added six field-data CLI workflows, eight JSON Schemas, and governance guides.
+
 All notable changes to this project are documented in this file.
 
 ## [0.11.0] - 2026-07-20

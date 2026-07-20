@@ -23,8 +23,13 @@
   inference/session caches, in-memory monitoring, Docker, and CI foundations.
 - Sprint 2-9 (complete): optional integration matrix, registry/serving hardening,
   release readiness manifests, operations runbook, and separated CI smoke jobs.
-- Sprint 3-1 (planned): signed remote artifact promotion, authentication,
-  durable telemetry, and controlled production rollout.
+
+## Phase 3 — Field Data Operations
+
+- Sprint 3-1 (complete): content-addressed field ingestion, quality and duplicate
+  review, privacy derivatives, labeling/annotation QA, and governed dataset versions.
+- Sprint 3-2 (planned): labeling-platform adapters, automated privacy detectors,
+  reviewer sampling, and dataset drift gates.
 
 ## Architectural Constraints
 

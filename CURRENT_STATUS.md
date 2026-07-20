@@ -56,19 +56,24 @@ Last updated: 2026-07-20
   - Serving concurrency/resource defenses and safe reload fallback.
   - Expanded operational metrics and release-check/manifest workflow.
   - Hardened Docker/CI policies and incident/rollback runbook.
+- Sprint 3-1: field data ingestion and labeling operations.
+  - Content-addressed, relative-path-only image batch ingestion and error ledger.
+  - Quality, duplicate, privacy-mask, labeling task, and annotation QA workflows.
+  - Approved-only deterministic dataset versions with lineage and training inputs.
 
 ## Verification
 
-- Full suite: 98 tests passed, 6 skipped.
-- Core marker: 97 passed, 2 skipped, 5 deselected.
-- Serving/ONNX/training markers: selected tests skipped locally because their
-  optional dependencies are not installed; separated CI jobs install and run them.
-- Full command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
-  --basetemp=output\pytest-sprint-2-9-final`
+- Full suite: 107 passed, 7 skipped.
+- Core marker: 106 passed, 3 skipped, 5 deselected.
+- Docker marker: 1 passed; serving/ONNX/training markers skip locally because
+  their optional dependency groups are not installed.
+- Command: `.\.venv\Scripts\python.exe -m pytest -q
+  --basetemp=output\pytest-s31-final`
 - Existing Sprint 2-1 interfaces and tests remain intact.
 
 ## Current Boundary
 
-The repository now has a release-checkable local production baseline across
-training, packaging, registry, serving, recovery, Docker, and CI. Remote signed
-artifact distribution, authentication, and durable telemetry remain out of scope.
+The repository now connects governed field-data intake to the existing training,
+packaging, registry, and serving lifecycle. Automatic privacy detection, remote
+labeling-platform synchronization, authentication, and durable telemetry remain
+out of scope.

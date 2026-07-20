@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from collections import Counter
 from dataclasses import asdict
 from pathlib import Path
 from typing import Sequence
@@ -18,6 +19,15 @@ from .versioning.manifest import build_manifest
 from vision_ai.backends import create_backend
 from vision_ai.evaluation import EvaluationConfig, evaluate_predictions
 from vision_ai.evaluation_models import GroundTruthAnnotation
+from vision_ai.field_data import (
+    build_dataset_version,
+    check_image_quality,
+    create_labeling_tasks,
+    find_duplicates,
+    ingest_images,
+    validate_annotations,
+)
+from vision_ai.field_data_models import AnnotationRevision, IngestedImage
 from vision_ai.inference import InferenceRunner
 from vision_ai.models import VisionPrediction
 from vision_ai.model_package import build_model_package, validate_model_package
@@ -184,6 +194,71 @@ def _parser() -> argparse.ArgumentParser:
     release_check.add_argument("--deployment-profile", default="cpu")
     release_check.add_argument("--output", type=Path, default=Path("release-check"))
     release_check.add_argument("--strict", action="store_true")
+
+    ingest = commands.add_parser(
+        "vision-ingest-images", help="ingest field images into a content-addressed batch"
+    )
+    ingest.add_argument("source", type=Path)
+    ingest.add_argument("output", type=Path)
+    ingest.add_argument("--source-batch", required=True)
+    ingest.add_argument("--operator", default="unknown")
+    ingest.add_argument("--device-metadata", type=Path)
+
+    quality = commands.add_parser(
+        "vision-check-image-quality", help="inspect an ingestion batch for image quality"
+    )
+    quality.add_argument("ingestion_directory", type=Path)
+    quality.add_argument("output", type=Path)
+    quality.add_argument("--max-dimension", type=int, default=16_384)
+    quality.add_argument("--min-dimension", type=int, default=64)
+    quality.add_argument("--max-bytes", type=int, default=50 * 1024 * 1024)
+
+    duplicates = commands.add_parser(
+        "vision-find-duplicates", help="find exact and near-duplicate field images"
+    )
+    duplicates.add_argument("ingestion_directory", type=Path)
+    duplicates.add_argument("output", type=Path)
+    duplicates.add_argument("--similarity-threshold", type=float, default=0.92)
+
+    tasks = commands.add_parser(
+        "vision-create-labeling-tasks", help="create deterministic labeling work items"
+    )
+    tasks.add_argument("ingestion_directory", type=Path)
+    tasks.add_argument("output", type=Path)
+    tasks.add_argument(
+        "--task-type",
+        action="append",
+        dest="task_types",
+        required=True,
+        choices=(
+            "classification",
+            "detection",
+            "segmentation",
+            "severity",
+            "privacy_mask_review",
+        ),
+    )
+    tasks.add_argument("--instructions-version", required=True)
+    tasks.add_argument("--label-vocabulary-version", required=True)
+    tasks.add_argument("--assignee")
+    tasks.add_argument("--priority", type=int, default=0)
+
+    annotation_qa = commands.add_parser(
+        "vision-validate-annotations", help="validate annotation revisions and review state"
+    )
+    annotation_qa.add_argument("annotations", type=Path)
+    annotation_qa.add_argument("output", type=Path)
+    annotation_qa.add_argument("--label-vocabulary", type=Path)
+
+    dataset_version = commands.add_parser(
+        "vision-build-dataset-version", help="build an approved, leakage-safe dataset version"
+    )
+    dataset_version.add_argument("ingestion_directory", type=Path)
+    dataset_version.add_argument("annotation_directory", type=Path)
+    dataset_version.add_argument("output", type=Path)
+    dataset_version.add_argument("--version", required=True)
+    dataset_version.add_argument("--seed", type=int, default=42)
+    dataset_version.add_argument("--privacy-mode", choices=("raw", "masked"), default="raw")
 
     predict = commands.add_parser(
         "vision-predict", help="run backend-neutral batch Vision inference"
@@ -434,6 +509,100 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1 if report.status == "fail" or (
             args.strict and report.status == "warning"
         ) else 0
+    if args.command == "vision-ingest-images":
+        metadata = (
+            json.loads(args.device_metadata.read_text(encoding="utf-8-sig"))
+            if args.device_metadata
+            else {}
+        )
+        ingest_images(
+            args.source,
+            args.output,
+            source_batch=args.source_batch,
+            operator=args.operator,
+            device_metadata=metadata,
+        )
+        manifest = json.loads(
+            (args.output / "ingestion_manifest.json").read_text(encoding="utf-8")
+        )
+        print(json.dumps(manifest, ensure_ascii=False, sort_keys=True))
+        return 1 if manifest["error_count"] else 0
+    if args.command == "vision-check-image-quality":
+        records = [
+            IngestedImage.from_dict(value)
+            for value in read_jsonl(args.ingestion_directory / "images.jsonl")
+        ]
+        results = check_image_quality(
+            records,
+            root=args.ingestion_directory,
+            max_dimension=args.max_dimension,
+            min_dimension=args.min_dimension,
+            max_bytes=args.max_bytes,
+        )
+        write_jsonl(args.output, (item.to_dict() for item in results))
+        summary = dict(sorted(Counter(item.status for item in results).items()))
+        print(json.dumps(summary, sort_keys=True))
+        return 1 if summary.get("fail", 0) else 0
+    if args.command == "vision-find-duplicates":
+        records = [
+            IngestedImage.from_dict(value)
+            for value in read_jsonl(args.ingestion_directory / "images.jsonl")
+        ]
+        groups = find_duplicates(
+            records,
+            root=args.ingestion_directory,
+            similarity_threshold=args.similarity_threshold,
+        )
+        write_json(
+            args.output,
+            {
+                "similarity_threshold": args.similarity_threshold,
+                "groups": [item.to_dict() for item in groups],
+            },
+        )
+        print(json.dumps({"group_count": len(groups)}, sort_keys=True))
+        return 0
+    if args.command == "vision-create-labeling-tasks":
+        records = [
+            IngestedImage.from_dict(value)
+            for value in read_jsonl(args.ingestion_directory / "images.jsonl")
+        ]
+        values = create_labeling_tasks(
+            records,
+            args.task_types,
+            instructions_version=args.instructions_version,
+            label_vocabulary_version=args.label_vocabulary_version,
+            assignee=args.assignee,
+            priority=args.priority,
+        )
+        write_jsonl(args.output, (item.to_dict() for item in values))
+        print(json.dumps({"task_count": len(values)}, sort_keys=True))
+        return 0
+    if args.command == "vision-validate-annotations":
+        revisions = [
+            AnnotationRevision.from_dict(value)
+            for value in read_jsonl(args.annotations)
+        ]
+        vocabulary = (
+            json.loads(args.label_vocabulary.read_text(encoding="utf-8-sig"))
+            if args.label_vocabulary
+            else None
+        )
+        report = validate_annotations(revisions, label_vocabulary=vocabulary)
+        write_json(args.output, report.to_dict())
+        print(json.dumps(report.to_dict(), ensure_ascii=False, sort_keys=True))
+        return 0 if report.valid else 1
+    if args.command == "vision-build-dataset-version":
+        manifest = build_dataset_version(
+            args.ingestion_directory,
+            args.annotation_directory,
+            args.output,
+            version=args.version,
+            seed=args.seed,
+            privacy_mode=args.privacy_mode,
+        )
+        print(manifest)
+        return 0
     if args.command == "vision-export-onnx":
         from vision_ai.pytorch_training import export_pytorch_checkpoint
 

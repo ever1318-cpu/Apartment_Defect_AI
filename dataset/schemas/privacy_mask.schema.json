@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/privacy_mask.schema.json",
+  "title": "Privacy Mask",
+  "type": "object",
+  "required": ["mask_id", "image_id", "category", "polygon", "provenance", "created_by", "created_at", "status", "derivative_path"],
+  "properties": {
+    "mask_id": {"type": "string"},
+    "image_id": {"type": "string"},
+    "category": {"enum": ["face", "license_plate", "document", "name_tag", "other"]},
+    "polygon": {"type": "array", "minItems": 3, "items": {"type": "array", "prefixItems": [{"type": "number", "minimum": 0, "maximum": 1}, {"type": "number", "minimum": 0, "maximum": 1}], "items": false}},
+    "provenance": {"type": "string"},
+    "created_by": {"type": "string"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["pending_review", "approved", "rejected"]},
+    "derivative_path": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}

@@ -35,6 +35,57 @@ loaded only when their backend, exporter, or application factory is used.
 The `apartment-data` CLI supports legacy import, manifest validation, leakage-safe
 splitting, version manifests, and serialized Vision AI prediction validation.
 
+## Field data workflow
+
+Field images enter a content-addressed batch without modifying the source folder:
+
+```powershell
+apartment-data vision-ingest-images field-images dataset/ingestion/batch-001 `
+  --source-batch batch-001 --operator field-team
+apartment-data vision-check-image-quality dataset/ingestion/batch-001 `
+  dataset/ingestion/batch-001/quality.jsonl
+apartment-data vision-find-duplicates dataset/ingestion/batch-001 `
+  dataset/ingestion/batch-001/duplicate_groups.json
+```
+
+The ingestion manifest stores only safe relative paths, SHA-256 content IDs,
+source batch, operator, device metadata, and UTC time. Invalid, corrupt,
+duplicate, traversal, and symbolic-link inputs are isolated in `errors.jsonl`.
+Quality results are `pass`, `warning`, or `fail` and cover dimensions, bytes,
+aspect ratio, blur, brightness, contrast, exposure, corruption, and encoding.
+Exact duplicates use SHA-256; near duplicates use perceptual hashing when Pillow
+is available and a deterministic dependency-free fingerprint otherwise.
+
+Create labeling work and validate reviewed revisions:
+
+```powershell
+apartment-data vision-create-labeling-tasks dataset/ingestion/batch-001 `
+  dataset/labeling/tasks.jsonl --task-type classification `
+  --task-type detection --task-type privacy_mask_review `
+  --instructions-version 1.0 --label-vocabulary-version 1.0
+apartment-data vision-validate-annotations dataset/annotations/revisions.jsonl `
+  dataset/annotations/qa-report.json
+```
+
+Privacy masks record normalized polygons, category, author, provenance, review
+status, and derivative path. Sources are never overwritten. Actual raster
+redaction uses lazy Pillow or an injected offline transformer; automatic
+detection remains an optional backend.
+
+Build an approved, duplicate-free and group-leakage-safe dataset:
+
+```powershell
+apartment-data vision-build-dataset-version dataset/ingestion/batch-001 `
+  dataset/annotations dataset/versions/dataset-001 `
+  --version dataset-001 --seed 42 --privacy-mode raw
+```
+
+The export contains copied training images, `records.jsonl`,
+`annotations.jsonl`, and `dataset_version_manifest.json`. The manifest records
+source-batch lineage, included/excluded reasons, deterministic splits, label and
+quality distributions, and privacy mode. See [LABELING_GUIDE.md](LABELING_GUIDE.md)
+and [DATA_GOVERNANCE.md](DATA_GOVERNANCE.md).
+
 Batch inference accepts a manifest of `ImageRecord` JSON objects. Relative image
 paths resolve from the manifest directory unless `--root` is supplied. The
 dependency-free `reference` backend is the default:

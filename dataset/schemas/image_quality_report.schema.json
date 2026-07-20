@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/image_quality_report.schema.json",
+  "title": "Image Quality Result",
+  "type": "object",
+  "required": ["image_id", "status", "width", "height", "size_bytes", "aspect_ratio", "blur_score", "brightness", "contrast", "issues"],
+  "properties": {
+    "image_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["pass", "warning", "fail"]},
+    "width": {"type": ["integer", "null"], "minimum": 1},
+    "height": {"type": ["integer", "null"], "minimum": 1},
+    "size_bytes": {"type": "integer", "minimum": 0},
+    "aspect_ratio": {"type": ["number", "null"], "exclusiveMinimum": 0},
+    "blur_score": {"type": ["number", "null"], "minimum": 0},
+    "brightness": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+    "contrast": {"type": ["number", "null"], "minimum": 0},
+    "issues": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

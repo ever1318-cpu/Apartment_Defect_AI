@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/labeling_task.schema.json",
+  "title": "Labeling Task",
+  "type": "object",
+  "required": ["task_id", "image_id", "task_type", "status", "priority", "created_at", "updated_at", "source_batch", "instructions_version", "label_vocabulary_version", "assignee"],
+  "properties": {
+    "task_id": {"type": "string"},
+    "image_id": {"type": "string"},
+    "task_type": {"enum": ["classification", "detection", "segmentation", "severity", "privacy_mask_review"]},
+    "status": {"enum": ["pending", "in_progress", "submitted", "approved", "rejected"]},
+    "priority": {"type": "integer", "minimum": 0},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"},
+    "source_batch": {"type": "string"},
+    "instructions_version": {"type": "string"},
+    "label_vocabulary_version": {"type": "string"},
+    "assignee": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}
