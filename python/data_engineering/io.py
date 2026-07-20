@@ -64,5 +64,30 @@ def write_jsonl(path: str | Path, values: Iterable[Mapping[str, Any]]) -> None:
         raise
 
 
+def write_json(path: str | Path, value: Mapping[str, Any]) -> None:
+    """Atomically write one formatted JSON object using stable key ordering."""
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    handle, temporary = tempfile.mkstemp(
+        prefix=f".{destination.name}.", suffix=".tmp", dir=destination.parent
+    )
+    try:
+        with os.fdopen(handle, "w", encoding="utf-8", newline="\n") as stream:
+            json.dump(
+                value,
+                stream,
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            stream.write("\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, destination)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
+
+
 def write_records(path: str | Path, records: Iterable[ImageRecord]) -> None:
     write_jsonl(path, (record.to_dict() for record in records))

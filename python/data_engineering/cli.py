@@ -9,12 +9,14 @@ from pathlib import Path
 from typing import Sequence
 
 from .etl.legacy_import import deduplicate_records, import_legacy_csv
-from .io import read_jsonl, read_records, write_jsonl, write_records
+from .io import read_jsonl, read_records, write_json, write_jsonl, write_records
 from .models import SplitRatios
 from .splitters.group_stratified import group_stratified_split
 from .validators.manifest import validate_records
 from .versioning.manifest import build_manifest
 from vision_ai.backends import create_backend
+from vision_ai.evaluation import EvaluationConfig, evaluate_predictions
+from vision_ai.evaluation_models import GroundTruthAnnotation
 from vision_ai.inference import InferenceRunner
 from vision_ai.models import VisionPrediction
 from vision_ai.pipeline import VisionPipeline
@@ -53,6 +55,16 @@ def _parser() -> argparse.ArgumentParser:
     )
     vision.add_argument("input", type=Path)
     vision.add_argument("--records", type=Path)
+
+    evaluate = commands.add_parser(
+        "vision-evaluate", help="evaluate Vision predictions against ground truth"
+    )
+    evaluate.add_argument("ground_truth", type=Path)
+    evaluate.add_argument("predictions", type=Path)
+    evaluate.add_argument("output", type=Path)
+    evaluate.add_argument("--iou-threshold", type=float, default=0.5)
+    evaluate.add_argument("--confidence-threshold", type=float, default=0.25)
+    evaluate.add_argument("--dataset-version")
 
     predict = commands.add_parser(
         "vision-predict", help="run backend-neutral batch Vision inference"
@@ -129,6 +141,28 @@ def main(argv: Sequence[str] | None = None) -> int:
         for issue in issues:
             print(json.dumps(asdict(issue), ensure_ascii=False))
         return 1 if issues else 0
+    if args.command == "vision-evaluate":
+        ground_truth = [
+            GroundTruthAnnotation.from_dict(value)
+            for value in read_jsonl(args.ground_truth)
+        ]
+        predictions = [
+            VisionPrediction.from_dict(value)
+            for value in read_jsonl(args.predictions)
+        ]
+        report = evaluate_predictions(
+            ground_truth,
+            predictions,
+            EvaluationConfig(
+                confidence_threshold=args.confidence_threshold,
+                iou_threshold=args.iou_threshold,
+                dataset_version=args.dataset_version,
+            ),
+        )
+        write_json(args.output, report.to_dict())
+        for issue in (*report.errors, *report.warnings):
+            print(json.dumps(asdict(issue), ensure_ascii=False, sort_keys=True))
+        return 1 if report.errors else 0
     if args.command == "vision-predict":
         backend = _create_cli_backend(args)
         result = InferenceRunner(

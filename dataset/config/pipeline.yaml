@@ -58,3 +58,6 @@ vision:
   severity:
     medium_area: 0.02
     high_area: 0.10
+  evaluation:
+    confidence_threshold: 0.25
+    iou_threshold: 0.50

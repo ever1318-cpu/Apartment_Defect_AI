@@ -20,15 +20,21 @@ Last updated: 2026-07-20
   - Optional ONNX Runtime backend with lazy imports.
   - Model path validation and separately injectable session creation.
   - CLI model/version/provider configuration and strict output contract checks.
+- Sprint 2-4: Vision evaluation and reporting.
+  - Ground-truth/prediction joining with fatal errors and partial-data warnings.
+  - Classification, class-aware IoU detection, and severity metrics.
+  - JSON evaluation reports with versions, thresholds, confusion matrices, and
+    per-label counts.
+  - Atomic `vision-evaluate` CLI workflow.
 
 ## Verification
 
-- Full suite: 44 tests passed.
+- Full suite: 55 tests passed.
 - Command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
-  --basetemp=output\pytest-sprint-2-3-release`
+  --basetemp=output\pytest-sprint-2-4-release`
 - Existing Sprint 2-1 interfaces and tests remain intact.
 
 ## Current Boundary
 
-The repository defines stable domain and execution contracts and an optional ONNX
-adapter. Trained weights are intentionally not included.
+The repository defines stable domain, execution, backend adapter, and evaluation
+contracts. Trained weights are intentionally not included.

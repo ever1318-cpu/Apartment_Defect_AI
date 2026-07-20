@@ -1,15 +1,15 @@
 # Next Task
 
-## Sprint 2-4 — Evaluation and Calibration
+## Sprint 2-5 — Model Packaging and Deployment Profiles
 
-Build backend-neutral evaluation around the stable `VisionPrediction` contract:
+Package production models without coupling the stable Vision contracts to a
+runtime:
 
-1. Define ground-truth/evaluation contracts without coupling to a model framework.
-2. Add classification precision/recall/F1 and detection IoU-based metrics.
-3. Report quality rejection, inference failure, and per-label coverage separately.
-4. Add deterministic threshold-sweep utilities for confidence and NMS calibration.
-5. Expose JSON evaluation reports through a CLI command.
-6. Add unit and end-to-end tests using small synthetic fixtures.
+1. Define model compatibility manifests and checksum validation.
+2. Record input/output contracts, label sets, preprocessing, and runtime versions.
+3. Add CPU/GPU deployment profiles without local absolute paths.
+4. Validate model packages before backend session creation.
+5. Add CLI inspection and verification commands.
+6. Add synthetic package fixtures and end-to-end tests.
 
-Keep evaluation independent from trained weights and do not change existing
-Sprint 2-1 through Sprint 2-3 interfaces or serialized prediction fields.
+Preserve Sprint 2-1 through Sprint 2-4 interfaces and serialized artifacts.

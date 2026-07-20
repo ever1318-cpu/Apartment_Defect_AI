@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/vision_evaluation_report.schema.json",
+  "title": "Apartment Defect Vision Evaluation Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dataset_version",
+    "model_version",
+    "evaluated_at",
+    "thresholds",
+    "evaluated_images",
+    "classification",
+    "detection",
+    "severity",
+    "errors",
+    "warnings"
+  ],
+  "properties": {
+    "dataset_version": {"type": "string", "minLength": 1},
+    "model_version": {"type": "string", "minLength": 1},
+    "evaluated_at": {"type": "string", "minLength": 1},
+    "thresholds": {
+      "type": "object",
+      "required": ["confidence", "iou"],
+      "properties": {
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "iou": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "evaluated_images": {"type": "integer", "minimum": 0},
+    "classification": {"type": "object"},
+    "detection": {"type": "object"},
+    "severity": {"type": "object"},
+    "errors": {"type": "array", "items": {"type": "object"}},
+    "warnings": {"type": "array", "items": {"type": "object"}}
+  }
+}
