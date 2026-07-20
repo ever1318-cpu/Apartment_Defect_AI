@@ -1,5 +1,7 @@
 # Apartment Defect AI
 
+[![coverage: 80%](docs/coverage.svg)](htmlcov/index.html)
+
 Reproducible data-engineering and framework-neutral Vision AI foundations for
 apartment-defect image analysis.
 

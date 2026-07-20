@@ -57,3 +57,9 @@ artifact 통합과 이 legacy module의 regression test 복원이다.
 
 Generated coverage data와 JSON은 `output/`의 local artifact이며 source control에
 포함하지 않는다.
+
+Release artifacts:
+
+- [Cobertura XML](../coverage.xml)
+- [Browsable HTML report](../htmlcov/index.html)
+- [Static coverage badge](coverage.svg)
