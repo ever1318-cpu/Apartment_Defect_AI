@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>21. AI Data Engineering</title>
+  <style>
+    :root{--navy:#132238;--blue:#2457a6;--light:#f4f7fb;--line:#dfe6ef;--text:#243247}
+    *{box-sizing:border-box}body{margin:0;font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;color:var(--text);background:var(--light);line-height:1.65}
+    header{background:linear-gradient(120deg,var(--navy),var(--blue));color:#fff;padding:48px 24px}
+    header div,main{max-width:1180px;margin:auto}main{padding:30px 18px 60px}
+    section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px}
+    h2{color:var(--navy);border-bottom:2px solid var(--line);padding-bottom:8px}
+    pre{overflow:auto;background:#101827;color:#e8eef8;padding:18px;border-radius:10px}
+    table{width:100%;border-collapse:collapse}th,td{border:1px solid var(--line);padding:10px}th{background:#edf3fb}
+  </style>
+</head>
+<body>
+<header><div><h1>21. AI Data Engineering</h1><p>Sprint 1–6 재현 가능한 데이터 파이프라인</p></div></header>
+<main>
+  <section><h2>목표</h2><p>원천 데이터 불변성, 그룹 누수 방지, 스키마 검증, 콘텐츠 해시 기반 버전 관리를 통해 대규모 하자 이미지 데이터셋을 재현 가능하게 구성한다.</p></section>
+  <section><h2>파이프라인</h2><pre>Legacy CSV → Canonical JSONL → Validation → Group-stratified split
+           → Version manifest → Training augmentation
+           → Uncertainty sampling → Human review</pre></section>
+  <section><h2>Sprint 1–6 산출물</h2>
+    <table><tr><th>Sprint</th><th>구현</th></tr>
+      <tr><td>1</td><td>ImageRecord 모델, 원자적 JSONL 입출력, JSON Schema</td></tr>
+      <tr><td>2</td><td>Legacy CSV 변환과 중복 식별</td></tr>
+      <tr><td>3</td><td>레코드·파일·그룹 누수 검증</td></tr>
+      <tr><td>4</td><td>결정적 그룹 계층 분할과 pytest</td></tr>
+      <tr><td>5</td><td>SHA-256 데이터셋 버전 매니페스트</td></tr>
+      <tr><td>6</td><td>능동학습 후보 선택과 결정적 증강 정책</td></tr>
+    </table>
+  </section>
+  <section><h2>CLI 예시</h2><pre>apartment-data import-legacy legacy.csv records.jsonl
+apartment-data validate records.jsonl --root .
+apartment-data split records.jsonl split-records.jsonl --seed 42
+apartment-data manifest split-records.jsonl manifest.jsonl --version 2026.07.20</pre></section>
+</main>
+</body>
+</html>

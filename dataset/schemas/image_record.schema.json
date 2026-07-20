@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/image_record.schema.json",
+  "title": "Apartment Defect Image Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_id", "image_path", "group_id", "label"],
+  "properties": {
+    "image_id": {"type": "string", "minLength": 1},
+    "image_path": {"type": "string", "minLength": 1},
+    "group_id": {"type": "string", "minLength": 1},
+    "label": {"type": "string", "minLength": 1},
+    "width": {"type": ["integer", "null"], "minimum": 1},
+    "height": {"type": ["integer", "null"], "minimum": 1},
+    "source": {"type": "string", "minLength": 1, "default": "unknown"},
+    "checksum": {
+      "type": ["string", "null"],
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
+    "split": {
+      "type": ["string", "null"],
+      "enum": ["train", "validation", "test", null]
+    },
+    "metadata": {"type": "object", "default": {}}
+  }
+}

@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+.venv/
+.python-runtime/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dataset/raw/
+dataset/interim/
+dataset/processed/
+dataset/cache/
+output/*
+!output/.gitkeep
+*.log

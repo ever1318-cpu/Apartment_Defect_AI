@@ -1,0 +1,39 @@
+version: 1
+seed: 42
+
+paths:
+  raw: dataset/raw
+  interim: dataset/interim
+  processed: dataset/processed
+  manifest: dataset/processed/records.jsonl
+
+split:
+  group_field: group_id
+  stratify_field: label
+  ratios:
+    train: 0.80
+    validation: 0.10
+    test: 0.10
+
+validation:
+  require_files: true
+  allowed_extensions: [jpg, jpeg, png, webp, tif, tiff]
+
+augmentation:
+  train_only: true
+  transforms:
+    - name: horizontal_flip
+      probability: 0.50
+      parameters: {}
+    - name: brightness_contrast
+      probability: 0.40
+      parameters:
+        limit: 0.20
+    - name: rotate
+      probability: 0.30
+      parameters:
+        degrees: 8
+
+active_learning:
+  strategy: entropy
+  max_per_group: 1
