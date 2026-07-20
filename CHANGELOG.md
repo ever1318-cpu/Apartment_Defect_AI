@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] - 2026-07-20
+
+### Added
+
+- Callable backend adapter and dynamic `module:attribute` backend loading.
+- Backend-neutral batch inference runner with deterministic summaries, duplicate
+  protection, quality-rejection accounting, fail-fast mode, and error isolation.
+- `vision-predict` CLI with atomic prediction and optional error JSONL output.
+- Unit and integration coverage for backend loading, batch execution, and CLI
+  inference.
+
 ## [0.3.0] - 2026-07-20
 
 ### Added

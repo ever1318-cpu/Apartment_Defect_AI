@@ -14,7 +14,10 @@ from .models import SplitRatios
 from .splitters.group_stratified import group_stratified_split
 from .validators.manifest import validate_records
 from .versioning.manifest import build_manifest
+from vision_ai.backends import load_backend
+from vision_ai.inference import InferenceRunner
 from vision_ai.models import VisionPrediction
+from vision_ai.pipeline import VisionPipeline
 from vision_ai.validators import validate_predictions
 
 
@@ -50,6 +53,17 @@ def _parser() -> argparse.ArgumentParser:
     )
     vision.add_argument("input", type=Path)
     vision.add_argument("--records", type=Path)
+
+    predict = commands.add_parser(
+        "vision-predict", help="run backend-neutral batch Vision inference"
+    )
+    predict.add_argument("input", type=Path, help="ImageRecord JSONL")
+    predict.add_argument("output", type=Path, help="prediction JSONL")
+    predict.add_argument(
+        "--backend", required=True, help="backend instance or factory as module:attribute"
+    )
+    predict.add_argument("--errors", type=Path, help="optional inference error JSONL")
+    predict.add_argument("--fail-fast", action="store_true")
     return parser
 
 
@@ -91,6 +105,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         for issue in issues:
             print(json.dumps(asdict(issue), ensure_ascii=False))
         return 1 if issues else 0
+    if args.command == "vision-predict":
+        backend = load_backend(args.backend)
+        result = InferenceRunner(
+            VisionPipeline(backend), fail_fast=args.fail_fast
+        ).run(read_records(args.input))
+        write_jsonl(args.output, (item.to_dict() for item in result.predictions))
+        if args.errors is not None:
+            write_jsonl(args.errors, (item.to_dict() for item in result.failures))
+        print(json.dumps(result.summary.to_dict(), ensure_ascii=False, sort_keys=True))
+        return 1 if result.failures else 0
     raise AssertionError("unreachable")
 
 

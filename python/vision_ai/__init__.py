@@ -1,5 +1,12 @@
 """Framework-neutral Vision AI inference foundations."""
 
+from .backends import CallableVisionBackend, load_backend
+from .inference import (
+    InferenceFailure,
+    InferenceResult,
+    InferenceRunner,
+    InferenceSummary,
+)
 from .models import (
     BoundingBox,
     Classification,
@@ -8,14 +15,22 @@ from .models import (
     PolygonMask,
     VisionPrediction,
 )
-from .pipeline import VisionPipeline
+from .pipeline import PipelineConfig, VisionBackend, VisionPipeline
 
 __all__ = [
     "BoundingBox",
+    "CallableVisionBackend",
     "Classification",
     "DefectDetection",
     "ImageQuality",
+    "InferenceFailure",
+    "InferenceResult",
+    "InferenceRunner",
+    "InferenceSummary",
+    "PipelineConfig",
     "PolygonMask",
+    "VisionBackend",
     "VisionPipeline",
     "VisionPrediction",
+    "load_backend",
 ]
