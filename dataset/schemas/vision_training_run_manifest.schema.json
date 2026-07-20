@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/vision_training_run_manifest.schema.json",
+  "title": "Vision Training Run Manifest",
+  "type": "object",
+  "required": [
+    "run_id",
+    "created_at",
+    "status",
+    "backend",
+    "dataset_version",
+    "stages",
+    "artifacts"
+  ],
+  "properties": {
+    "run_id": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "minLength": 1},
+    "status": {"enum": ["completed", "failed"]},
+    "backend": {"type": "string", "minLength": 1},
+    "dataset_version": {"type": "string", "minLength": 1},
+    "stages": {"type": "object"},
+    "artifacts": {"type": "array", "items": {"type": "string"}},
+    "final_metrics": {"type": "object"},
+    "error_type": {"type": "string"},
+    "error": {"type": "string"}
+  }
+}

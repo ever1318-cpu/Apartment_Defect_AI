@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/vision_training_dataset_manifest.schema.json",
+  "title": "Vision Training Dataset Manifest",
+  "type": "object",
+  "required": [
+    "dataset_version",
+    "source_root",
+    "tasks",
+    "split_paths",
+    "label_mapping_path",
+    "training_spec_path",
+    "statistics"
+  ],
+  "properties": {
+    "dataset_version": {"type": "string", "minLength": 1},
+    "source_root": {"type": "string", "minLength": 1},
+    "tasks": {"type": "object"},
+    "split_paths": {"type": "object"},
+    "label_mapping_path": {"type": "string"},
+    "training_spec_path": {"type": "string"},
+    "statistics": {"type": "object"}
+  }
+}

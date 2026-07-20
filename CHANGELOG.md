@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.0] - 2026-07-20
+
+### Added
+
+- Leakage-safe training dataset builder joining split records and annotations.
+- Stable task vocabularies with JSON round trips and strict unknown/reserved label
+  policies.
+- Framework-neutral `TrainingSpec` covering tasks, data locations, preprocessing,
+  augmentation, hyperparameters, seed, output, and artifact naming.
+- `TrainingBackend` prepare/train/validate/export boundary and deterministic
+  reference implementation.
+- Collision-safe training runner with success/failure manifests, metric history,
+  final metrics, model metadata, and exported artifact.
+- Training dataset/run schemas and `vision-build-training-dataset` plus
+  `vision-train` CLI workflows.
+- Unit and end-to-end tests for validation, determinism, artifacts, failures, and
+  CLI execution.
+
 ## [0.6.0] - 2026-07-20
 
 ### Added

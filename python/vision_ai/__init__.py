@@ -38,6 +38,22 @@ from .models import (
 )
 from .onnx_backend import OnnxVisionBackend, create_onnx_session
 from .pipeline import PipelineConfig, VisionBackend, VisionPipeline
+from .training import (
+    ReferenceTrainingBackend,
+    TrainingBackend,
+    TrainingRunner,
+    load_training_backend,
+)
+from .training_dataset import TrainingDatasetBuildResult, build_training_dataset
+from .training_models import (
+    LabelMapping,
+    LabelVocabulary,
+    MetricEntry,
+    TrainingRunResult,
+    TrainingSample,
+    TrainingSpec,
+    TrainingTasks,
+)
 
 __all__ = [
     "BoundingBox",
@@ -58,20 +74,33 @@ __all__ = [
     "InferenceRunner",
     "InferenceSummary",
     "LabelMetrics",
+    "LabelMapping",
+    "LabelVocabulary",
+    "MetricEntry",
     "PipelineConfig",
     "OnnxVisionBackend",
     "PolygonMask",
     "ReferenceVisionBackend",
+    "ReferenceTrainingBackend",
     "SeverityMetrics",
+    "TrainingBackend",
+    "TrainingDatasetBuildResult",
+    "TrainingRunner",
+    "TrainingRunResult",
+    "TrainingSample",
+    "TrainingSpec",
+    "TrainingTasks",
     "VisionBackend",
     "VisionPipeline",
     "VisionPrediction",
     "build_default_registry",
+    "build_training_dataset",
     "ClassificationMetrics",
     "create_backend",
     "create_onnx_session",
     "evaluate_predictions",
     "inspect_image_file",
     "load_backend",
+    "load_training_backend",
     "resolve_image_path",
 ]
