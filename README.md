@@ -207,6 +207,66 @@ The reference detection architecture predicts one normalized XYXY box per image
 and uses the first ground-truth detection during training. It is a minimal
 offline baseline, not a production detector.
 
+## Model packaging and deployment profiles
+
+Create a portable deployment package from a completed PyTorch training run:
+
+```powershell
+apartment-data vision-package-model `
+  training-runs/run-002 model-packages/defect-model-1.0.0 `
+  --model-name apartment-defect --model-version 1.0.0
+```
+
+The package contains only relative references:
+
+```text
+model.onnx
+model_manifest.json
+compatibility_manifest.json
+checksums.json
+label_mapping.json
+preprocessing.json
+deployment_profiles.json
+README.txt
+```
+
+All eight files are required. `checksums.json` records stable, lexically sorted
+SHA-256 values for every other file and excludes itself. Missing files and
+checksum mismatches always fail validation. Untracked files warn normally and
+fail with `--strict`; symbolic links, nested/path-traversal references, and
+non-regular entries are rejected.
+
+```powershell
+apartment-data vision-validate-model-package `
+  model-packages/defect-model-1.0.0 --strict
+
+apartment-data vision-inspect-model-package `
+  model-packages/defect-model-1.0.0
+```
+
+Compatibility checks report `pass`, `warning`, or `fail`. Unsupported Python,
+CPU architecture, execution providers, required CUDA, and an old ONNX Runtime
+are failures. An untested operating system or unavailable ONNX Runtime version
+is a warning. Warnings preserve a successful exit code.
+
+The default `cpu` profile selects `CPUExecutionProvider` and records thread,
+optimization, and memory-arena settings. The `gpu` profile prefers
+`CUDAExecutionProvider`, permits configurable CPU fallback, and records generic
+device/memory/arena/convolution settings without binding the package to a
+specific machine.
+
+Package directories can be passed anywhere a raw ONNX path was accepted:
+
+```powershell
+apartment-data vision-predict records.jsonl predictions.jsonl `
+  --backend onnx --model model-packages/defect-model-1.0.0 `
+  --deployment-profile cpu
+```
+
+Package validation runs before session creation. Model version, labels,
+preprocessing resize, and providers are loaded from the package. Raw `.onnx`
+paths remain supported with the previous CLI options.
+
 The run manifest records the run ID, UTC creation time, backend, stage states,
 artifact list, final metrics, and either `completed` or a structured `failed`
 status.

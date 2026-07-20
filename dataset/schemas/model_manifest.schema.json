@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/model_manifest.schema.json",
+  "title": "Model Package Manifest",
+  "type": "object",
+  "required": ["package_format_version", "model_name", "model_version", "model_artifact", "model_artifact_format", "created_at", "source_training_run_id", "dataset_version", "framework", "framework_version", "onnx_opset", "dynamic_batch", "input_contract", "output_contract", "label_mapping_file", "preprocessing_file", "compatibility_manifest_file", "checksum_manifest_file", "deployment_profiles_file", "minimum_application_version", "metadata", "notes"],
+  "properties": {
+    "package_format_version": {"type": "string", "minLength": 1},
+    "model_name": {"type": "string", "minLength": 1},
+    "model_version": {"type": "string", "minLength": 1},
+    "model_artifact": {"const": "model.onnx"},
+    "model_artifact_format": {"const": "onnx"},
+    "created_at": {"type": "string", "minLength": 1},
+    "source_training_run_id": {"type": "string", "minLength": 1},
+    "dataset_version": {"type": "string", "minLength": 1},
+    "framework": {"type": "string", "minLength": 1},
+    "framework_version": {"type": "string", "minLength": 1},
+    "onnx_opset": {"type": "integer", "minimum": 1},
+    "dynamic_batch": {"type": "boolean"},
+    "input_contract": {"type": "object", "additionalProperties": true},
+    "output_contract": {"type": "array", "items": {"type": "object"}},
+    "label_mapping_file": {"type": "string"},
+    "preprocessing_file": {"type": "string"},
+    "compatibility_manifest_file": {"type": "string"},
+    "checksum_manifest_file": {"type": "string"},
+    "deployment_profiles_file": {"type": "string"},
+    "minimum_application_version": {"type": "string"},
+    "metadata": {"type": "object"},
+    "notes": {"type": "string"}
+  },
+  "additionalProperties": false
+}

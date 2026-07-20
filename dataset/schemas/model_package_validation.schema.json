@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/model_package_validation.schema.json",
+  "title": "Model Package Validation Result",
+  "type": "object",
+  "required": ["valid", "errors", "warnings", "checksum_results", "compatibility_results", "inspected_package_version"],
+  "properties": {
+    "valid": {"type": "boolean"},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "checksum_results": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+    "compatibility_results": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+    "inspected_package_version": {"type": ["string", "null"]}
+  },
+  "additionalProperties": false
+}

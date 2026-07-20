@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.9.0] - 2026-07-20
+
+### Added
+
+- Atomic model-package builder for completed ONNX training runs.
+- Serializable model and compatibility manifests with relative file references.
+- Deterministic SHA-256 manifests, strict/untracked-file policy, traversal and
+  symbolic-link protection.
+- Generic CPU and CUDA deployment profiles with runtime compatibility results.
+- Model-package validation/inspection models, schemas, and CLI workflows.
+- Package-directory loading in `OnnxVisionBackend` while preserving raw ONNX.
+
 ## [0.8.0] - 2026-07-20
 
 ### Added

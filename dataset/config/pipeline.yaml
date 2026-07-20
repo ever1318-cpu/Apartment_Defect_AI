@@ -72,3 +72,8 @@ vision:
       opset: 17
       dynamic_batch: true
       input_shape: [1, 3, 224, 224]
+  packaging:
+    format_version: "1.0"
+    checksum_algorithm: sha256
+    strict_validation: true
+    default_deployment_profile: cpu
