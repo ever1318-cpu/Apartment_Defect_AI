@@ -22,6 +22,7 @@ from vision_ai.inference import InferenceRunner
 from vision_ai.models import VisionPrediction
 from vision_ai.model_package import build_model_package, validate_model_package
 from vision_ai.model_registry import ModelRegistry, STAGES
+from vision_ai.release_readiness import run_release_check, write_release_artifacts
 from vision_ai.pipeline import VisionPipeline
 from vision_ai.training import TrainingRunner, load_training_backend
 from vision_ai.training_dataset import build_training_dataset
@@ -173,6 +174,16 @@ def _parser() -> argparse.ArgumentParser:
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8000)
     serve.add_argument("--workers", type=int, default=1)
+
+    release_check = commands.add_parser(
+        "vision-release-check", help="validate registry and model release readiness"
+    )
+    release_check.add_argument("--registry", type=Path, required=True)
+    release_check.add_argument("--model", required=True)
+    release_check.add_argument("--version", required=True)
+    release_check.add_argument("--deployment-profile", default="cpu")
+    release_check.add_argument("--output", type=Path, default=Path("release-check"))
+    release_check.add_argument("--strict", action="store_true")
 
     predict = commands.add_parser(
         "vision-predict", help="run backend-neutral batch Vision inference"
@@ -407,6 +418,22 @@ def main(argv: Sequence[str] | None = None) -> int:
             workers=config.workers,
         )
         return 0
+    if args.command == "vision-release-check":
+        report, manifest = run_release_check(
+            args.registry,
+            args.model,
+            args.version,
+            deployment_profile=args.deployment_profile,
+        )
+        report_path, manifest_path = write_release_artifacts(
+            args.output, report, manifest
+        )
+        print(json.dumps(report.to_dict(), ensure_ascii=False, sort_keys=True))
+        print(report_path)
+        print(manifest_path)
+        return 1 if report.status == "fail" or (
+            args.strict and report.status == "warning"
+        ) else 0
     if args.command == "vision-export-onnx":
         from vision_ai.pytorch_training import export_pytorch_checkpoint
 

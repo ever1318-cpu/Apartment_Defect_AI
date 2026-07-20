@@ -35,6 +35,7 @@ def create_serving_app(
     @app.on_event("startup")
     async def startup() -> None:
         app.state.ready = runtime.models.ready()
+        runtime.metrics.gauge("readiness_state", app.state.ready)
 
     @app.on_event("shutdown")
     async def shutdown() -> None:
@@ -48,7 +49,7 @@ def create_serving_app(
         try:
             response = await call_next(request)
         except Exception:
-            LOGGER.exception(
+            LOGGER.error(
                 json.dumps(
                     {
                         "request_id": request_id,
@@ -66,6 +67,7 @@ def create_serving_app(
                 ).to_dict(),
             )
         response.headers["x-request-id"] = request_id
+        runtime.metrics.response(response.status_code)
         LOGGER.info(
             json.dumps(
                 {
@@ -97,6 +99,7 @@ def create_serving_app(
     async def ready(request: Request):
         value = runtime.models.ready()
         app.state.ready = value
+        runtime.metrics.gauge("readiness_state", value)
         if not value:
             raise ServiceError(
                 "MODEL_NOT_READY", "production model is not ready", status_code=503
@@ -145,6 +148,19 @@ def create_serving_app(
                 "batch exceeds configured maximum",
                 status_code=413,
             )
+        encoded_size = sum(
+            len(item.get("image_base64", ""))
+            for item in items
+            if isinstance(item, Mapping)
+            and isinstance(item.get("image_base64", ""), str)
+        )
+        if encoded_size > ((config.max_batch_bytes + 2) // 3) * 4 + 4:
+            runtime.metrics.increment("request_rejection_count")
+            raise ServiceError(
+                "PAYLOAD_TOO_LARGE",
+                "batch payload exceeds configured maximum",
+                status_code=413,
+            )
         fail_fast = bool(payload.get("fail_fast", False))
         runtime.metrics.increment("batch_request_count")
         results = []
@@ -191,6 +207,8 @@ async def _json_payload(request: Any) -> Mapping[str, Any]:
         raise ServiceError("INVALID_REQUEST", "request body is not valid JSON") from None
     if not isinstance(value, dict):
         raise ServiceError("INVALID_REQUEST", "request body must be an object")
+    if _json_depth(value) > request.app.state.service.config.max_json_depth:
+        raise ServiceError("INVALID_REQUEST", "request JSON is too deeply nested")
     return value
 
 
@@ -226,3 +244,11 @@ def _prediction_item(
         "model_version": payload.get("model_version"),
         "confidence_threshold": payload.get("confidence_threshold"),
     }
+
+
+def _json_depth(value: Any) -> int:
+    if isinstance(value, Mapping):
+        return 1 + max((_json_depth(item) for item in value.values()), default=0)
+    if isinstance(value, list):
+        return 1 + max((_json_depth(item) for item in value), default=0)
+    return 1

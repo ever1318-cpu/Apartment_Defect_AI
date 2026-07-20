@@ -11,7 +11,7 @@ import tempfile
 import threading
 import time
 from collections import Counter, OrderedDict
-from dataclasses import asdict, dataclass, field, replace
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Mapping, Sequence
 
@@ -47,6 +47,12 @@ class ServingConfig:
     )
     temp_directory: str | None = None
     logging_level: str = "INFO"
+    request_timeout_seconds: float = 30.0
+    model_load_timeout_seconds: float = 30.0
+    max_concurrent_requests: int = 8
+    max_batch_bytes: int = 40 * 1024 * 1024
+    max_image_pixels: int = 25_000_000
+    max_json_depth: int = 12
 
     def __post_init__(self) -> None:
         if not self.registry_directory or not self.default_model_name:
@@ -58,12 +64,18 @@ class ServingConfig:
             self.max_batch_size,
             self.session_cache_size,
             self.inference_cache_size,
+            self.max_concurrent_requests,
+            self.max_batch_bytes,
+            self.max_image_pixels,
+            self.max_json_depth,
         ) <= 0:
             raise ValueError("serving limits and cache sizes must be positive")
         if not 0 <= self.confidence_threshold <= 1:
             raise ValueError("confidence_threshold must be between 0 and 1")
         if self.compatibility_strictness not in {"warning", "fail"}:
             raise ValueError("compatibility_strictness must be warning or fail")
+        if self.request_timeout_seconds <= 0 or self.model_load_timeout_seconds <= 0:
+            raise ValueError("serving timeouts must be positive")
 
     def to_dict(self) -> dict[str, Any]:
         value = asdict(self)
@@ -116,6 +128,26 @@ class ServingConfig:
             ),
             "temp_directory": os.environ.get(f"{prefix}TEMP_DIRECTORY"),
             "logging_level": os.environ.get(f"{prefix}LOGGING_LEVEL", "INFO"),
+            "request_timeout_seconds": float(
+                os.environ.get(f"{prefix}REQUEST_TIMEOUT_SECONDS", "30")
+            ),
+            "model_load_timeout_seconds": float(
+                os.environ.get(f"{prefix}MODEL_LOAD_TIMEOUT_SECONDS", "30")
+            ),
+            "max_concurrent_requests": int(
+                os.environ.get(f"{prefix}MAX_CONCURRENT_REQUESTS", "8")
+            ),
+            "max_batch_bytes": int(
+                os.environ.get(
+                    f"{prefix}MAX_BATCH_BYTES", str(40 * 1024 * 1024)
+                )
+            ),
+            "max_image_pixels": int(
+                os.environ.get(f"{prefix}MAX_IMAGE_PIXELS", "25000000")
+            ),
+            "max_json_depth": int(
+                os.environ.get(f"{prefix}MAX_JSON_DEPTH", "12")
+            ),
         }
         allowed = os.environ.get(f"{prefix}ALLOWED_MIME_TYPES")
         if allowed:
@@ -166,6 +198,10 @@ class ServiceMetrics:
                 "model_load_failure_count": 0,
                 "cache_hit_count": 0,
                 "cache_miss_count": 0,
+                "model_reload_count": 0,
+                "model_reload_failure_count": 0,
+                "request_rejection_count": 0,
+                "timeout_count": 0,
             }
         )
         self._durations = {
@@ -174,6 +210,16 @@ class ServiceMetrics:
         }
         self._models: Counter[str] = Counter()
         self._errors: Counter[str] = Counter()
+        self._response_status: Counter[str] = Counter()
+        self._batch_sizes: Counter[str] = Counter()
+        self._gauges: dict[str, Any] = {
+            "readiness_state": False,
+            "active_model_name": None,
+            "active_model_version": None,
+            "session_cache_size": 0,
+            "inference_cache_size": 0,
+            "concurrent_requests": 0,
+        }
 
     def increment(self, name: str, amount: int = 1) -> None:
         with self._lock:
@@ -196,6 +242,19 @@ class ServiceMetrics:
             values["min"] = seconds if values["min"] is None else min(values["min"], seconds)
             values["max"] = seconds if values["max"] is None else max(values["max"], seconds)
 
+    def gauge(self, name: str, value: Any) -> None:
+        with self._lock:
+            self._gauges[name] = value
+
+    def response(self, status_code: int) -> None:
+        with self._lock:
+            self._response_status[str(status_code)] += 1
+
+    def batch_size(self, size: int) -> None:
+        boundary = "1" if size <= 1 else "2-4" if size <= 4 else "5-16" if size <= 16 else "17+"
+        with self._lock:
+            self._batch_sizes[boundary] += 1
+
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
             return {
@@ -204,6 +263,9 @@ class ServiceMetrics:
                 "request_duration": dict(self._durations["request"]),
                 "by_model": dict(sorted(self._models.items())),
                 "by_error_type": dict(sorted(self._errors.items())),
+                "by_response_status": dict(sorted(self._response_status.items())),
+                "batch_size_buckets": dict(sorted(self._batch_sizes.items())),
+                **copy.deepcopy(self._gauges),
                 "process_start_time": self._start_time,
                 "uptime_seconds": max(0.0, time.time() - self._start_time),
             }
@@ -253,6 +315,7 @@ class ModelManager:
         cache_size: int = 2,
         backend_factory: BackendFactory | None = None,
         metrics: ServiceMetrics | None = None,
+        load_timeout_seconds: float = 30.0,
     ):
         self.registry = registry
         self.default_model_name = default_model_name
@@ -261,10 +324,12 @@ class ModelManager:
             lambda entry, package: OnnxVisionBackend(package)
         )
         self.metrics = metrics or ServiceMetrics()
+        self.load_timeout_seconds = load_timeout_seconds
         self._lock = threading.RLock()
         self._revision = -1
         self._cache: OrderedDict[tuple[str, str], Any] = OrderedDict()
         self._retired: list[Any] = []
+        self._active_default: tuple[RegistryEntry, Any] | None = None
 
     def resolve(
         self, model_name: str | None = None, model_version: str | None = None
@@ -272,7 +337,8 @@ class ModelManager:
         with self._lock:
             index = self.registry.read()
             if index.revision != self._revision:
-                self._evict_all()
+                if self._revision >= 0:
+                    self.metrics.increment("model_reload_count")
                 self._revision = index.revision
             name = model_name or self.default_model_name
             try:
@@ -289,13 +355,21 @@ class ModelManager:
             backend = self._cache.get(key)
             if backend is not None:
                 self._cache.move_to_end(key)
+                if model_version is None:
+                    self._active_default = (entry, backend)
                 return entry, backend
             try:
-                backend = self.backend_factory(
-                    entry, self.registry.package_directory(entry)
-                )
+                started = time.monotonic()
+                backend = self.backend_factory(entry, self.registry.package_directory(entry))
+                if time.monotonic() - started > self.load_timeout_seconds:
+                    _close(backend)
+                    self.metrics.increment("timeout_count")
+                    raise TimeoutError("model load timed out")
             except Exception:
                 self.metrics.increment("model_load_failure_count")
+                if model_version is None and self._active_default is not None:
+                    self.metrics.increment("model_reload_failure_count")
+                    return self._active_default
                 raise ServiceError(
                     "MODEL_NOT_READY",
                     "model could not be loaded",
@@ -303,6 +377,8 @@ class ModelManager:
                 ) from None
             self.metrics.increment("model_load_count")
             self._cache[key] = backend
+            if model_version is None:
+                self._active_default = (entry, backend)
             while len(self._cache) > self.cache_size:
                 _, removed = self._cache.popitem(last=False)
                 self._retired.append(removed)
@@ -322,6 +398,7 @@ class ModelManager:
             for backend in self._retired:
                 _close(backend)
             self._retired.clear()
+            self._active_default = None
 
     def _evict_all(self) -> None:
         self._retired.extend(self._cache.values())
@@ -347,14 +424,59 @@ class ServingService:
             cache_size=config.session_cache_size,
             backend_factory=backend_factory,
             metrics=self.metrics,
+            load_timeout_seconds=config.model_load_timeout_seconds,
         )
         self.inference_cache = (
             InferenceCache(config.inference_cache_size)
             if config.inference_cache_enabled
             else None
         )
+        self._concurrency = threading.BoundedSemaphore(config.max_concurrent_requests)
+        self._concurrent_lock = threading.Lock()
+        self._concurrent = 0
 
     def predict(
+        self,
+        image: bytes,
+        *,
+        mime_type: str,
+        image_id: str,
+        model_name: str | None = None,
+        model_version: str | None = None,
+        confidence_threshold: float | None = None,
+    ) -> VisionPrediction:
+        acquired = self._concurrency.acquire(
+            timeout=self.config.request_timeout_seconds
+        )
+        if not acquired:
+            self.metrics.increment("request_count")
+            self.metrics.increment("request_rejection_count")
+            self.metrics.increment("timeout_count")
+            self.metrics.error("REQUEST_TIMEOUT")
+            raise ServiceError(
+                "REQUEST_TIMEOUT",
+                "request timed out waiting for capacity",
+                status_code=503,
+            )
+        with self._concurrent_lock:
+            self._concurrent += 1
+            self.metrics.gauge("concurrent_requests", self._concurrent)
+        try:
+            return self._predict_impl(
+                image,
+                mime_type=mime_type,
+                image_id=image_id,
+                model_name=model_name,
+                model_version=model_version,
+                confidence_threshold=confidence_threshold,
+            )
+        finally:
+            with self._concurrent_lock:
+                self._concurrent -= 1
+                self.metrics.gauge("concurrent_requests", self._concurrent)
+            self._concurrency.release()
+
+    def _predict_impl(
         self,
         image: bytes,
         *,
@@ -377,6 +499,10 @@ class ServingService:
             if not 0 <= threshold <= 1:
                 raise ServiceError("INVALID_REQUEST", "confidence threshold is invalid")
             entry, backend = self.models.resolve(model_name, model_version)
+            self.metrics.gauge("readiness_state", True)
+            self.metrics.gauge("active_model_name", entry.model_name)
+            self.metrics.gauge("active_model_version", entry.model_version)
+            self.metrics.gauge("session_cache_size", len(self.models._cache))
             key = _cache_key(
                 image,
                 entry,
@@ -389,6 +515,9 @@ class ServingService:
                     self.metrics.increment("cache_hit_count")
                     self.metrics.increment("success_count")
                     self.metrics.model(entry.model_name, entry.model_version)
+                    self.metrics.gauge(
+                        "inference_cache_size", len(self.inference_cache)
+                    )
                     return cached
                 self.metrics.increment("cache_miss_count")
             suffix = _mime_suffix(mime_type)
@@ -420,10 +549,18 @@ class ServingService:
             finally:
                 path.unlink(missing_ok=True)
             self.metrics.duration("inference", time.perf_counter() - started)
+            if time.perf_counter() - started > self.config.request_timeout_seconds:
+                self.metrics.increment("timeout_count")
+                raise ServiceError(
+                    "REQUEST_TIMEOUT", "inference exceeded request timeout", status_code=504
+                )
             self.metrics.increment("success_count")
             self.metrics.model(entry.model_name, entry.model_version)
             if self.inference_cache is not None:
                 self.inference_cache.put(key, prediction)
+                self.metrics.gauge(
+                    "inference_cache_size", len(self.inference_cache)
+                )
             return prediction
         except ServiceError as exc:
             self.metrics.error(exc.code)
@@ -444,6 +581,19 @@ class ServingService:
                 status_code=413,
             )
         self.metrics.increment("batch_request_count")
+        self.metrics.batch_size(len(items))
+        total_bytes = sum(
+            len(item.get("image", b""))
+            for item in items
+            if isinstance(item, Mapping)
+        )
+        if total_bytes > self.config.max_batch_bytes:
+            self.metrics.increment("request_rejection_count")
+            raise ServiceError(
+                "PAYLOAD_TOO_LARGE",
+                "batch payload exceeds configured maximum",
+                status_code=413,
+            )
         results = []
         for item in items:
             try:
@@ -494,6 +644,17 @@ class ServingService:
                 "INVALID_IMAGE",
                 "image bytes do not match the declared media type",
             )
+        if mime_type == "image/png":
+            if len(image) < 24 or image[12:16] != b"IHDR":
+                raise ServiceError("INVALID_IMAGE", "PNG header is malformed")
+            width = int.from_bytes(image[16:20], "big")
+            height = int.from_bytes(image[20:24], "big")
+            if width <= 0 or height <= 0:
+                raise ServiceError("INVALID_IMAGE", "image dimensions are invalid")
+            if width * height > self.config.max_image_pixels:
+                raise ServiceError(
+                    "INVALID_IMAGE", "image dimensions exceed configured maximum"
+                )
 
 
 def _cache_key(

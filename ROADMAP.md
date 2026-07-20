@@ -21,8 +21,10 @@
   CPU/GPU profiles, validation CLI, and ONNX package loading.
 - Sprint 2-8 (complete): local registry lifecycle, optional FastAPI serving,
   inference/session caches, in-memory monitoring, Docker, and CI foundations.
-- Sprint 2-9 (planned): serving security, remote artifact promotion, durable
-  telemetry, and production rollout controls.
+- Sprint 2-9 (complete): optional integration matrix, registry/serving hardening,
+  release readiness manifests, operations runbook, and separated CI smoke jobs.
+- Sprint 3-1 (planned): signed remote artifact promotion, authentication,
+  durable telemetry, and controlled production rollout.
 
 ## Architectural Constraints
 

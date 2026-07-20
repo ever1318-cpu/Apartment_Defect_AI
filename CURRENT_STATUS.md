@@ -50,18 +50,25 @@ Last updated: 2026-07-20
   - Revision-aware session lifecycle and optional inference result cache.
   - Thread-safe operational metrics and sanitized request-scoped errors/logging.
   - Non-root CPU Docker foundation and Python matrix CI workflow.
+- Sprint 2-9: integration and release readiness hardening.
+  - Optional dependency matrix and marker-separated integration smoke paths.
+  - Registry backup recovery, stale-lock timeout, and rollback-safe mutations.
+  - Serving concurrency/resource defenses and safe reload fallback.
+  - Expanded operational metrics and release-check/manifest workflow.
+  - Hardened Docker/CI policies and incident/rollback runbook.
 
 ## Verification
 
-- Full suite: 91 tests passed, 3 skipped.
-- Skips: two Windows symbolic-link capability checks and the optional FastAPI
-  integration test (serving dependencies are not installed locally).
-- Command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
-  --basetemp=output\pytest-sprint-2-8-final-3`
+- Full suite: 98 tests passed, 6 skipped.
+- Core marker: 97 passed, 2 skipped, 5 deselected.
+- Serving/ONNX/training markers: selected tests skipped locally because their
+  optional dependencies are not installed; separated CI jobs install and run them.
+- Full command: `.\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider
+  --basetemp=output\pytest-sprint-2-9-final`
 - Existing Sprint 2-1 interfaces and tests remain intact.
 
 ## Current Boundary
 
-The repository now covers training, packaging, registry lifecycle, and optional
-CPU serving foundations. Production weights, remote artifact distribution,
-authentication, and durable telemetry remain intentionally out of scope.
+The repository now has a release-checkable local production baseline across
+training, packaging, registry, serving, recovery, Docker, and CI. Remote signed
+artifact distribution, authentication, and durable telemetry remain out of scope.

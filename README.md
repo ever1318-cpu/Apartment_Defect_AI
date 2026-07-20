@@ -10,6 +10,28 @@ apartment-defect image analysis.
 .\.venv\Scripts\python.exe -m pytest
 ```
 
+Install only the environment being validated:
+
+```powershell
+# Core development and tests
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+
+# FastAPI serving
+.\.venv\Scripts\python.exe -m pip install -e ".[test,serving]"
+
+# ONNX model generation and CPU runtime
+.\.venv\Scripts\python.exe -m pip install -e ".[test,onnx]"
+
+# PyTorch training and ONNX export
+.\.venv\Scripts\python.exe -m pip install -e ".[test,pytorch]"
+
+# Complete development matrix
+.\.venv\Scripts\python.exe -m pip install -e ".[full]"
+```
+
+The core package imports without any ML or web framework. Optional modules are
+loaded only when their backend, exporter, or application factory is used.
+
 The `apartment-data` CLI supports legacy import, manifest validation, leakage-safe
 splitting, version manifests, and serialized Vision AI prediction validation.
 
@@ -349,6 +371,55 @@ The image uses a non-root user, performs `/ready` health checks, downloads no
 models, and obtains runtime settings from `ADA_*` environment variables. Upload
 size, MIME type, batch size, cache limits, and temporary directory are bounded by
 `ServingConfig`; request bodies are not retained.
+
+For a read-only root filesystem, provide only the registry and temporary
+directories as writable mounts:
+
+```powershell
+docker run --read-only --tmpfs /tmp/apartment-defect-ai:rw,noexec,nosuid `
+  -v ${PWD}/model-registry:/var/lib/apartment-defect-ai/registry `
+  -e ADA_MODEL=apartment-defect -p 8000:8000 apartment-defect-serving
+```
+
+Serving additionally limits request wait time, model-load duration, concurrent
+requests, total batch bytes, JSON nesting depth, and decoded image dimensions.
+PNG MIME and magic bytes, structural header, and dimensions are checked before
+inference. Registry reload failure keeps the previous healthy session active.
+
+Run release validation before deployment:
+
+```powershell
+apartment-data vision-release-check `
+  --registry model-registry `
+  --model apartment-defect `
+  --version 1.0.0 `
+  --output release-check
+```
+
+The command writes `release_check_report.json` and `release_manifest.json`.
+Failures always return non-zero. Warnings return success normally and non-zero
+with `--strict`. The manifest records application/Git/model/dataset/schema and
+dependency versions, registry revision, checksum digest, target profile, and
+known limitations.
+
+Test commands:
+
+```powershell
+# Entire suite; optional tests skip with explicit reasons when dependencies lack
+.\.venv\Scripts\python.exe -m pytest -q
+
+# Fast core validation
+.\.venv\Scripts\python.exe -m pytest -q `
+  -m "not serving and not onnx and not training and not docker"
+
+# Installed optional environments
+.\.venv\Scripts\python.exe -m pytest -q -m serving
+.\.venv\Scripts\python.exe -m pytest -q -m onnx
+.\.venv\Scripts\python.exe -m pytest -q -m training
+```
+
+Operational recovery and rollback procedures are documented in
+[`OPERATIONS.md`](OPERATIONS.md).
 
 The run manifest records the run ID, UTC creation time, backend, stage states,
 artifact list, final metrics, and either `completed` or a structured `failed`

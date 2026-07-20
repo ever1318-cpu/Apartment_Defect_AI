@@ -1,11 +1,12 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     ADA_REGISTRY=/var/lib/apartment-defect-ai/registry \
     ADA_MODEL=apartment-defect \
     ADA_HOST=0.0.0.0 \
-    ADA_PORT=8000
+    ADA_PORT=8000 \
+    TMPDIR=/tmp/apartment-defect-ai
 
 WORKDIR /app
 
@@ -15,11 +16,13 @@ RUN python -m pip install --no-cache-dir ".[serving,onnx]"
 
 RUN groupadd --system app && useradd --system --gid app --home /app app \
     && mkdir -p /var/lib/apartment-defect-ai/registry \
-    && chown -R app:app /app /var/lib/apartment-defect-ai
+    && mkdir -p /tmp/apartment-defect-ai \
+    && chown -R app:app /app /var/lib/apartment-defect-ai /tmp/apartment-defect-ai
 
 USER app
 VOLUME ["/var/lib/apartment-defect-ai/registry"]
 EXPOSE 8000
+STOPSIGNAL SIGTERM
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:'+os.environ.get('ADA_PORT','8000')+'/ready', timeout=3)"

@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path, PurePath
@@ -19,6 +20,10 @@ from .package_models import ModelManifest
 
 REGISTRY_FORMAT_VERSION = "1.0"
 STAGES = ("development", "staging", "production", "archived")
+
+
+class RegistryCorruptionError(RuntimeError):
+    """Raised when neither the primary nor backup index can be decoded."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,11 +85,20 @@ class RegistryIndex:
 class ModelRegistry:
     """Own package copies and update a revisioned JSON index atomically."""
 
-    def __init__(self, directory: str | Path):
+    def __init__(
+        self,
+        directory: str | Path,
+        *,
+        lock_timeout_seconds: float = 5.0,
+        stale_lock_seconds: float = 300.0,
+    ):
         self.directory = Path(directory)
         self.index_path = self.directory / "registry.json"
+        self.backup_path = self.directory / "registry.json.bak"
         self.models_directory = self.directory / "models"
         self.locks_directory = self.directory / "locks"
+        self.lock_timeout_seconds = lock_timeout_seconds
+        self.stale_lock_seconds = stale_lock_seconds
 
     def initialize(self) -> RegistryIndex:
         self.models_directory.mkdir(parents=True, exist_ok=True)
@@ -92,14 +106,23 @@ class ModelRegistry:
         if not self.index_path.exists():
             with self._lock():
                 if not self.index_path.exists():
-                    write_json(self.index_path, RegistryIndex().to_dict())
+                    self._write(RegistryIndex())
         return self.read()
 
     def read(self) -> RegistryIndex:
         if not self.index_path.is_file():
             return self.initialize()
-        value = json.loads(self.index_path.read_text(encoding="utf-8-sig"))
-        return RegistryIndex.from_dict(value)
+        try:
+            return self._read_index(self.index_path)
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as primary:
+            try:
+                recovered = self._read_index(self.backup_path)
+                write_json(self.index_path, recovered.to_dict())
+                return recovered
+            except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError):
+                raise RegistryCorruptionError(
+                    "registry index is corrupted and no valid backup is available"
+                ) from primary
 
     def list(self, model_name: str | None = None) -> tuple[RegistryEntry, ...]:
         values = self.read().models
@@ -176,7 +199,7 @@ class ModelRegistry:
             )
             try:
                 shutil.copytree(
-                    source, temp, dirs_exist_ok=True, symlinks=False
+                    source, temp, dirs_exist_ok=True, symlinks=True
                 )
                 _reject_tree_symlinks(temp)
                 os.replace(temp, destination)
@@ -279,25 +302,61 @@ class ModelRegistry:
             return updated
 
     def _write(self, index: RegistryIndex) -> None:
-        write_json(self.index_path, index.to_dict())
+        try:
+            write_json(self.index_path, index.to_dict())
+        except OSError as exc:
+            raise RuntimeError("model registry is not writable") from exc
+        try:
+            write_json(self.backup_path, index.to_dict())
+        except OSError:
+            # The committed primary remains authoritative; a later successful
+            # mutation refreshes the recovery copy.
+            pass
 
     def _lock(self):
-        return _RegistryLock(self.locks_directory / "registry.lock")
+        return _RegistryLock(
+            self.locks_directory / "registry.lock",
+            timeout_seconds=self.lock_timeout_seconds,
+            stale_seconds=self.stale_lock_seconds,
+        )
+
+    @staticmethod
+    def _read_index(path: Path) -> RegistryIndex:
+        value = json.loads(path.read_text(encoding="utf-8-sig"))
+        return RegistryIndex.from_dict(value)
 
 
 class _RegistryLock:
-    def __init__(self, path: Path):
+    def __init__(
+        self, path: Path, *, timeout_seconds: float, stale_seconds: float
+    ):
         self.path = path
+        self.timeout_seconds = timeout_seconds
+        self.stale_seconds = stale_seconds
         self.descriptor: int | None = None
 
     def __enter__(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            self.descriptor = os.open(
-                self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY
-            )
-        except FileExistsError as exc:
-            raise RuntimeError("model registry is locked by another writer") from exc
+        deadline = time.monotonic() + self.timeout_seconds
+        while True:
+            try:
+                self.descriptor = os.open(
+                    self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY
+                )
+                break
+            except FileExistsError as exc:
+                try:
+                    age = time.time() - self.path.stat().st_mtime
+                    if age >= self.stale_seconds:
+                        self.path.unlink(missing_ok=True)
+                        continue
+                except FileNotFoundError:
+                    continue
+                if time.monotonic() >= deadline:
+                    raise RuntimeError(
+                        "timed out waiting for model registry writer lock"
+                    ) from exc
+                time.sleep(min(0.05, max(0.0, deadline - time.monotonic())))
         os.write(self.descriptor, str(os.getpid()).encode("ascii"))
         return self
 
