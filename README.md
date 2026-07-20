@@ -267,6 +267,89 @@ Package validation runs before session creation. Model version, labels,
 preprocessing resize, and providers are loaded from the package. Raw `.onnx`
 paths remain supported with the previous CLI options.
 
+## Model registry and serving
+
+The local registry owns immutable copies of validated packages under
+`models/<model-name>/<version>`. Package references are never external absolute
+paths. Register, promote, and inspect models with JSON-emitting commands:
+
+```powershell
+apartment-data vision-register-model `
+  model-registry model-packages/defect-model-1.0.0 `
+  --model-name apartment-defect --model-version 1.0.0 `
+  --stage development
+
+apartment-data vision-promote-model `
+  model-registry apartment-defect 1.0.0 --stage production
+
+apartment-data vision-list-models model-registry
+```
+
+`registry.json` uses an atomic revision counter plus an exclusive writer lock.
+Callers may provide an expected revision through the Python API to detect stale
+writes. Promoting a version to production moves the previous production version
+to staging by default; `--previous-production-stage archived` changes that
+policy.
+
+Install serving dependencies separately:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[serving,onnx]"
+
+apartment-data vision-serve `
+  --registry model-registry --model apartment-defect `
+  --host 0.0.0.0 --port 8000
+```
+
+Endpoints:
+
+- `GET /health`, `GET /ready`
+- `GET /v1/models`, `/v1/models/{name}`, `/v1/models/{name}/{version}`
+- `POST /v1/predict`, `POST /v1/predict/batch`
+- `GET /v1/metrics`
+
+The JSON prediction API accepts base64 without persisting request payloads:
+
+```json
+{
+  "image_base64": "iVBORw0KGgo...",
+  "mime_type": "image/png",
+  "image_id": "inspection-001",
+  "model_name": "apartment-defect",
+  "confidence_threshold": 0.25
+}
+```
+
+Responses use the existing `VisionPrediction` schema. API failures use
+`{"error":{"code":"...","message":"...","details":{},"request_id":"..."}}`;
+backend exceptions and stack traces are not returned to clients.
+
+Production package sessions are loaded lazily and held in an LRU active cache.
+Registry revision changes atomically replace the active cache; retired sessions
+remain alive until shutdown so in-flight requests are not interrupted. The
+optional SHA-256 inference cache is disabled by default, stores only copied
+prediction JSON, never caches errors, and substitutes the current `image_id`.
+
+In-memory thread-safe metrics include request/image/success/error/batch/model-load
+and cache counters, duration count/sum/min/max, per-model and per-error counts,
+start time, and uptime. Image bytes and base64 payloads are never logged or
+included in metrics.
+
+Run the CPU container with a pre-populated registry mount:
+
+```powershell
+docker build -t apartment-defect-serving .
+docker run --rm -p 8000:8000 `
+  -e ADA_MODEL=apartment-defect `
+  -v ${PWD}/model-registry:/var/lib/apartment-defect-ai/registry `
+  apartment-defect-serving
+```
+
+The image uses a non-root user, performs `/ready` health checks, downloads no
+models, and obtains runtime settings from `ADA_*` environment variables. Upload
+size, MIME type, batch size, cache limits, and temporary directory are bounded by
+`ServingConfig`; request bodies are not retained.
+
 The run manifest records the run ID, UTC creation time, backend, stage states,
 artifact list, final metrics, and either `completed` or a structured `failed`
 status.

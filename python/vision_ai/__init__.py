@@ -50,6 +50,7 @@ from .package_models import (
     ModelPackageValidation,
     default_deployment_profiles,
 )
+from .model_registry import ModelRegistry, RegistryEntry, RegistryIndex
 from .onnx_backend import OnnxVisionBackend, create_onnx_session
 from .pipeline import PipelineConfig, VisionBackend, VisionPipeline
 from .pytorch_training import (
@@ -74,10 +75,19 @@ from .training_models import (
     TrainingSpec,
     TrainingTasks,
 )
+from .serving import (
+    APIError,
+    InferenceCache,
+    ModelManager,
+    ServiceMetrics,
+    ServingConfig,
+    ServingService,
+)
 
 __all__ = [
     "BoundingBox",
     "BackendRegistry",
+    "APIError",
     "CallableVisionBackend",
     "Classification",
     "CompatibilityManifest",
@@ -93,6 +103,7 @@ __all__ = [
     "ImageFileInfo",
     "ImageQuality",
     "InferenceFailure",
+    "InferenceCache",
     "InferenceResult",
     "InferenceRunner",
     "InferenceSummary",
@@ -101,14 +112,21 @@ __all__ = [
     "LabelVocabulary",
     "MetricEntry",
     "ModelManifest",
+    "ModelManager",
+    "ModelRegistry",
     "ModelPackageValidation",
     "PipelineConfig",
     "OnnxVisionBackend",
     "PolygonMask",
     "PyTorchTrainingBackend",
     "ReferenceVisionBackend",
+    "RegistryEntry",
+    "RegistryIndex",
     "ReferenceTrainingBackend",
     "SeverityMetrics",
+    "ServiceMetrics",
+    "ServingConfig",
+    "ServingService",
     "TrainingBackend",
     "TrainingDatasetLoader",
     "TrainingDatasetBuildResult",

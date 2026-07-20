@@ -19,8 +19,10 @@
   ONNX export compatible with the production inference adapter.
 - Sprint 2-7 (complete): atomic model packaging, compatibility/checksum manifests,
   CPU/GPU profiles, validation CLI, and ONNX package loading.
-- Sprint 2-8 (planned): model distribution, serving lifecycle, and operational
-  observability.
+- Sprint 2-8 (complete): local registry lifecycle, optional FastAPI serving,
+  inference/session caches, in-memory monitoring, Docker, and CI foundations.
+- Sprint 2-9 (planned): serving security, remote artifact promotion, durable
+  telemetry, and production rollout controls.
 
 ## Architectural Constraints
 

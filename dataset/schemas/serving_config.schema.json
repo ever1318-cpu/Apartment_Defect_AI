@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/serving_config.schema.json",
+  "title": "Vision Serving Configuration",
+  "type": "object",
+  "required": ["registry_directory", "default_model_name", "host", "port", "workers", "max_upload_bytes", "max_batch_size", "confidence_threshold", "session_cache_size", "inference_cache_enabled", "inference_cache_size", "compatibility_strictness", "allowed_mime_types", "temp_directory", "logging_level"],
+  "properties": {
+    "registry_directory": {"type": "string", "minLength": 1},
+    "default_model_name": {"type": "string", "minLength": 1},
+    "host": {"type": "string"},
+    "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+    "workers": {"type": "integer", "minimum": 1},
+    "max_upload_bytes": {"type": "integer", "minimum": 1},
+    "max_batch_size": {"type": "integer", "minimum": 1},
+    "confidence_threshold": {"type": "number", "minimum": 0, "maximum": 1},
+    "session_cache_size": {"type": "integer", "minimum": 1},
+    "inference_cache_enabled": {"type": "boolean"},
+    "inference_cache_size": {"type": "integer", "minimum": 1},
+    "compatibility_strictness": {"enum": ["warning", "fail"]},
+    "allowed_mime_types": {"type": "array", "items": {"type": "string"}},
+    "temp_directory": {"type": ["string", "null"]},
+    "logging_level": {"type": "string"}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/prediction_request.schema.json",
+  "title": "Serving Prediction Request",
+  "type": "object",
+  "required": ["image_base64", "mime_type"],
+  "properties": {
+    "image_base64": {"type": "string", "minLength": 1},
+    "mime_type": {"type": "string", "minLength": 1},
+    "image_id": {"type": "string", "minLength": 1},
+    "model_name": {"type": "string", "minLength": 1},
+    "model_version": {"type": "string", "minLength": 1},
+    "confidence_threshold": {"type": "number", "minimum": 0, "maximum": 1}
+  },
+  "additionalProperties": false
+}

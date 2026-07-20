@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/model_registry.schema.json",
+  "title": "Local Model Registry",
+  "type": "object",
+  "required": ["registry_format_version", "revision", "models"],
+  "properties": {
+    "registry_format_version": {"const": "1.0"},
+    "revision": {"type": "integer", "minimum": 0},
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["model_name", "model_version", "stage", "package_path", "package_digest", "registered_at", "updated_at", "promoted_at", "source_training_run_id", "dataset_version", "model_metadata", "validation_status", "compatibility_status", "notes"],
+        "properties": {
+          "model_name": {"type": "string", "minLength": 1},
+          "model_version": {"type": "string", "minLength": 1},
+          "stage": {"enum": ["development", "staging", "production", "archived"]},
+          "package_path": {"type": "string", "pattern": "^models/[^/]+/[^/]+$"},
+          "package_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "registered_at": {"type": "string"},
+          "updated_at": {"type": "string"},
+          "promoted_at": {"type": ["string", "null"]},
+          "source_training_run_id": {"type": "string"},
+          "dataset_version": {"type": "string"},
+          "model_metadata": {"type": "object", "additionalProperties": true},
+          "validation_status": {"enum": ["valid", "invalid"]},
+          "compatibility_status": {"enum": ["pass", "warning", "fail"]},
+          "notes": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

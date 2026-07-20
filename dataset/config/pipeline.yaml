@@ -77,3 +77,19 @@ vision:
     checksum_algorithm: sha256
     strict_validation: true
     default_deployment_profile: cpu
+  serving:
+    registry_directory: model-registry
+    default_model_name: apartment-defect
+    host: 127.0.0.1
+    port: 8000
+    workers: 1
+    max_upload_bytes: 10485760
+    max_batch_size: 16
+    confidence_threshold: 0.25
+    session_cache_size: 2
+    inference_cache_enabled: false
+    inference_cache_size: 128
+    compatibility_strictness: fail
+    allowed_mime_types: [image/jpeg, image/png, image/webp, image/tiff]
+    temp_directory: null
+    logging_level: INFO

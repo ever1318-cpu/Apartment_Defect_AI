@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apartment-defect-ai.local/schemas/service_metrics.schema.json",
+  "title": "In-memory Service Metrics",
+  "type": "object",
+  "required": ["request_count", "success_count", "error_count", "batch_request_count", "image_count", "model_load_count", "model_load_failure_count", "cache_hit_count", "cache_miss_count", "inference_duration", "request_duration", "by_model", "by_error_type", "process_start_time", "uptime_seconds"],
+  "properties": {
+    "request_count": {"type": "integer", "minimum": 0},
+    "success_count": {"type": "integer", "minimum": 0},
+    "error_count": {"type": "integer", "minimum": 0},
+    "batch_request_count": {"type": "integer", "minimum": 0},
+    "image_count": {"type": "integer", "minimum": 0},
+    "model_load_count": {"type": "integer", "minimum": 0},
+    "model_load_failure_count": {"type": "integer", "minimum": 0},
+    "cache_hit_count": {"type": "integer", "minimum": 0},
+    "cache_miss_count": {"type": "integer", "minimum": 0},
+    "inference_duration": {"$ref": "#/$defs/duration"},
+    "request_duration": {"$ref": "#/$defs/duration"},
+    "by_model": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "by_error_type": {"type": "object", "additionalProperties": {"type": "integer"}},
+    "process_start_time": {"type": "number"},
+    "uptime_seconds": {"type": "number", "minimum": 0}
+  },
+  "$defs": {
+    "duration": {
+      "type": "object",
+      "required": ["count", "sum", "min", "max"],
+      "properties": {
+        "count": {"type": "integer", "minimum": 0},
+        "sum": {"type": "number", "minimum": 0},
+        "min": {"type": ["number", "null"]},
+        "max": {"type": ["number", "null"]}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

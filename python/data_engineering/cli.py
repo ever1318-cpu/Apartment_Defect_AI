@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from dataclasses import asdict
 from pathlib import Path
 from typing import Sequence
@@ -20,6 +21,7 @@ from vision_ai.evaluation_models import GroundTruthAnnotation
 from vision_ai.inference import InferenceRunner
 from vision_ai.models import VisionPrediction
 from vision_ai.model_package import build_model_package, validate_model_package
+from vision_ai.model_registry import ModelRegistry, STAGES
 from vision_ai.pipeline import VisionPipeline
 from vision_ai.training import TrainingRunner, load_training_backend
 from vision_ai.training_dataset import build_training_dataset
@@ -135,6 +137,42 @@ def _parser() -> argparse.ArgumentParser:
         "vision-inspect-model-package", help="inspect a model package manifest"
     )
     inspect_package.add_argument("package_directory", type=Path)
+
+    register_model = commands.add_parser(
+        "vision-register-model", help="copy a validated package into a registry"
+    )
+    register_model.add_argument("registry_directory", type=Path)
+    register_model.add_argument("package_directory", type=Path)
+    register_model.add_argument("--model-name", required=True)
+    register_model.add_argument("--model-version", required=True)
+    register_model.add_argument("--stage", choices=STAGES, default="development")
+    register_model.add_argument("--notes", default="")
+
+    promote_model = commands.add_parser(
+        "vision-promote-model", help="change a registered model stage"
+    )
+    promote_model.add_argument("registry_directory", type=Path)
+    promote_model.add_argument("model_name")
+    promote_model.add_argument("model_version")
+    promote_model.add_argument("--stage", choices=STAGES, required=True)
+    promote_model.add_argument(
+        "--previous-production-stage",
+        choices=("staging", "archived"),
+        default="staging",
+    )
+
+    list_models = commands.add_parser(
+        "vision-list-models", help="list a local model registry"
+    )
+    list_models.add_argument("registry_directory", type=Path)
+    list_models.add_argument("--model-name")
+
+    serve = commands.add_parser("vision-serve", help="start optional FastAPI serving")
+    serve.add_argument("--registry", type=Path, required=True)
+    serve.add_argument("--model", required=True)
+    serve.add_argument("--host", default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--workers", type=int, default=1)
 
     predict = commands.add_parser(
         "vision-predict", help="run backend-neutral batch Vision inference"
@@ -305,6 +343,69 @@ def main(argv: Sequence[str] | None = None) -> int:
         value = json.loads(manifest.read_text(encoding="utf-8-sig"))
         print(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True))
         print(manifest)
+        return 0
+    if args.command == "vision-register-model":
+        registry = ModelRegistry(args.registry_directory)
+        entry = registry.register(
+            args.package_directory,
+            args.model_name,
+            args.model_version,
+            stage=args.stage,
+            notes=args.notes,
+        )
+        print(json.dumps(entry.to_dict(), ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "vision-promote-model":
+        entry = ModelRegistry(args.registry_directory).promote(
+            args.model_name,
+            args.model_version,
+            args.stage,
+            previous_production_stage=args.previous_production_stage,
+        )
+        print(json.dumps(entry.to_dict(), ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "vision-list-models":
+        registry = ModelRegistry(args.registry_directory)
+        value = {
+            "revision": registry.read().revision,
+            "models": [
+                item.to_dict() for item in registry.list(args.model_name)
+            ],
+        }
+        print(json.dumps(value, ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.command == "vision-serve":
+        try:
+            import uvicorn
+        except ImportError as exc:
+            raise RuntimeError(
+                "Vision serving requires optional dependencies; "
+                "install with `pip install -e \".[serving]\"`"
+            ) from exc
+        from vision_ai.serving import ServingConfig
+        config = ServingConfig(
+            registry_directory=str(args.registry),
+            default_model_name=args.model,
+            host=args.host,
+            port=args.port,
+            workers=args.workers,
+        )
+        os.environ.update(
+            {
+                "ADA_REGISTRY": config.registry_directory,
+                "ADA_MODEL": config.default_model_name,
+                "ADA_HOST": config.host,
+                "ADA_PORT": str(config.port),
+                "ADA_WORKERS": str(config.workers),
+            }
+        )
+        uvicorn.run(
+            "vision_ai.serving_entrypoint:create_app_from_env",
+            factory=True,
+            host=config.host,
+            port=config.port,
+            workers=config.workers,
+        )
         return 0
     if args.command == "vision-export-onnx":
         from vision_ai.pytorch_training import export_pytorch_checkpoint
