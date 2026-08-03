@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">품질하자점검</string>
+    <string name="tab_home">홈</string>
+    <string name="tab_floorplan">평면도</string>
+    <string name="tab_list">목록</string>
+    <string name="tab_report">보고서</string>
+    <string name="tab_defect_db">하자DB</string>
+    <string name="new_capture">새 하자 입력 (사진, 의견)</string>
+    <string name="capture_hint">셔터 1회 → 2장 · 의견 · 방향·거리 자동 기록</string>
+    <string name="loc_estimating">위치 파악 중</string>
+    <string name="loc_estimated">위치: %1$s</string>
+    <string name="lens_ultra">초광각</string>
+    <string name="lens_main">광각</string>
+    <string name="lens_tele">망원</string>
+    <string name="capture_mode_sim">동시 3렌즈</string>
+    <string name="capture_mode_seq">순차 줌</string>
+    <string name="pin_add">핀 추가</string>
+    <string name="pin_edit">수정하기</string>
+    <string name="pin_delete">삭제하기</string>
+    <string name="pin_source_auto">A</string>
+    <string name="pin_source_manual">M</string>
+    <string name="defect_type_crack">균열</string>
+    <string name="defect_type_leak">누수</string>
+    <string name="defect_type_finish">마감 불량</string>
+    <string name="defect_type_other">기타</string>
+    <string name="severity_minor">경미</string>
+    <string name="severity_normal">보통</string>
+    <string name="severity_major">중대</string>
+</resources>

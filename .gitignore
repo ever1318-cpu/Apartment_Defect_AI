@@ -1,0 +1,40 @@
+# This repository intentionally contains only the two active projects.
+/*
+!/.gitignore
+!/PinSet-App/
+!/PinSet-App/**
+!/Apartment_Defect_AI/
+!/Apartment_Defect_AI/**
+
+# Android build and local tooling outputs
+/PinSet-App/.gradle/
+/PinSet-App/android/.gradle/
+/PinSet-App/android/app/build/
+/PinSet-App/android/build/
+/PinSet-App/node_modules/
+
+# Python environments, caches, and local server media
+/Apartment_Defect_AI/.venv/
+/Apartment_Defect_AI/.python-runtime/
+/Apartment_Defect_AI/**/__pycache__/
+/Apartment_Defect_AI/.pytest_cache/
+/Apartment_Defect_AI/.mypy_cache/
+/Apartment_Defect_AI/workspace/field-media/
+/Apartment_Defect_AI/workspace/*.db
+
+# Local secrets and generated bundles
+/Apartment_Defect_AI/.env
+/Apartment_Defect_AI/.env.*
+/Apartment_Defect_AI/**/*.apk
+/Apartment_Defect_AI/**/*.zip
+/PinSet-App/.idea/
+/PinSet-App/android/.idea/
+/PinSet-App/android/.kotlin/
+/PinSet-App/build/
+/PinSet-App/.artifacts/
+/PinSet-App/device-backups/
+/PinSet-App/device-*.png
+/PinSet-App/android/local.properties
+/PinSet-App/local.properties
+/PinSet-App/android/keystore/
+/PinSet-App/**/*.jks

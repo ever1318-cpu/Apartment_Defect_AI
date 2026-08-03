@@ -1,0 +1,32 @@
+{
+  "floorplans": [
+    {
+      "id": "ulsan_down_84a",
+      "label": "84A-1",
+      "areaPyeong": 34,
+      "siteMapFile": "ulsan_down_site_map.png",
+      "default": true
+    },
+    {
+      "id": "ulsan_down_84b",
+      "label": "84B-1",
+      "areaPyeong": 34,
+      "siteMapFile": "ulsan_down_site_map.png",
+      "default": false
+    },
+    {
+      "id": "apt_101_1502",
+      "label": "101동 1502호 (예시)",
+      "areaPyeong": 32,
+      "siteMapFile": null,
+      "default": false
+    },
+    {
+      "id": "apt_33p_sample",
+      "label": "33평형 표준 (시범)",
+      "areaPyeong": 33,
+      "siteMapFile": null,
+      "default": false
+    }
+  ]
+}

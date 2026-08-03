@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Debug builds may connect to a developer PC on the current private LAN.
+         Release builds do not include this resource override and remain HTTPS-only. -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
