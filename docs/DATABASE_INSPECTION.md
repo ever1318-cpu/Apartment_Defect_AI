@@ -60,19 +60,27 @@ logs.
 ```powershell
 apartment-data vision-db-inspect
 apartment-data vision-db-inspect --schema public --table defect_images
-apartment-data vision-db-inspect --json --output output/db-inspection.json
+apartment-data vision-db-inspect --include-views --top-candidates 30
+apartment-data vision-db-inspect --json `
+  --output workspace/db-inspection/backupdb-schema.json
 ```
 
 The report contains user schemas, tables and views, columns, nullability,
 defaults, primary keys, foreign keys, and PostgreSQL planner row estimates.
-`pg_catalog` and `information_schema` are excluded unless `--include-system` is
-specified. `--schema` and `--table` are passed as query values, not interpolated
-SQL. There is no arbitrary SQL option.
+`pg_catalog`, `information_schema`, temporary schemas, and TOAST schemas are
+always excluded. Views are included only with `--include-views`. `--schema` and
+`--table` are passed as query values, not interpolated SQL. There is no
+arbitrary SQL option and no application-table `COUNT(*)` query.
 
 Image and label candidates are detected from column names using English and
 Korean keywords such as `image`, `file`, `path`, `label`, `defect`, `이미지`,
 `경로`, `라벨`, and `하자`. Candidate detection is an inventory aid, not a
 semantic or privacy classification.
 
-`--output` writes formatted JSON atomically. The report contains the configured
-host, database, user, and SSL mode, but never the password or a full DSN.
+Candidates are scored from both table and column names, with matched categories,
+columns, and reasons recorded in the report.
+
+`--output` writes formatted JSON atomically and writes `backupdb-summary.txt`
+beside it. The default directory is `workspace/db-inspection`. Reports contain
+the configured host, database, user, and SSL mode, but never the password or a
+full DSN.

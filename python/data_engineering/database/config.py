@@ -25,12 +25,20 @@ class DatabaseConfig:
     def from_environment(
         cls, environment: Mapping[str, str] | None = None
     ) -> "DatabaseConfig":
+        return cls.from_prefixed_environment("APARTMENT_DB_", environment)
+
+    @classmethod
+    def from_prefixed_environment(
+        cls,
+        prefix: str,
+        environment: Mapping[str, str] | None = None,
+    ) -> "DatabaseConfig":
         values = os.environ if environment is None else environment
         required = {
-            "host": "APARTMENT_DB_HOST",
-            "database": "APARTMENT_DB_NAME",
-            "user": "APARTMENT_DB_USER",
-            "password": "APARTMENT_DB_PASSWORD",
+            "host": f"{prefix}HOST",
+            "database": f"{prefix}NAME",
+            "user": f"{prefix}USER",
+            "password": f"{prefix}PASSWORD",
         }
         missing = [
             variable
@@ -42,18 +50,18 @@ class DatabaseConfig:
                 "missing database configuration: " + ", ".join(sorted(missing))
             )
         try:
-            port = int(values.get("APARTMENT_DB_PORT", "5432"))
+            port = int(values.get(f"{prefix}PORT", "5432"))
         except ValueError as exc:
             raise DatabaseConfigurationError(
-                "APARTMENT_DB_PORT must be an integer"
+                f"{prefix}PORT must be an integer"
             ) from exc
         if not 1 <= port <= 65535:
             raise DatabaseConfigurationError(
-                "APARTMENT_DB_PORT must be between 1 and 65535"
+                f"{prefix}PORT must be between 1 and 65535"
             )
-        sslmode = values.get("APARTMENT_DB_SSLMODE", "require").strip()
+        sslmode = values.get(f"{prefix}SSLMODE", "require").strip()
         if not sslmode:
-            raise DatabaseConfigurationError("APARTMENT_DB_SSLMODE must not be empty")
+            raise DatabaseConfigurationError(f"{prefix}SSLMODE must not be empty")
         return cls(
             host=values[required["host"]].strip(),
             database=values[required["database"]].strip(),

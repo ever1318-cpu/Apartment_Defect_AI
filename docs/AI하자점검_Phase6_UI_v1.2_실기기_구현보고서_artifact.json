@@ -1,0 +1,138 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "AI하자점검 UI v1.2 실기기 구현보고서",
+    "description": "PinSet UI 목업 v1.2 반영과 Galaxy S25 Ultra 설치·실행 검증 결과",
+    "generatedAt": "2026-07-24T14:05:00+09:00",
+    "sources": [
+      {
+        "id": "ui-mockup",
+        "label": "품질하자점검 UI 목업 v1.2",
+        "path": "Two shot PinSet App/ui_mockup_v1.2.html"
+      },
+      {
+        "id": "android-ui",
+        "label": "PinSet Android Compose UI",
+        "path": "PinSet-App/android/app/src/main/kotlin/com/axlife/pinset/ui",
+        "query": {
+          "engine": "gradle",
+          "description": "Home, location confirmation, resident opinion and AI classification UI implementation",
+          "tables_used": ["HomeScreen.kt", "PinPlacementScreen.kt", "PinTagSheet.kt"]
+        }
+      },
+      {
+        "id": "device-validation",
+        "label": "Galaxy S25 Ultra 실기기 검증",
+        "query": {
+          "engine": "adb",
+          "description": "SM-S936N 디버그 APK 업데이트 설치, 프로세스 생존, AndroidRuntime 로그와 화면 캡처 확인",
+          "tables_used": ["app-debug.apk", "s25-ui-v12.png"]
+        }
+      }
+    ],
+    "charts": [
+      {
+        "id": "ui-status-chart",
+        "title": "UI v1.2 핵심 영역 구현·검증 상태",
+        "subtitle": "2026년 7월 24일 기준, 목업 반영과 자동·실기기 검증 완료도를 100점 척도로 표시합니다.",
+        "type": "bar",
+        "dataset": "ui_status",
+        "sourceId": "android-ui",
+        "source": {
+          "id": "ui-status",
+          "label": "UI v1.2 구현·검증 상태",
+          "query": {
+            "engine": "duckdb",
+            "description": "목업 핵심 영역별 구현 및 검증 완료도",
+            "sql": "SELECT area, completion, status FROM ui_status ORDER BY completion DESC, area ASC",
+            "tables_used": ["ui_status"]
+          }
+        },
+        "encodings": {
+          "x": {"field": "area", "type": "nominal", "label": "영역"},
+          "y": {"field": "completion", "type": "quantitative", "label": "완료도"},
+          "tooltip": [{"field": "status", "type": "nominal", "label": "상태"}]
+        },
+        "layout": "full",
+        "maxRows": 10
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# AI하자점검 UI v1.2 실기기 구현보고서"
+      },
+      {
+        "id": "summary",
+        "type": "markdown",
+        "body": "## Executive Summary\n\n- **홈 화면은 목업의 핵심 형태로 실기기 표시됩니다.** 주황 요약 카드, 청록 앵커 상태, 대형 `새 하자 입력`, 최근 하자 목록과 하단 내비게이션을 S25 Ultra에서 확인했습니다.\n- **하자 입력 흐름을 하나로 통합했습니다.** 위치 확인 화면의 별도 AI 버튼을 제거하고 `하자 정보·의견 입력` 안에서 입주민 의견, 텍스트 AI, 이미지 AI, 최종 분류와 상세 메모를 순서대로 검토합니다.\n- **AI 영역을 보라색으로 분리했습니다.** Orange(사용자·주요 동작), Teal(앵커·위치), Purple(AI)의 목업 색상 계약을 적용하고 AI 반영 여부를 확인 다이얼로그로 명시했습니다.\n- **빌드와 설치는 정상입니다.** Android 단위 테스트와 Debug APK 빌드가 성공했고, SM-S936N 업데이트 설치 후 앱 프로세스가 유지되며 새 AndroidRuntime 충돌이 없습니다."
+      },
+      {
+        "id": "findings",
+        "type": "markdown",
+        "sourceId": "ui-mockup",
+        "body": "## 목업의 핵심 사용 흐름이 앱 안에서 이어집니다\n\n목업의 8개 화면을 현재 Compose 구조에 대응했습니다. 홈에서 앵커 상태를 확인하고 하자를 촬영한 뒤, 위치·이미지 확인 화면에서 단일 녹색 버튼으로 의견 입력 화면을 엽니다. 그 안에서 입주민 원문과 AI 제안을 나란히 비교하고 최종 저장 전에 어느 의견을 반영할지 선택합니다.\n\n별도 AI 화면으로 이동하던 중복 동선은 핵심 촬영 흐름에서 제거했습니다. 따라서 사용자는 촬영 문맥과 위치 정보를 잃지 않고 분류를 확정할 수 있습니다."
+      },
+      {
+        "id": "visual-note",
+        "type": "markdown",
+        "body": "## 핵심 화면은 완료됐고 전체 시나리오 터치 검증이 다음 단계입니다\n\n홈, 위치 확인, 의견·AI 통합 UI는 코드와 빌드 기준으로 반영됐으며 홈은 실기기 화면으로 확인했습니다. 아래 완료도는 기능 구현 여부와 이번 실행에서 수행한 검증 깊이를 함께 나타냅니다. 카메라부터 저장까지의 전 구간 터치 시나리오는 실제 현장 사진으로 한 번 더 점검해야 합니다."
+      },
+      {
+        "id": "chart",
+        "type": "chart",
+        "chartId": "ui-status-chart"
+      },
+      {
+        "id": "interaction",
+        "type": "markdown",
+        "sourceId": "android-ui",
+        "body": "## 입주민 의견과 AI 제안은 의식적으로 비교·확정합니다\n\n입주민은 평소 표현대로 의견을 입력하고 `입력 완료 · AI 분석 실행`을 눌러 분석을 시작합니다. AI 패널에는 표준 분류 경로, 신뢰도와 근거가 표시됩니다. 촬영 이미지 분석은 별도 단계로 보여 텍스트 의견과 이미지 판단을 혼동하지 않게 했습니다.\n\n최종 분류는 `위치 > 공종 > 하자 부위 > 상세 부위` 형식으로 편집할 수 있으며, AI 결과가 있을 때 `AI 반영` 또는 `입주민 의견 유지`를 선택합니다. 원문, AI 결과, 최종 확정값은 각각 보존돼 향후 재학습과 감사에 활용할 수 있습니다."
+      },
+      {
+        "id": "validation",
+        "type": "markdown",
+        "sourceId": "device-validation",
+        "body": "## S25 Ultra에서 설치·실행 안정성을 확인했습니다\n\n- 대상 기기: Galaxy S25 Ultra `SM-S936N`\n- APK 업데이트 설치: 성공\n- 앱 패키지: `com.axlife.pinset.debug`\n- Android 단위 테스트: 성공\n- Debug APK 조립: `BUILD SUCCESSFUL`\n- 실행 프로세스 생존: 확인\n- 신규 AndroidRuntime 충돌: 없음\n- 홈 화면 캡처: 주황·청록 목업 레이아웃 정상 표시\n\n이번 검증은 디버그 빌드 기준입니다. 운영 배포 전에는 Release 서명, HTTPS API, 권한 거부·복구, 오프라인 저장과 재전송을 별도 검증해야 합니다."
+      },
+      {
+        "id": "next",
+        "type": "markdown",
+        "body": "## 다음 권장 작업\n\n1. S25 Ultra에서 `새 하자 입력`부터 저장 완료까지 실제 사진 3건으로 터치 시나리오를 수행합니다.\n2. 작은 화면과 큰 글꼴 설정에서 트윈 패널의 가독성을 확인하고 필요하면 세로 카드 전환을 적용합니다.\n3. 텍스트 AI와 이미지 AI가 서로 다를 때 충돌 표시와 추가 질문 규칙을 연결합니다.\n4. 저장된 원문·AI 제안·최종 선택이 서버 API와 DB의 서로 다른 필드에 보존되는지 E2E로 확인합니다.\n5. 목업의 참조관리·AI 설정 화면을 운영용 인증과 모델 버전 표시까지 확장합니다."
+      },
+      {
+        "id": "questions",
+        "type": "markdown",
+        "body": "## 추가 확인이 필요한 사항\n\n현장 기본 글자 크기, 장갑 착용 시 최소 터치 영역, 네트워크 단절 시 AI 분석 대기 방식, 낮은 신뢰도에서 담당자 호출 기준을 운영 정책으로 확정해야 합니다. 또한 사용자 원문을 AI 학습에 재사용할 때 동의·비식별화·보존 기간을 서버 정책과 함께 정해야 합니다."
+      },
+      {
+        "id": "caveats",
+        "type": "markdown",
+        "body": "## 범위와 가정\n\n이번 단계는 제공된 v1.2 목업의 핵심 현장 입력 흐름을 기존 Compose 앱에 반영한 것입니다. 홈 화면은 실기기 시각 검증을 완료했지만 카메라 권한, 두 장 촬영, 위치 추정, AI 서버 응답과 DB 저장을 포함한 전체 시나리오의 실데이터 재검증은 후속 항목입니다. AI 신뢰도는 모델 성능을 새로 측정한 수치가 아니라 앱이 전달받아 표시하는 값입니다."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-24T14:05:00+09:00",
+    "status": "ready",
+    "datasets": {
+      "ui_status": [
+        {"area": "홈 화면", "completion": 100, "status": "S25 화면 확인"},
+        {"area": "위치 확인", "completion": 100, "status": "Compose 구현·빌드 통과"},
+        {"area": "의견·AI 트윈", "completion": 100, "status": "Compose 구현·빌드 통과"},
+        {"area": "AI 반영 확인", "completion": 100, "status": "다이얼로그 구현"},
+        {"area": "APK 안정성", "completion": 100, "status": "설치·프로세스 생존"},
+        {"area": "전체 터치 E2E", "completion": 40, "status": "실사진 시나리오 필요"}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "ui-mockup", "label": "품질하자점검 UI 목업 v1.2", "path": "Two shot PinSet App/ui_mockup_v1.2.html"},
+    {"id": "android-ui", "label": "PinSet Android Compose UI", "path": "PinSet-App/android/app/src/main/kotlin/com/axlife/pinset/ui"},
+    {"id": "device-validation", "label": "Galaxy S25 Ultra 실기기 검증"}
+  ]
+}

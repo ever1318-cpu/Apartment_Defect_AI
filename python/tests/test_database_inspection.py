@@ -15,7 +15,7 @@ from data_engineering.database.connection import (
     DatabaseQueryError,
     test_database_connection as run_connection_test,
 )
-from data_engineering.database.inspection import inspect_database
+from data_engineering.database.vision_inspection import inspect_database
 
 
 def _environment(**overrides: str) -> dict[str, str]:
@@ -77,13 +77,13 @@ class FakeCursor:
                 ),
             ]
         if "FROM pg_catalog.pg_constraint" in self.query:
-            if self.parameters[0] == "p":
+            if "con.contype = 'p'" in self.query:
                 return [
                     (
                         "public",
                         "defect_images",
                         "defect_images_pkey",
-                        "PRIMARY KEY (id)",
+                        ["id"],
                     )
                 ]
             return [
@@ -91,7 +91,10 @@ class FakeCursor:
                     "public",
                     "defect_labels",
                     "defect_labels_image_fkey",
-                    "FOREIGN KEY (image_id) REFERENCES defect_images(id)",
+                    ["image_id"],
+                    "public",
+                    "defect_images",
+                    ["id"],
                 )
             ]
         if "FROM pg_catalog.pg_class" in self.query:
@@ -190,17 +193,32 @@ def test_inspection_reads_catalogs_filters_and_finds_candidates() -> None:
         schema="public",
         table="defect_images",
         connector=lambda **kwargs: connection,
+        include_views=True,
     )
     assert report.schemas == ("audit", "public")
     assert report.relations[0].estimated_rows == 41
     assert report.relations[1].kind == "view"
-    assert report.primary_keys[0].name == "defect_images_pkey"
+    assert report.primary_keys[0].columns == ("id",)
     assert report.foreign_keys[0].name == "defect_labels_image_fkey"
-    assert {item.column for item in report.candidates} == {
-        "file_path",
-        "defect_name",
+    assert {item.table for item in report.candidates} == {
+        "defect_images",
+        "defect_view",
     }
+    assert report.candidates[0].matched_columns == ("file_path",)
     assert connection.cursor_instance.executions[0][0] == "SET TRANSACTION READ ONLY"
+    assert all(
+        query == "SET TRANSACTION READ ONLY"
+        or query.lstrip().upper().startswith("SELECT")
+        for query, _ in connection.cursor_instance.executions
+    )
+    assert all(
+        "COUNT(" not in query.upper()
+        for query, _ in connection.cursor_instance.executions
+    )
+    assert all(
+        "pg_catalog" in parameters and "information_schema" in parameters
+        for _, parameters in connection.cursor_instance.executions[1:]
+    )
     catalog_parameters = [
         parameters
         for query, parameters in connection.cursor_instance.executions
@@ -219,7 +237,7 @@ def test_cli_json_and_atomic_output(monkeypatch, tmp_path, capsys) -> None:
         lambda: type("Driver", (), {"connect": staticmethod(lambda **kwargs: connection)}),
     )
     monkeypatch.setattr(
-        "data_engineering.database.inspection.connect_database",
+        "data_engineering.database.vision_inspection.connect_database",
         lambda config, **kwargs: connection,
     )
     assert main(["vision-db-test", "--json"]) == 0
@@ -233,6 +251,11 @@ def test_cli_json_and_atomic_output(monkeypatch, tmp_path, capsys) -> None:
     saved = json.loads(output.read_text(encoding="utf-8"))
     assert printed == saved
     assert saved["summary"]["table_count"] == 1
+    summary = (tmp_path / "backupdb-summary.txt").read_text(encoding="utf-8")
+    assert "이미지 후보 테이블" in summary
+    assert "이미지와 라벨을 연결할 가능성이 있는 PK/FK" in summary
+    assert "do-not-print" not in output.read_text(encoding="utf-8")
+    assert "do-not-print" not in summary
 
 
 def test_cli_missing_environment_returns_two(monkeypatch, capsys) -> None:

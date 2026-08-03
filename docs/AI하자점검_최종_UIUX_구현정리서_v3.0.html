@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI하자점검 최종 UI·UX 구현정리서 v3.0</title>
+  <style>
+    :root{--navy:#10233f;--blue:#1769aa;--teal:#00897b;--purple:#7b1fa2;--ink:#172033;--muted:#64748b;--line:#d8e0ea;--bg:#f4f7fb;--card:#fff;--ok:#08783e;--warn:#a15c00}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 system-ui,"Noto Sans KR","Malgun Gothic",sans-serif}
+    header{padding:52px 24px 42px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff}header>div,main{width:min(1120px,calc(100% - 32px));margin:auto}
+    header h1{margin:6px 0 8px;font-size:clamp(30px,5vw,48px)}header p{max-width:850px;margin:0;opacity:.9}.pill{display:inline-block;margin:14px 6px 0 0;padding:4px 10px;border:1px solid #ffffff66;border-radius:99px}
+    main{padding:30px 0 64px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:-48px 0 28px}.metric{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 8px 24px #10233f12}.metric b{display:block;color:var(--blue);font-size:20px}.metric span{color:var(--muted);font-size:12px}
+    h2{margin:36px 0 10px;color:var(--navy);border-bottom:2px solid var(--line);padding-bottom:8px}h3{margin:18px 0 7px}.lede{color:var(--muted);margin-top:0}.card,.note{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;margin:12px 0}.note{background:#eaf4ff;border-color:#b8d5f2}.warning{background:#fff7e8;border-color:#f0cf8b}
+    .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.step{position:relative;background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px;min-height:106px}.step b{display:block;color:var(--blue);font-size:12px}.step strong{display:block;margin:4px 0}.step:not(:last-child):after{content:"›";position:absolute;right:-8px;top:37%;z-index:2;color:var(--blue);font-size:25px;font-weight:800}
+    .screen{display:grid;grid-template-columns:180px 1fr;gap:16px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin:14px 0}.phone{border-radius:20px;background:#eef3f8;border:5px solid #263548;padding:12px;min-height:260px;font-size:11px}.phone .bar{background:var(--navy);color:#fff;padding:8px;border-radius:7px;margin-bottom:8px}.phone .box{background:#fff;border:1px solid #cdd7e3;border-radius:7px;padding:7px;margin:6px 0}.phone .cta{background:var(--blue);color:#fff;text-align:center;font-weight:700}.phone .ai{background:#f3e5f5;border-color:#dab4e5}.phone .anchor{background:#e0f2f1;border-color:#9dcfc8}.status{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700}.done{background:#e5f5ec;color:var(--ok)}.partial{background:#fff0d8;color:var(--warn)}
+    table{width:100%;border-collapse:collapse;background:#fff}th,td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}th{background:#edf3f8;color:#334155}code{background:#e8edf3;padding:2px 5px;border-radius:5px;overflow-wrap:anywhere}
+    ul{margin-top:7px}.compact li{margin:3px 0}.labels{display:flex;gap:6px;flex-wrap:wrap}.label{padding:4px 9px;border-radius:7px;background:#edf3f8;font-size:12px}.label.ai{background:#f3e5f5;color:var(--purple)}.label.raw{background:#fff3e6;color:#8a4b00}
+    @media(max-width:800px){.summary,.flow{grid-template-columns:1fr 1fr}.screen{grid-template-columns:1fr}.phone{min-height:auto}}@media(max-width:520px){.summary,.flow{grid-template-columns:1fr}.step:after{display:none}}
+  </style>
+</head>
+<body>
+<header><div>
+  <small>Apartment Defect AI · Android Field UX</small>
+  <h1>AI하자점검 최종 UI·UX 구현정리서</h1>
+  <p>현재 PinSet Android 앱에 구현된 세대 선택, 앵커 촬영, 라이브 하자 촬영, 위치 확인, STT·AI 의견 교환, 최종분류, 목록 검토와 세대 마감 UX를 하나의 현행 기준선으로 정리한다.</p>
+  <span class="pill">UI/UX v3.3</span><span class="pill">2026-07-25 앵커 표시 현행화</span><span class="pill">Galaxy S25 Ultra 기준</span>
+</div></header>
+<main>
+  <div class="summary">
+    <div class="metric"><b>사진 우선</b><span>하자 입력의 시작점</span></div>
+    <div class="metric"><b>세대 단위</b><span>동·호수별 상태 분리</span></div>
+    <div class="metric"><b>오프라인 우선</b><span>로컬 저장 후 재전송</span></div>
+    <div class="metric"><b>사람 최종확인</b><span>AI 추천을 점검자가 확정</span></div>
+  </div>
+
+  <section>
+    <h2>1. 최종 UX 원칙</h2>
+    <div class="card">
+      <ul class="compact">
+        <li><strong>최소 입력:</strong> 동·호수와 최초 공간을 선택하면 도면과 세대 컨텍스트를 자동 적용한다.</li>
+        <li><strong>사진 중심:</strong> 하자 등록은 라이브 카메라 촬영에서 시작하며 사진 없는 신규 하자 입력을 기본 흐름으로 두지 않는다.</li>
+        <li><strong>용어 단순화:</strong> “앵커 위치·촬영기준” 대신 “앵커”, 저장 동작은 “최종확인 &amp; 저장”으로 통일한다.</li>
+        <li><strong>원문 보존:</strong> 점검자·입주자 의견 RAW와 STT 기록을 AI 표준문구가 덮어쓰지 않는다.</li>
+        <li><strong>추천과 확정 분리:</strong> 이미지 AI, 텍스트 AI, 점검자 의견을 합치되 최종분류는 사람이 수정·확정한다.</li>
+        <li><strong>세대 격리:</strong> 세대 마감 후 다음 호수는 새 세션으로 시작하며 이전 핀·집계·앵커를 표시하지 않는다.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. 전체 사용자 흐름</h2>
+    <div class="flow">
+      <div class="step"><b>01 INTRO</b><strong>동·호수 선택</strong>세대·평형·도면·최초 공간 확인</div>
+      <div class="step"><b>02 ANCHOR</b><strong>최초 앵커 촬영</strong>기준 사진과 공간·방위 기록</div>
+      <div class="step"><b>03 LIVE</b><strong>하자 반복 촬영</strong>플래시·재촬영·이미지 판별</div>
+      <div class="step"><b>04 LOCATION</b><strong>위치 확인</strong>평면도 핀을 직접 끌어 보정</div>
+      <div class="step"><b>05 ASSISTANT</b><strong>의견·AI 추천</strong>STT, 점검자 의견, 이미지·텍스트 AI</div>
+      <div class="step"><b>06 SAVE</b><strong>최종확인 &amp; 저장</strong>RAW와 최종분류를 로컬 저장</div>
+      <div class="step"><b>07 REVIEW</b><strong>목록·핀·집계 검토</strong>수정, 사진 추가, 삭제, 상태 변경</div>
+      <div class="step"><b>08 CLOSE</b><strong>세대 마감</strong>다음 호수 초기값으로 이동</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. 화면별 최종 UI·UX</h2>
+
+    <article class="screen">
+      <div class="phone">
+        <div class="bar">AI 하자점검</div>
+        <div class="box">동 번호 ▾　호수 ▾</div>
+        <div class="box">세대소유주 · <b>점검매니저</b></div>
+        <div class="box">단지 안내도 · 현재 102동</div>
+        <div class="box">세대 평면도 · 84A-1평형　⌁</div>
+        <div class="box anchor">앵커: 거실</div>
+        <div class="box cta">거실 앵커 촬영 시작</div>
+      </div>
+      <div>
+        <h3>3.1 인트로·세대 공간 불러오기 <span class="status done">구현</span></h3>
+        <ul class="compact">
+          <li>동 번호와 호수는 풀다운 선택과 숫자 직접입력을 병행한다.</li>
+          <li>입력값은 <code>101동 1501호</code>에 고정되지 않고 세션·화면·서버 조회에 동일하게 전달된다.</li>
+          <li>마지막 동·호수는 다음 점검의 초기값으로만 저장한다.</li>
+          <li>84A-1을 기본 평형으로 사용하며 84B-1 선택 후에도 동·호수는 유지된다.</li>
+          <li>제목은 <strong>세대 평면도 · 84A-1평형</strong> 형식이다.</li>
+          <li>평면도 주변 N·E·W·S 글자를 제거하고 오른쪽 위에 작은 나침반 하나만 표시한다.</li>
+          <li>단지 안내도에는 선택된 동을 붉은 마커로 표시한다.</li>
+          <li>최초 촬영 공간은 두 줄 이내의 공간 칩으로 선택하고 평면도에 앵커 점을 표시한다.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="screen">
+      <div class="phone">
+        <div class="bar">최초 위치 앵커 촬영</div>
+        <div class="box" style="height:130px;text-align:center;padding-top:48px">◎ 포커스 원 · 센터 점</div>
+        <div class="box">플래시　자동 / 켬 / 끔</div>
+        <div class="box anchor">앵커 거실 · NW 315° · 1.2m</div>
+        <div class="box cta">촬영</div>
+      </div>
+      <div>
+        <h3>3.2 앵커·라이브 카메라 <span class="status done">구현</span></h3>
+        <ul class="compact">
+          <li>인트로에서 선택한 최초 공간을 카메라까지 그대로 전달한다.</li>
+          <li>중앙 포커스 원과 센터 점, 배율 조절, 자동·수동 플래시를 제공한다.</li>
+          <li>최초 앵커 이후에는 같은 화면 구조로 LIVE DETECTION 하자 촬영을 반복한다.</li>
+          <li>카메라 화면 유지, 라이프사이클 재연결 및 블랙아웃 복구 흐름을 포함한다.</li>
+          <li>촬영 결과가 불명확하면 저장 전 재촬영한다.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="screen">
+      <div class="phone">
+        <div class="bar">촬영 이미지 판별 확인</div>
+        <div class="box" style="height:125px">촬영 이미지　　　　🧭<br><small>　　　　　　　 NW 315°</small></div>
+        <div class="box anchor">앵커 침실1 · NW 315° · 1.2m</div>
+        <div class="box">AI 또는 점검자가 분간하기 어렵다면 재촬영</div>
+        <div class="box cta">이미지 사용</div>
+      </div>
+      <div>
+        <h3>3.3 촬영 이미지 판별확인 <span class="status done">구현</span></h3>
+        <ul class="compact">
+          <li>이미지 높이를 제한하고 설명 영역 전체를 스크롤 가능하게 구성한다.</li>
+          <li>나침반을 사진 옆에 배치하고 N·NE·E·SE·S·SW·W·NW 8방위와 각도를 함께 표시한다.</li>
+          <li>중간 정보는 <strong>앵커 침실1 · NW 315° · 1.2m</strong> 형식의 한 줄 요약으로 축약한다.</li>
+          <li>하단의 재촬영과 이미지 사용 버튼이 작은 화면에서도 가려지지 않는다.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="screen">
+      <div class="phone">
+        <div class="bar">위치 확인 후 이미지 저장</div>
+        <div class="box">촬영 이미지 슬롯</div>
+        <div class="box">AI 저신뢰 시 재촬영 안내</div>
+        <div class="box" style="height:125px;text-align:center;padding-top:48px">평면도 · ● 핀 직접 이동</div>
+        <div class="box ai">부위 · AI 추천</div>
+      </div>
+      <div>
+        <h3>3.4 위치 확인·핀 보정 <span class="status done">구현</span></h3>
+        <ul class="compact">
+          <li>평면도는 원본 비율을 유지하고 과도하게 세로 확대하지 않는다.</li>
+          <li>“수동 이동 중”, “자동 위치”, “촬영 방향 + 거리” 오버레이를 제거했다.</li>
+          <li>별도 수동모드 전환 없이 평면도 핀을 바로 끌어서 보정한다.</li>
+          <li>저신뢰 이미지에는 재촬영 안내를 표시하고 점검자 판단을 우선한다.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="screen">
+      <div class="phone">
+        <div class="bar">하자정보의견 상세</div>
+        <div class="box raw">점검자 의견 RAW</div>
+        <div class="box">🎤 STT 실시간 음성인식 기록<br>말하는 중 부분문장 표시 · 중지<br>STT 기록 → 점검자 의견</div>
+        <div class="box ai">AI 분석 의견<br>AI 분석 의견 → 점검자 의견</div>
+        <div class="box ai">촬영 이미지 AI분석 추천</div>
+        <div class="box">하자분류 최종</div>
+        <div class="box cta">최종확인 &amp; 저장</div>
+      </div>
+      <div>
+        <h3>3.5 점검자 의견·STT·AI 어시스턴트 <span class="status done">구현</span></h3>
+        <ul class="compact">
+          <li>점검자 의견과 AI 분석 의견을 별도 박스로 구분하고 여백을 축소했다.</li>
+          <li>앱 내부 <strong>SpeechRecognizer</strong>가 말하는 중 부분문장을 별도 기록창에 실시간 표시한 뒤 점검자 의견에 반영한다.</li>
+          <li>최초 사용 시 마이크 권한을 요청하며, 동일 버튼으로 인식을 중지하고 권한·네트워크·무음·인식 실패 상태를 안내한다.</li>
+          <li><strong>점검자 의견 → AI 분석</strong>과 <strong>AI 분석 의견 → 점검자 의견</strong> 양방향 변환을 제공한다.</li>
+          <li>점검자·입주자 RAW 의견은 최종분류 문구와 별도로 끝까지 저장한다.</li>
+          <li>AI·이미지 추천의 화살표와 “확인필요”를 제거하고 <strong>거실, 벽, 도장, 균열</strong>처럼 쉼표 목록으로 표현한다.</li>
+          <li>섹션 제목은 <strong>촬영 이미지 AI분석 추천</strong>으로 표시하고 불필요한 하단 설명을 삭제했다.</li>
+          <li>최종분류는 입주자 의견, AI 추천, 이미지 추천, 점검자 추가 의견을 통합한 뒤 점검자가 편집한다.</li>
+          <li>최종 동작 문구는 <strong>최종확인 &amp; 저장</strong>으로 통일했다.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="screen">
+      <div class="phone">
+        <div class="bar">하자 상세정보</div>
+        <div class="box">축소 평면도 · 핀</div>
+        <div class="box">사진 · 위치 · 분류 · RAW 의견</div>
+        <div class="box">수정　수정/추가 사진　삭제</div>
+        <div class="box cta">최종확인 &amp; 저장</div>
+      </div>
+      <div>
+        <h3>3.6 하자 상세·목록 검토 <span class="status done">구현</span></h3>
+        <ul class="compact">
+          <li>상세정보는 축소 평면도, 사진, 분류, 점검자 RAW 의견을 한 화면 중심으로 정돈한다.</li>
+          <li>마감 전에 목록에서 하자를 다시 열어 수정·사진 추가·삭제·상태 변경을 수행한다.</li>
+          <li>추가 촬영은 기존 하자와 연결되어 별도 하자로 중복 생성되지 않는다.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="screen">
+      <div class="phone">
+        <div class="bar">세대 점검 현황</div>
+        <div class="box">전체 12 · 확인 10 · 미확인 2</div>
+        <div class="box" style="height:105px">평면도 · 누적 하자 핀</div>
+        <div class="box">하자 전체 목록</div>
+        <div class="box cta">전체 확인 후 세대 점검 마감</div>
+      </div>
+      <div>
+        <h3>3.7 세대 집계·마감·다음 호수 <span class="status done">구현</span></h3>
+        <ul class="compact">
+          <li>하자 저장 후 홈으로 돌아와 누적 목록과 집계를 확인하면서 추가 입력한다.</li>
+          <li>세대 마감 전 전체 목록과 평면도 누적 핀을 최종 검토한다.</li>
+          <li>마감 시 활성 세션·임시 촬영 상태를 해제한다.</li>
+          <li>다음 호수는 새로운 세션으로 시작하며 완료 세션을 재사용하지 않는다.</li>
+        </ul>
+      </div>
+    </article>
+  </section>
+
+  <section>
+    <h2>4. 최종 데이터 흐름</h2>
+    <table>
+      <thead><tr><th>UI 입력</th><th>보존 데이터</th><th>AI 활용</th><th>최종 결과</th></tr></thead>
+      <tbody>
+        <tr><td>동·호수·평형·앵커 공간</td><td>세대 세션, 평면도, 앵커 좌표</td><td>위치 컨텍스트</td><td>세대별 독립 점검</td></tr>
+        <tr><td>근접·광각 사진</td><td>로컬 파일·사진 메타데이터</td><td>이미지 하자 후보</td><td>재촬영 또는 추천 수용</td></tr>
+        <tr><td>점검자 직접입력</td><td><span class="label raw">RAW 원문</span></td><td>LLM 문구·분류 추천</td><td rowspan="2">쉼표형 통합 분류를 점검자가 편집·확정</td></tr>
+        <tr><td>STT 음성인식 기록</td><td><span class="label raw">STT 기록</span> → 점검자 원문</td><td>텍스트 AI 재분석</td></tr>
+        <tr><td>최종확인 &amp; 저장</td><td>Room 로컬 DB·동기화 큐</td><td>서버 전송 재시도</td><td>PostgreSQL 하자·의견·미디어 저장</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>5. 오프라인·동기화 UX</h2>
+    <div class="card">
+      <div class="labels"><span class="label">로컬 우선</span><span class="label">재시도 큐</span><span class="label">멱등성 UUID</span><span class="label">revision</span><span class="label ai">PostgreSQL</span></div>
+      <ul class="compact">
+        <li>사진과 하자정보를 먼저 휴대폰 Room DB와 로컬 파일에 저장한다.</li>
+        <li>통신이 없거나 서버 전송이 실패해도 현장 입력을 중단하지 않는다.</li>
+        <li>앱 재시작 또는 통신 회복 시 RETRY 항목을 다시 전송한다.</li>
+        <li>현재 실기기 검증에서는 USB ADB reverse로 <code>127.0.0.1:8000</code> 개발 서버를 연결했다.</li>
+        <li>최근 검증에서 최신 입력 건을 포함한 동기화 항목이 <code>COMPLETED</code>, server revision 1로 확인됐다.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section>
+    <h2>6. 구현 상태와 남은 검증</h2>
+    <table>
+      <thead><tr><th>항목</th><th>상태</th><th>판정</th></tr></thead>
+      <tbody>
+        <tr><td>인트로·동적 동호수·84A/B·앵커</td><td><span class="status done">구현</span></td><td>고정 101동 1501호 의존 제거</td></tr>
+        <tr><td>카메라·플래시·재촬영·판별확인</td><td><span class="status done">구현</span></td><td>스크롤 및 8방위 표시 반영</td></tr>
+        <tr><td>점검자 의견·STT 별도 기록·AI 양방향 반영</td><td><span class="status done">구현</span></td><td>Android 빌드·문구 정규화 테스트 통과</td></tr>
+        <tr><td>STT 실시간 부분문장 스트리밍</td><td><span class="status done">구현</span></td><td>앱 내부 SpeechRecognizer, 한국어 부분 결과, 시작·중지, 오류·권한 안내 구현</td></tr>
+        <tr><td>온디바이스 ConvNeXt/운영 LLM</td><td><span class="status partial">연계 필요</span></td><td>모델·API 운영 주소와 인증 확정 필요</td></tr>
+        <tr><td>Release 배포</td><td><span class="status partial">후속</span></td><td>HTTPS, 운영 인증, 서명, Play 배포 검증 필요</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>7. 현행 빌드 기준</h2>
+    <div class="note">
+      <strong>Debug APK</strong><br>
+      <code>D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</code><br>
+      Gradle 작업: <code>:app:compileDebugKotlin :app:assembleDebug</code><br>
+      마지막 확인 빌드: <strong>BUILD SUCCESSFUL</strong>
+    </div>
+    <div class="note warning">
+      이 문서는 현재 구현 기준선이다. 과거 보고서의 N·E·W·S 외곽 표시, “촬영기준”, “자동 위치·촬영 방향+거리”, 화살표형 분류 문구는 현행 UI에서 제거됐다.
+    </div>
+  </section>
+  <section>
+    <h2>8. UI/UX v3.1 추가 구현</h2>
+    <div class="grid2">
+      <div class="note">
+        <h3>촬영·판별</h3>
+        <ul class="compact">
+          <li>판별확인 문구를 <strong>사진앵커 : 남동향 SE120도 / 0.5m</strong> 형식으로 단순화했다.</li>
+          <li>촬영 이미지 오른쪽의 큰 나침반을 제거하고 이미지 높이를 280dp로 확대했다.</li>
+          <li>하자사진 촬영 시 Android 표준 셔터음을 재생한다.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>의견·단계 안내</h3>
+        <ul class="compact">
+          <li>Phase 3 Real API 의견입력란에 한국어 실시간 STT를 직접 연결했다.</li>
+          <li>상단에 <strong>앵커 → 하자사진 → 하자의견 → AI분류</strong> 단계 표시를 추가했다.</li>
+          <li>카메라, 위치확인, 의견 상세, AI분류 화면에서 현재 단계를 강조한다.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>인트로·세대 추천</h3>
+        <ul class="compact">
+          <li>‘자동조회’ 표시는 제거하고 DB 조회 또는 기본값에서 결정된 평형을 표시한다.</li>
+          <li>사용자 표시는 <strong>아이디: 점검매니저 / 소유주</strong> 선택형이며 기본값은 점검매니저다.</li>
+          <li>‘동·호수 자동 부르기’는 GPS 위치 신호와 직전 점검 호수의 순서를 결합해 인접 세대를 추천하며, 점검자가 적용을 눌러 확정한다.</li>
+          <li>실내 GPS가 약한 경우에는 같은 동의 다음 라인 또는 다음 층 1호를 추천한다.</li>
+        </ul>
+      </div>
+      <div class="note warning">
+        <h3>위치 추천 안전 원칙</h3>
+        <p>GPS만으로 아파트 호수를 확정할 수 없으므로 자동 저장하지 않는다. 향후 단지·동 좌표와 점검 배정표 DB가 제공되면 GPS는 동 후보를 좁히고, 점검 순서 데이터가 호수를 추천하도록 확장한다.</p>
+      </div>
+    </div>
+  </section>
+  <section>
+    <h2>9. UI/UX v3.2 위치확인·인트로 개선</h2>
+    <div class="grid2">
+      <div class="note">
+        <h3>인트로 세대 카드</h3>
+        <ul class="compact">
+          <li>상단 아이디 선택과 중복되던 세대 카드의 ‘점검매니저’를 삭제했다.</li>
+          <li>평형은 <strong>(평형:84A-1)</strong> 형식으로 표시한다.</li>
+          <li>단지·동호수와 평형 블록은 두 줄을 넘지 않도록 제한한다.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>현재 단계 표시</h3>
+        <ul class="compact">
+          <li>앵커·하자사진·하자의견·AI분류 중 현재 단계가 0.55~1.0 투명도로 점멸한다.</li>
+          <li>위치확인 상단 센서 정보는 강한 강조색 대신 채도를 낮춘 청회색을 사용한다.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>핀 위치 안전 보정</h3>
+        <ul class="compact">
+          <li>최초 하자 핀은 센서·이미지 분석의 자동 추정 위치로 고정한다.</li>
+          <li>평면도를 누르면 즉시 이동하지 않고 <strong>위치 수정?</strong> 확인창을 표시한다.</li>
+          <li>점검자가 ‘위치 수정’을 선택한 경우에만 핀을 수동 위치로 변경한다.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>방향·나침반</h3>
+        <ul class="compact">
+          <li>방향은 <strong>동향 E109도</strong>처럼 한글 방위, 영문 방위, 각도 순으로 표시한다.</li>
+          <li>위치확인 평면도 오른쪽 위에 촬영 방향을 반영한 소형 나침반을 표시한다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+  <section>
+    <h2>10. UI/UX v3.3 앵커 표시 단순화</h2>
+    <div class="grid2">
+      <div class="note">
+        <h3>최초 1회 메뉴</h3>
+        <ul class="compact">
+          <li>앵커 단계와 앵커 설정 배너는 최초 앵커 촬영 전까지만 표시한다.</li>
+          <li>앵커 설정 후 접수현황에서는 별도 앵커 배너를 제거해 세로 공간을 확보한다.</li>
+          <li>이후 단계 메뉴는 <strong>하자사진 → 하자의견 → AI분류</strong> 3단계만 표시한다.</li>
+        </ul>
+      </div>
+      <div class="note">
+        <h3>평면도 닻 마커</h3>
+        <ul class="compact">
+          <li>접수현황 미니 평면도, 전체 평면도, 촬영 미니맵, 위치확인 평면도에 동일한 닻 형태를 사용한다.</li>
+          <li>닻은 최초 앵커 좌표에 고정되며 청록색으로 표시해 빨간 하자 핀과 구분한다.</li>
+          <li>이동 경로 표시를 끈 전체 평면도에서도 닻 마커는 계속 표시한다.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

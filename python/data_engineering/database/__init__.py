@@ -6,7 +6,8 @@ from .connection import (
     DatabaseQueryError,
     test_database_connection,
 )
-from .inspection import DatabaseInspection, inspect_database
+from .vision_inspection import DatabaseInspection, inspect_database
+from .dataset import extract_defect_dataset_rows
 
 __all__ = [
     "DatabaseConfig",
@@ -15,5 +16,6 @@ __all__ = [
     "DatabaseInspection",
     "DatabaseQueryError",
     "inspect_database",
+    "extract_defect_dataset_rows",
     "test_database_connection",
 ]

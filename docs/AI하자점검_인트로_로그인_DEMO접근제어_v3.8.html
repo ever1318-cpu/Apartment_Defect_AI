@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 인트로 로그인·DEMO 접근제어 v3.8</title>
+<style>:root{--bg:#f4f7fb;--ink:#172033;--line:#dbe3ef;--green:#087a55}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}.wrap{width:min(920px,calc(100% - 28px));margin:auto}.hero{padding:44px 0 32px;background:linear-gradient(135deg,#173b70,#155eef);color:#fff}h1{margin:4px 0;font-size:clamp(26px,5vw,40px)}main{padding:26px 0 58px}.card{margin:14px 0;padding:20px;background:#fff;border:1px solid var(--line);border-radius:16px}h2{margin:0 0 10px}.ok{color:var(--green);font-weight:800}.flow{padding:14px;border-radius:12px;background:#eef4ff;font-weight:700}table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f8fafc}code{color:#174ea6;overflow-wrap:anywhere}</style>
+</head><body><header class="hero"><div class="wrap"><small>Apartment Defect AI · Android 접근제어 변경 이력</small><h1>인트로 로그인·DEMO 접근제어</h1><p>버전 3.8 · 2026-07-25</p></div></header>
+<main class="wrap">
+<section class="card"><h2>1. 반영 결과</h2><p class="ok">점검매니저 또는 소유주 칩을 선택하면 아이디·비밀번호 로그인 팝업이 표시된다.</p></section>
+<section class="card"><h2>2. 인증 흐름</h2><div class="flow">역할 선택 → 로그인 팝업 → 디버그 테스트 계정·당일 YYYYMMDD 확인 → 인증 또는 DEMO 모드</div><table><tr><th>일치</th><td>인증 상태 표시 후 정상 점검 흐름 진행</td></tr><tr><th>불일치</th><td>DEMO 안내 표시, 화면·촬영 체험 허용, 서버 저장·전송 차단</td></tr><tr><th>미인증</th><td>공간 앵커 촬영 시작 시 로그인 팝업 재호출</td></tr></table></section>
+<section class="card"><h2>3. 보안 범위</h2><ul><li>테스트 인증은 <strong>DEBUG 빌드에서만</strong> 허용</li><li>비밀번호는 화면에서 마스킹</li><li>당일 비밀번호는 실행 시점에 계산하고 저장하지 않음</li><li>DEMO 모드에서는 오프라인 동기화 관리자의 서버 업로드를 차단</li></ul><p>운영 배포 전에는 서버 기반 계정 인증과 만료 토큰 방식으로 교체해야 한다.</p></section>
+<section class="card"><h2>4. 검증</h2><p><code>.\gradlew.bat -p android :app:testDebugUnitTest :app:assembleDebug --no-daemon</code></p><p class="ok">단위 테스트 및 APK 빌드 성공</p></section>
+</main></body></html>

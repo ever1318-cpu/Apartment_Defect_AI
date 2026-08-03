@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 인트로·사진촬영·울산도면 개선보고서 v1.1</title>
+<style>:root{--ink:#172033;--muted:#64748b;--line:#dbe3ef;--blue:#155eef;--ok:#067647;--soft:#eef4ff}*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:var(--ink);font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}.wrap{width:min(1000px,calc(100% - 32px));margin:auto}.hero{padding:48px 0 32px;background:linear-gradient(135deg,#102a56,#155eef);color:#fff}.hero h1{margin:5px 0}.pill{display:inline-block;margin:8px 6px 0 0;padding:4px 10px;border:1px solid #ffffff55;border-radius:99px}main{padding:28px 0 56px}section{margin-bottom:20px;padding:21px;background:#fff;border:1px solid var(--line);border-radius:16px}h2{margin-top:0}.ok{color:var(--ok);font-weight:800}.flow{padding:15px;background:var(--soft);border-radius:12px;font-weight:700}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.card{padding:15px;border:1px solid var(--line);border-radius:12px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f8fafc}code{overflow-wrap:anywhere}@media(max-width:700px){.grid{grid-template-columns:1fr}}</style>
+</head><body><header class="hero"><div class="wrap"><small>Apartment Defect AI · S25 실기기 개선</small><h1>인트로·사진촬영·울산도면 개선보고서</h1><p>현장 검토 의견 4건을 반영한 Android 수정 및 실기기 검증 결과</p><span class="pill">v1.1</span><span class="pill">2026-07-24</span><span class="pill">설치 완료</span></div></header>
+<main class="wrap">
+<section><h2>1. 결론</h2><p class="ok">점검 ID 기본값, 키보드 대응, 사진 촬영 우선 흐름, 울산다운지구 기본 안내도·84A·84B 도면을 모두 반영하고 Galaxy S25 Ultra에 설치했습니다.</p><div class="flow">점검매니저(TEST) → 자동 세대조회 → 단지안내도·84A/84B → 공간 선택 → LIVE DETECTION 사진 촬영 → 위치·사진 확인 → 의견·AI 분류</div></section>
+<section><h2>2. 피드백별 반영</h2><div class="grid">
+<div class="card"><strong>① 테스트 점검 ID</strong><p>인트로 입력 기본값을 <code>점검매니저</code>로 지정하고 화면에 보라색 <code>TEST</code> 배지를 표시했습니다. 300ms 후 울산다운지구 84A 테스트 세대를 자동 조회합니다.</p></div>
+<div class="card"><strong>② 키보드·최종 버튼</strong><p>최종 행동 버튼을 스크롤 내용에서 분리한 고정 하단 영역으로 옮기고 <code>imePadding</code>을 적용했습니다. 키보드가 올라와도 촬영 시작 버튼이 가려지지 않습니다.</p></div>
+<div class="card"><strong>③ 사진 촬영 우선</strong><p>공간 선택 후 텍스트 AI 화면으로 바로 이동하던 흐름을 수정해 <code>LIVE DETECTION · 하자 촬영</code>으로 먼저 진입합니다. 사진을 필수 기본 입력으로 명시했습니다.</p></div>
+<div class="card"><strong>④ 울산 기본 이미지</strong><p>첨부된 단지안내도, 84A, 84B를 앱 자산으로 포함했습니다. 원본 홍보 이미지는 보존하고 점검 미니맵에서는 주 평면도 영역만 런타임 표시합니다.</p></div>
+</div></section>
+<section><h2>3. 기본 자산</h2><table><thead><tr><th>자산</th><th>앱 파일</th><th>용도</th></tr></thead><tbody>
+<tr><td>울산다운지구 단지안내도</td><td><code>floorplans/ulsan_down_site_map.png</code></td><td>인트로 단지 안내</td></tr>
+<tr><td>울산다운지구 84A</td><td><code>floorplans/ulsan_down_84a.png/json</code></td><td>기본 테스트 평면도·공간 메타데이터</td></tr>
+<tr><td>울산다운지구 84B</td><td><code>floorplans/ulsan_down_84b.png/json</code></td><td>84B 세대 평면도·공간 메타데이터</td></tr>
+</tbody></table></section>
+<section><h2>4. 실기기 검증</h2><table><tbody>
+<tr><th>기기</th><td>Galaxy S25 Ultra · SM-S936N</td></tr>
+<tr><th>인트로</th><td class="ok">점검매니저, TEST, 울산 세대, 단지안내도, 고정 촬영 버튼 확인</td></tr>
+<tr><th>카메라</th><td class="ok">LIVE DETECTION, 사진 필수, 실시간 미리보기, 센서 정보, 평면도, 촬영 버튼 확인</td></tr>
+<tr><th>충돌</th><td class="ok">시작 및 카메라 진입 FATAL EXCEPTION 없음</td></tr>
+<tr><th>빌드</th><td><code>BUILD SUCCESSFUL in 26s</code></td></tr>
+<tr><th>APK</th><td><code>D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</code></td></tr>
+<tr><th>크기</th><td>77,320,589 bytes</td></tr>
+<tr><th>SHA-256</th><td><code>F6A81AEB08D93F41F518F6A1FB140613CC2A02170510548C63516364F1B19B8A</code></td></tr>
+</tbody></table></section>
+<section><h2>5. 후속 확인</h2><ol><li>실제 동·호수와 84A/84B 매핑 규칙을 운영 세대조회 API 계약에 포함합니다.</li><li>원본 도면의 공간 앵커 좌표는 현장 도면 원본 또는 CAD 기준으로 보정합니다.</li><li>실제 하자 사진을 촬영해 사진 저장, 의견 입력, AI 추천, 최종 DB 저장까지 한 건의 E2E를 검증합니다.</li></ol></section>
+</main></body></html>

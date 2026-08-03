@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI하자점검 공용부·기타 하자 분류체계 가이드 v1.0</title>
+  <style>
+    :root{--navy:#173b5c;--blue:#245b8f;--sky:#eef6fc;--line:#c9d8e5;--red:#b33333;--amber:#a96700;--green:#24744b}
+    body{margin:0;background:#f4f7fa;color:#17212b;font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;line-height:1.65}
+    main{max-width:1060px;margin:28px auto;background:#fff;padding:34px 42px;box-shadow:0 5px 22px #1f3c5618}
+    h1{margin:0;color:var(--navy);font-size:30px;line-height:1.3} h2{margin-top:35px;color:var(--navy);border-bottom:2px solid var(--line);padding-bottom:8px} h3{color:var(--blue);margin-bottom:6px}
+    .meta,.note{padding:14px 17px;border-radius:9px;background:var(--sky);border-left:5px solid var(--blue)} .warning{background:#fff8ea;border-left-color:var(--amber)}
+    table{width:100%;border-collapse:collapse;margin:13px 0 22px;font-size:14px} th,td{border:1px solid var(--line);padding:10px;vertical-align:top;text-align:left} th{background:#edf4fa;color:var(--navy)}
+    ul{padding-left:22px}.chips span{display:inline-block;margin:3px;padding:3px 9px;border-radius:999px;background:#e8f1f8;color:var(--navy);font-size:13px}.sev1{color:var(--red);font-weight:bold}.sev2{color:var(--amber);font-weight:bold}.sev3{color:var(--green);font-weight:bold}
+    code{background:#eef2f5;padding:2px 5px;border-radius:4px} @media(max-width:700px){main{margin:0;padding:20px 16px}h1{font-size:24px}table{font-size:12px}}
+  </style>
+</head>
+<body><main>
+  <h1>AI하자점검 공용부·기타 하자 분류체계 가이드 v1.0</h1>
+  <p class="meta"><b>대상</b> 공동주택 세대 외 공용부, 옥외·부대시설, 관리·커뮤니티 시설 및 기타 위치의 하자 사진·의견 기록<br><b>목적</b> 현장 점검자가 위치를 빠르게 남기고, 사진·의견·AI 추천을 같은 기준으로 축적하여 보수 우선순위와 공종을 판단한다.</p>
+
+  <h2>1. 공용부 기록 원칙</h2>
+  <ul>
+    <li>세대 동·호 대신 <b>발생 위치</b>를 필수로 기록한다. 예: <code>106동 지하주차장 B2 기둥 P-18</code>, <code>101동 1층 공동현관</code>.</li>
+    <li>사진은 기본 근경 1장으로 촬영하고, 원인·범위 판단이 어렵거나 누수·균열·침하가 의심되면 원경을 함께 촬영한다.</li>
+    <li>사진, 점검자 원문 의견, AI 추천문구, 최종 분류를 하나의 하자 건으로 함께 저장한다. 원문 의견은 수정하지 않고 보존한다.</li>
+    <li>위험 가능성이 있는 경우에는 일반 분류보다 안전 조치를 우선한다. 전기 노출·가스·낙하·대규모 균열은 즉시 관리 주체에 알린다.</li>
+  </ul>
+
+  <h2>2. 표준 5계층 분류</h2>
+  <p>앱과 DB에는 아래 순서로 저장한다. 화면 표기는 세로 공간을 줄이기 위해 점(<code>.</code>)으로 연결한다.</p>
+  <table><thead><tr><th>계층</th><th>기록 내용</th><th>예시</th></tr></thead><tbody>
+    <tr><td>1. 위치</td><td>동·층·구역·시설 또는 옥외 구간</td><td>106동.B2.지하주차장.P-18</td></tr>
+    <tr><td>2. 하자부위</td><td>구조·마감·설비의 대상 부위</td><td>천장.벽체.바닥.기둥.배관.배수구.방수층</td></tr>
+    <tr><td>3. 상세부위</td><td>눈에 보이는 세부 위치 또는 구성품</td><td>천장 슬래브 이음부, 바닥 코너, 소화전함 문짝</td></tr>
+    <tr><td>4. 하자유형</td><td>관찰된 현상</td><td>누수.균열.들뜸.박리.오염.파손.작동불량</td></tr>
+    <tr><td>5. 공종·원인 후보</td><td>보수 담당 공종과 원인 추정</td><td>방수·미장 / 배수 불량 또는 균열부 유입</td></tr>
+  </tbody></table>
+  <div class="chips"><span>예시 1: 106동.B2주차장.천장.슬래브이음부.누수.방수·배관</span><span>예시 2: 단지보도.보도블록.코너.침하.조경·토목</span></div>
+
+  <h2>3. 공용부·기타 장소별 분류</h2>
+  <table><thead><tr><th>장소군</th><th>주요 하자부위·유형</th><th>공종 후보</th><th>촬영·기록 핵심</th></tr></thead><tbody>
+    <tr><td>공동현관·복도·계단·승강기홀</td><td>천장 누수·결로, 벽체 균열·오염, 타일 들뜸, 문·손잡이 작동불량, 난간 흔들림</td><td>건축마감, 방수, 금속, 창호, 전기</td><td>층·호기 인접 위치, 균열 길이·방향, 누수 흔적 범위</td></tr>
+    <tr><td>지하주차장·램프</td><td>슬래브 누수, 균열, 도장 박리, 바닥 들뜸·침하, 배수구 막힘, 차선·볼라드 파손</td><td>방수, 구조·보수, 도장, 토목, 기계설비</td><td>동·B층·기둥번호, 물 고임 방향, 차량 안전 영향</td></tr>
+    <tr><td>옥상·외벽·발코니 외측</td><td>방수층 파손, 외벽 균열·탈락, 실란트 열화, 배수 불량, 난간 부식</td><td>방수, 미장·도장, 석공, 금속, 창호</td><td>낙하 위험 통제 후 원경·근경, 균열 폭·연속성</td></tr>
+    <tr><td>단지 보도·조경·놀이터</td><td>보도블록 침하·파손, 경계석 이격, 배수 불량, 수목 고사, 시설물 파손</td><td>토목, 조경, 포장, 배수</td><td>동선·안전 위험, 면적·구간, 우천 시 물길</td></tr>
+    <tr><td>커뮤니티·관리동·경비실</td><td>천장·벽체 누수, 바닥·타일 파손, 문·가구·설비 작동불량</td><td>건축마감, 기계, 전기, 통신, 가구</td><td>공간명·장비번호, 사용 불가 여부</td></tr>
+    <tr><td>기계실·전기실·소방시설</td><td>배관 누수·보온 손상, 결로, 펌프·팬 이상, 전기함 손상, 소방기기 불량</td><td>기계설비, 전기, 소방, 통신</td><td>무단 접근 금지, 장비명·표지판, 누수·경보 상태</td></tr>
+    <tr><td>기타·미분류</td><td>위치가 불명확하거나 새로운 현상</td><td>AI 후보 + 관리 검토</td><td>자유 의견을 충분히 남기고, 위치 표지·주변 원경을 추가 촬영</td></tr>
+  </tbody></table>
+
+  <h2>4. 심각도 기준</h2>
+  <table><thead><tr><th>등급</th><th>판단 기준</th><th>예시 및 조치</th></tr></thead><tbody>
+    <tr><td class="sev1">긴급</td><td>인명·화재·감전·낙하·구조 안전에 즉시 영향을 줄 수 있음</td><td>난간 탈락, 전선 노출, 대량 누수, 낙하 우려 외벽. 출입 통제 후 즉시 보고.</td></tr>
+    <tr><td class="sev2">중요</td><td>확대 가능성이 크거나 주요 기능·사용성을 현저히 저해</td><td>반복 누수, 주차장 바닥 침하, 배수 불량. 보수 우선순위 상향.</td></tr>
+    <tr><td class="sev3">일반</td><td>미관·경미한 작동 또는 마감 품질 문제</td><td>도장 오염, 경미한 실란트 변색. 일반 보수 목록으로 관리.</td></tr>
+  </tbody></table>
+
+  <h2>5. 입력 예시</h2>
+  <table><thead><tr><th>발생 위치</th><th>점검자 원문 의견</th><th>최종 분류 예시</th></tr></thead><tbody>
+    <tr><td>106동 지하주차장 B2 P-18</td><td>기둥 옆 천장에서 지속적으로 물이 떨어지고 바닥에 고임</td><td>106동.B2주차장.천장.슬래브이음부.누수.방수·배관 / 중요</td></tr>
+    <tr><td>101동 1층 공동현관</td><td>자동문이 닫힐 때 문틀에 부딪히고 소음이 큼</td><td>101동.1층공동현관.자동문.문틀접촉.작동불량.창호·자동문 / 일반</td></tr>
+    <tr><td>단지 중앙보도 린센터 앞</td><td>보도블록이 내려앉아 비 온 뒤 물이 고임</td><td>단지중앙보도.포장.배수구간.침하·고임.토목·배수 / 중요</td></tr>
+  </tbody></table>
+
+  <p class="note warning"><b>운영 유의사항</b> AI 추천은 후보이며, 최종 공종·원인은 점검자 및 시설관리 담당자의 확인으로 확정한다. 공용부 사진에는 가능한 한 동·층·기둥번호·시설 명칭 등 위치 식별 단서를 함께 담는다.</p>
+  <p style="color:#617384;font-size:13px;margin-top:34px">문서 버전: v1.0 · 작성일: 2026-07-28 · 인코딩: UTF-8</p>
+</main></body></html>

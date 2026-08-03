@@ -7,6 +7,7 @@ import math
 import platform
 import random
 import time
+from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol, Sequence
@@ -17,14 +18,28 @@ from .evaluation_models import GroundTruthAnnotation
 from .image_io import inspect_image_file
 from .training_models import LabelMapping, MetricEntry, TrainingSpec
 
-ONNX_OUTPUT_NAMES = (
-    "quality",
-    "space_scores",
-    "trade_scores",
-    "component_scores",
-    "boxes",
-    "detection_scores",
-    "detection_labels",
+DEFAULT_CLASSIFICATION_TASKS = ("space", "trade", "component")
+
+
+def onnx_output_names(label_sizes: Mapping[str, int]) -> tuple[str, ...]:
+    tasks = sorted(
+        key.removeprefix("classification:")
+        for key in label_sizes
+        if key.startswith("classification:")
+    )
+    if set(tasks) == set(DEFAULT_CLASSIFICATION_TASKS):
+        tasks = list(DEFAULT_CLASSIFICATION_TASKS)
+    return (
+        "quality",
+        *(f"{task}_scores" for task in tasks),
+        "boxes",
+        "detection_scores",
+        "detection_labels",
+    )
+
+
+ONNX_OUTPUT_NAMES = onnx_output_names(
+    {f"classification:{task}": 1 for task in DEFAULT_CLASSIFICATION_TASKS}
 )
 
 
@@ -42,6 +57,7 @@ class EncodedTrainingSample:
     image_path: Path
     classifications: Mapping[str, int]
     detections: tuple[Mapping[str, Any], ...]
+    paired_image_path: Path | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,6 +145,13 @@ class TrainingDatasetLoader:
                 )
             image_path = _resolve(split_directory, value["image_path"]).resolve()
             inspect_image_file(image_path)
+            paired_value = value.get("paired_image_path")
+            paired_image_path = (
+                _resolve(split_directory, paired_value).resolve()
+                if paired_value else None
+            )
+            if paired_image_path is not None:
+                inspect_image_file(paired_image_path)
             annotation = GroundTruthAnnotation.from_dict(value["annotation"])
             if annotation.image_id != image_id:
                 raise ValueError(f"sample {image_id!r} annotation image_id differs")
@@ -172,6 +195,7 @@ class TrainingDatasetLoader:
                 image_path=image_path,
                 classifications=classifications,
                 detections=tuple(detections),
+                paired_image_path=paired_image_path,
             )
         except (KeyError, TypeError) as exc:
             raise ValueError(f"invalid training sample: {exc}") from exc
@@ -186,11 +210,45 @@ def create_torch_dataloaders(
     torch = dependencies.torch
     transforms = dependencies.torchvision.transforms
     resize = tuple(spec.image_preprocessing.get("resize", (224, 224)))
-    transform = transforms.Compose([transforms.Resize(resize), transforms.ToTensor()])
+    common = [
+        transforms.Resize(resize),
+        transforms.ToTensor(),
+    ]
+    if spec.model_architecture == "convnext_tiny":
+        common.append(
+            transforms.Normalize(
+                mean=(0.485, 0.456, 0.406),
+                std=(0.229, 0.224, 0.225),
+            )
+        )
+    evaluation_transform = transforms.Compose(common)
+    training_transform = (
+        transforms.Compose(
+            [
+                transforms.RandomResizedCrop(resize, scale=(0.75, 1.0)),
+                transforms.RandomHorizontalFlip(),
+                transforms.ColorJitter(brightness=0.15, contrast=0.15),
+                transforms.ToTensor(),
+                *(
+                    [
+                        transforms.Normalize(
+                            mean=(0.485, 0.456, 0.406),
+                            std=(0.229, 0.224, 0.225),
+                        )
+                    ]
+                    if spec.model_architecture == "convnext_tiny"
+                    else []
+                ),
+            ]
+        )
+        if spec.augmentation.get("enabled", False)
+        else evaluation_transform
+    )
 
     class Dataset(torch.utils.data.Dataset):
-        def __init__(self, samples: Sequence[EncodedTrainingSample]):
+        def __init__(self, samples: Sequence[EncodedTrainingSample], transform: Any):
             self.samples = samples
+            self.transform = transform
 
         def __len__(self):
             return len(self.samples)
@@ -199,21 +257,38 @@ def create_torch_dataloaders(
             sample = self.samples[index]
             try:
                 with dependencies.image_module.open(sample.image_path) as image:
-                    tensor = transform(image.convert("RGB"))
+                    tensor = self.transform(image.convert("RGB"))
             except Exception as exc:
                 raise ValueError(f"cannot load training image: {sample.image_path}") from exc
-            return tensor, sample
+            paired = None
+            if sample.paired_image_path is not None:
+                try:
+                    with dependencies.image_module.open(sample.paired_image_path) as image:
+                        paired = evaluation_transform(image.convert("RGB"))
+                except Exception as exc:
+                    raise ValueError(
+                        f"cannot load paired training image: {sample.paired_image_path}"
+                    ) from exc
+            return tensor, paired, sample
 
     def collate(batch):
         if not batch:
             raise ValueError("invalid empty training batch")
-        images, targets = zip(*batch)
-        return torch.stack(images), targets
+        images, paired, targets = zip(*batch)
+        paired_batch = (
+            torch.stack(paired)
+            if all(item is not None for item in paired)
+            else None
+        )
+        return torch.stack(images), paired_batch, targets
 
     generator = torch.Generator().manual_seed(spec.random_seed)
     return {
         split: torch.utils.data.DataLoader(
-            Dataset(samples),
+            Dataset(
+                samples,
+                training_transform if split == "train" else evaluation_transform,
+            ),
             batch_size=spec.batch_size,
             shuffle=split == "train",
             collate_fn=collate,
@@ -226,42 +301,73 @@ def create_torch_dataloaders(
 def build_tiny_vision_model(
     dependencies: PyTorchDependencies,
     label_sizes: Mapping[str, int],
+    *,
+    architecture: str = "tiny_cnn",
+    pretrained: bool = False,
 ) -> Any:
-    """Build a small CNN locally; no pretrained weights or downloads are used."""
+    """Build a dynamic multi-task CNN or ConvNeXt-Tiny."""
     torch = dependencies.torch
     nn = torch.nn
 
-    class TinyVisionModel(nn.Module):
+    class MultiTaskVisionModel(nn.Module):
         def __init__(self):
             super().__init__()
-            self.backbone = nn.Sequential(
-                nn.Conv2d(3, 16, 3, padding=1),
-                nn.ReLU(),
-                nn.MaxPool2d(2),
-                nn.Conv2d(16, 32, 3, padding=1),
-                nn.ReLU(),
-                nn.MaxPool2d(2),
-                nn.Conv2d(32, 64, 3, padding=1),
-                nn.ReLU(),
-                nn.AdaptiveAvgPool2d((1, 1)),
+            if architecture == "convnext_tiny":
+                weights = (
+                    dependencies.torchvision.models.ConvNeXt_Tiny_Weights.DEFAULT
+                    if pretrained else None
+                )
+                base = dependencies.torchvision.models.convnext_tiny(weights=weights)
+                self.backbone = base.features
+                self.pool = base.avgpool
+                self.feature_norm = base.classifier[0]
+                feature_size = int(base.classifier[2].in_features)
+            elif architecture == "tiny_cnn":
+                self.backbone = nn.Sequential(
+                    nn.Conv2d(3, 16, 3, padding=1),
+                    nn.ReLU(),
+                    nn.MaxPool2d(2),
+                    nn.Conv2d(16, 32, 3, padding=1),
+                    nn.ReLU(),
+                    nn.MaxPool2d(2),
+                    nn.Conv2d(32, 64, 3, padding=1),
+                    nn.ReLU(),
+                )
+                self.pool = nn.AdaptiveAvgPool2d((1, 1))
+                self.feature_norm = nn.Identity()
+                feature_size = 64
+            else:
+                raise ValueError(f"unsupported model architecture: {architecture}")
+            self.quality_head = nn.Linear(feature_size, 1)
+            classification_tasks = sorted(
+                key.removeprefix("classification:")
+                for key in label_sizes
+                if key.startswith("classification:")
             )
-            self.quality_head = nn.Linear(64, 1)
+            if set(classification_tasks) == set(DEFAULT_CLASSIFICATION_TASKS):
+                classification_tasks = list(DEFAULT_CLASSIFICATION_TASKS)
+            self.classification_tasks = tuple(classification_tasks)
             self.classification_heads = nn.ModuleDict(
                 {
-                    task: nn.Linear(64, max(1, label_sizes.get(f"classification:{task}", 1)))
-                    for task in ("space", "trade", "component")
+                    task: nn.Linear(
+                        feature_size,
+                        max(1, label_sizes.get(f"classification:{task}", 1)),
+                    )
+                    for task in self.classification_tasks
                 }
             )
-            self.box_head = nn.Linear(64, 4)
+            self.box_head = nn.Linear(feature_size, 4)
             self.detection_head = nn.Linear(
-                64, max(1, label_sizes.get("detection", 1))
+                feature_size, max(1, label_sizes.get("detection", 1))
             )
             self.severity_head = nn.Linear(
-                64, max(1, label_sizes.get("severity", 1))
+                feature_size, max(1, label_sizes.get("severity", 1))
             )
 
         def _features(self, images):
-            return self.backbone(images).flatten(1)
+            values = self.pool(self.backbone(images))
+            values = self.feature_norm(values)
+            return values.flatten(1)
 
         def forward_training(self, images):
             features = self._features(images)
@@ -292,15 +398,16 @@ def build_tiny_vision_model(
             )
             return (
                 values["quality"],
-                torch.softmax(values["classifications"]["space"], dim=1),
-                torch.softmax(values["classifications"]["trade"], dim=1),
-                torch.softmax(values["classifications"]["component"], dim=1),
+                *(
+                    torch.softmax(values["classifications"][task], dim=1)
+                    for task in self.classification_tasks
+                ),
                 boxes,
                 detection_scores,
                 detection_labels,
             )
 
-    return TinyVisionModel()
+    return MultiTaskVisionModel()
 
 
 class TorchTrainingEngine:
@@ -324,7 +431,14 @@ class TorchTrainingEngine:
             for task, vocabulary in data.label_mapping.tasks.items()
         }
         self.label_sizes = label_sizes
-        self.model = build_tiny_vision_model(dependencies, label_sizes).to(device)
+        self.output_names = onnx_output_names(label_sizes)
+        self.class_weights = self._class_weights()
+        self.model = build_tiny_vision_model(
+            dependencies,
+            label_sizes,
+            architecture=spec.model_architecture,
+            pretrained=spec.pretrained,
+        ).to(device)
         self.best_epoch = 0
         self.best_accuracy = -1.0
         self.best_loss = math.inf
@@ -376,6 +490,7 @@ class TorchTrainingEngine:
             "best_validation_accuracy": self.best_accuracy,
             "best_validation_loss": self.best_loss,
             "best_epoch": float(self.best_epoch),
+            **self._classification_metrics(self.loaders["test"]),
         }
 
     def export(self, final_metrics: Mapping[str, float]) -> Mapping[str, Any]:
@@ -429,7 +544,7 @@ class TorchTrainingEngine:
         batches = 0
         context = torch.enable_grad() if training else torch.no_grad()
         with context:
-            for images, targets in loader:
+            for images, paired_images, targets in loader:
                 if images.ndim != 4 or not targets:
                     raise ValueError("invalid training batch")
                 images = images.to(self.device)
@@ -443,9 +558,31 @@ class TorchTrainingEngine:
                         device=self.device,
                     )
                     logits = outputs["classifications"][task]
-                    loss = loss + torch.nn.functional.cross_entropy(logits, target)
+                    loss = loss + torch.nn.functional.cross_entropy(
+                        logits, target, weight=self.class_weights[task]
+                    )
                     correct += int((logits.argmax(1) == target).sum().item())
                     classified += len(targets)
+                if (
+                    paired_images is not None
+                    and self.spec.consistency_weight > 0
+                    and self.spec.tasks.classification
+                ):
+                    paired_outputs = self.model.forward_training(
+                        paired_images.to(self.device)
+                    )
+                    for task in self.spec.tasks.classification_tasks:
+                        primary_probability = torch.softmax(
+                            outputs["classifications"][task], dim=1
+                        )
+                        paired_probability = torch.softmax(
+                            paired_outputs["classifications"][task], dim=1
+                        )
+                        loss = loss + self.spec.consistency_weight * (
+                            torch.nn.functional.mse_loss(
+                                primary_probability, paired_probability
+                            )
+                        )
                 detection_rows = [
                     (index, item.detections[0])
                     for index, item in enumerate(targets)
@@ -492,6 +629,79 @@ class TorchTrainingEngine:
             return 0.0, 0.0
         return total_loss / batches, correct / classified if classified else 0.0
 
+    def _class_weights(self) -> dict[str, Any]:
+        torch = self.dependencies.torch
+        samples = self.data.splits["train"]
+        weights = {}
+        for task in self.spec.tasks.classification_tasks:
+            counts = Counter(item.classifications[task] for item in samples)
+            size = self.label_sizes[f"classification:{task}"]
+            total = sum(counts.values())
+            values = [
+                min(
+                    10.0,
+                    math.sqrt(total / max(size * counts.get(index, 0), 1)),
+                )
+                for index in range(size)
+            ]
+            weights[task] = torch.tensor(
+                values, dtype=torch.float32, device=self.device
+            )
+        return weights
+
+    def _classification_metrics(self, loader: Any) -> dict[str, float]:
+        torch = self.dependencies.torch
+        self.model.eval()
+        actual: dict[str, list[int]] = {
+            task: [] for task in self.spec.tasks.classification_tasks
+        }
+        predicted: dict[str, list[int]] = {
+            task: [] for task in self.spec.tasks.classification_tasks
+        }
+        top3_correct = Counter()
+        with torch.no_grad():
+            for images, _, targets in loader:
+                outputs = self.model.forward_training(images.to(self.device))
+                for task in self.spec.tasks.classification_tasks:
+                    logits = outputs["classifications"][task]
+                    target = torch.tensor(
+                        [item.classifications[task] for item in targets],
+                        device=self.device,
+                    )
+                    guess = logits.argmax(1)
+                    actual[task].extend(target.cpu().tolist())
+                    predicted[task].extend(guess.cpu().tolist())
+                    width = min(3, logits.shape[1])
+                    top = logits.topk(width, dim=1).indices
+                    top3_correct[task] += int(
+                        (top == target.unsqueeze(1)).any(dim=1).sum().item()
+                    )
+        metrics: dict[str, float] = {}
+        for task in self.spec.tasks.classification_tasks:
+            pairs = list(zip(actual[task], predicted[task]))
+            metrics[f"test_{task}_accuracy"] = (
+                sum(a == p for a, p in pairs) / len(pairs) if pairs else 0.0
+            )
+            labels = range(self.label_sizes[f"classification:{task}"])
+            f1_values = []
+            for label in labels:
+                tp = sum(a == label and p == label for a, p in pairs)
+                fp = sum(a != label and p == label for a, p in pairs)
+                fn = sum(a == label and p != label for a, p in pairs)
+                precision = tp / (tp + fp) if tp + fp else 0.0
+                recall = tp / (tp + fn) if tp + fn else 0.0
+                f1_values.append(
+                    2 * precision * recall / (precision + recall)
+                    if precision + recall else 0.0
+                )
+            metrics[f"test_{task}_macro_f1"] = (
+                sum(f1_values) / len(f1_values) if f1_values else 0.0
+            )
+            metrics[f"test_{task}_top3_accuracy"] = (
+                top3_correct[task] / len(pairs) if pairs else 0.0
+            )
+        return metrics
+
     def _checkpoint(
         self, epoch: int, metrics: Mapping[str, float]
     ) -> Mapping[str, Any]:
@@ -501,7 +711,8 @@ class TorchTrainingEngine:
             "label_sizes": self.label_sizes,
             "training_spec": self.spec.to_dict(),
             "metrics": dict(metrics),
-            "output_names": list(ONNX_OUTPUT_NAMES),
+            "output_names": list(self.output_names),
+            "model_architecture": self.spec.model_architecture,
         }
 
 
@@ -600,7 +811,7 @@ def export_pytorch_checkpoint(
     input_shape: tuple[int, ...] = (1, 3, 224, 224),
     dependencies: PyTorchDependencies | None = None,
     checkpoint_loader: Callable[[Path], Mapping[str, Any]] | None = None,
-    model_builder: Callable[[PyTorchDependencies, Mapping[str, int]], Any] = (
+    model_builder: Callable[..., Any] = (
         build_tiny_vision_model
     ),
     exporter: Callable[..., None] | None = None,
@@ -618,9 +829,28 @@ def export_pytorch_checkpoint(
     for key in ("model_state", "label_sizes", "output_names"):
         if key not in value:
             raise ValueError(f"checkpoint is missing {key!r}")
-    if tuple(value["output_names"]) != ONNX_OUTPUT_NAMES:
+    output_names = (
+        onnx_output_names(value["label_sizes"])
+        if any(
+            key.startswith("classification:") for key in value["label_sizes"]
+        )
+        else tuple(value["output_names"])
+    )
+    if tuple(value["output_names"]) != output_names:
         raise ValueError("checkpoint output names do not match ONNX contract")
-    model = model_builder(deps, value["label_sizes"])
+    architecture = value.get(
+        "model_architecture",
+        value.get("training_spec", {}).get("model_architecture", "tiny_cnn"),
+    )
+    if model_builder is build_tiny_vision_model:
+        model = model_builder(
+            deps,
+            value["label_sizes"],
+            architecture=architecture,
+            pretrained=False,
+        )
+    else:
+        model = model_builder(deps, value["label_sizes"])
     model.load_state_dict(value["model_state"])
     model.eval()
     dummy = deps.torch.zeros(input_shape, dtype=deps.torch.float32)
@@ -628,7 +858,7 @@ def export_pytorch_checkpoint(
     dynamic_axes = (
         {
             "images": {0: "batch"},
-            **{name: {0: "batch"} for name in ONNX_OUTPUT_NAMES},
+            **{name: {0: "batch"} for name in output_names},
         }
         if dynamic_batch
         else None
@@ -636,7 +866,7 @@ def export_pytorch_checkpoint(
     export = exporter or deps.torch.onnx.export
     export_options: dict[str, Any] = {
         "input_names": ["images"],
-        "output_names": list(ONNX_OUTPUT_NAMES),
+        "output_names": list(output_names),
         "dynamic_axes": dynamic_axes,
         "opset_version": opset,
     }
@@ -657,8 +887,9 @@ def export_pytorch_checkpoint(
         "dynamic_batch": dynamic_batch,
         "input_name": "images",
         "input_shape": list(input_shape),
-        "output_names": list(ONNX_OUTPUT_NAMES),
+        "output_names": list(output_names),
         "source_checkpoint": checkpoint.name,
+        "model_architecture": architecture,
     }
 
 
