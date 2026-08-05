@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -160,16 +161,17 @@ fun PinTagSheet(
     val detailOptions = suggestedDetailOptions.take(5).ifEmpty { detailOptionsFor(currentSurface).take(5) }
     // Keep the location and camera-angle surface visible as one compact title.
     // Example: "거실/벽". The recommended detail itself is the field value.
-    val suggestedRoom = hierarchySuggestion.substringBefore(".").trim().ifBlank { "위치" }
-    val detailMenuTitle = "$suggestedRoom/${surfaceBandLabel.ifBlank { surfaceLabel(currentSurface) }}"
+    val suggestedRoom = hierarchySuggestion.substringBefore(".").trim().ifBlank { "\uc704\uce58" }
+    val detailMenuTitle = "$suggestedRoom -> ${surfaceBandLabel.ifBlank { surfaceLabel(currentSurface) }.replace("/", "-")} ->"
     // The operator starts with an editable, complete hierarchy proposal rather
     // than an empty opinion box. Distance/direction notes are excluded here.
     val suggestedDetail = detailOptions.firstOrNull().orEmpty()
     val suggestedTrade = suggestedTradeLabel.ifBlank { defaultTradeForDetail(suggestedDetail) }
     val suggestedCause = "\uc2dc\uacf5 \ubd88\ub7c9"
-    // Classification stays in the card header; seed the editable field with a
-    // short natural-language opinion instead of repeating all five labels.
-    val suggestedOpinionSeed = "\uc704\uce58:$suggestedRoom  \uc7a5\uc18c:${surfaceBandLabel.ifBlank { surfaceLabel(currentSurface) }}  \uc138\ubd80\ubd80\uc704:$suggestedDetail  \uacf5\uc885:$suggestedTrade  \uc6d0\uc778:$suggestedCause"
+    // The first two lines carry the suggested five-level classification. The
+    // operator starts typing on the third line, without a second prompt card.
+    val suggestedOpinionSeed = "\uc704\uce58: $suggestedRoom  \uc7a5\uc18c: ${surfaceBandLabel.ifBlank { surfaceLabel(currentSurface) }}\n" +
+        "\uc138\ubd80\ubd80\uc704: $suggestedDetail  \uacf5\uc885: $suggestedTrade  \uc6d0\uc778: $suggestedCause\n"
     var residentOpinion by rememberSaveable {
         mutableStateOf(initial?.residentOpinion?.takeIf { it.isNotBlank() } ?: suggestedOpinionSeed)
     }
@@ -437,6 +439,8 @@ fun PinTagSheet(
                 aiAnalysisMessage = "AI API 연결 실패 또는 분석 결과가 없습니다. 의견 입력은 계속할 수 있습니다."
             } else {
                 aiOpinionApplied = true
+                finalPath = "AI 분류: $result"
+                finalPathEdited = false
                 finalReady = true
             }
         }.onFailure { error ->
@@ -529,6 +533,14 @@ fun PinTagSheet(
                     else -> "GAUGE_SELECTED"
                 }
             )
+        )
+    }
+
+    expandedImageIndex?.let { index ->
+        PhotoCarouselDialog(
+            items = reviewPhotos,
+            initialIndex = index,
+            onDismiss = { expandedImageIndex = null }
         )
     }
 
@@ -633,7 +645,7 @@ fun PinTagSheet(
                                 shape = RoundedCornerShape(7.dp),
                                 modifier = Modifier
                                     .size(width = 54.dp, height = 52.dp)
-                                    .clickable { expandedImageIndex = 2 }
+                                    .clickable { memoPhotoLauncher.launch(null) }
                             ) {
                                 Column(
                                     modifier = Modifier.fillMaxWidth(),
@@ -641,7 +653,7 @@ fun PinTagSheet(
                                     verticalArrangement = Arrangement.Center
                                 ) {
                                     Icon(
-                                        Icons.Filled.Description,
+                                        Icons.Filled.PhotoCamera,
                                         contentDescription = "Memo placeholder",
                                         tint = Color(0xFF546E7A),
                                         modifier = Modifier.size(21.dp)
@@ -725,64 +737,28 @@ fun PinTagSheet(
                         )
                     }
                 }
-                Button(
-                    onClick = { submitOpinion(true) },
-                    enabled = residentOpinion.isNotBlank(),
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(42.dp)
-                        .bringIntoViewRequester(opinionCompleteBringIntoView),
-                    colors = ButtonDefaults.buttonColors(containerColor = Success)
-                ) { Text("\uc758\uacac\uc785\ub825 \uc644\ub8cc \ubc0f \uc800\uc7a5", fontWeight = FontWeight.Bold) }
-                Surface(
-                    color = Color(0xFFF5F7FA),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+                        .bringIntoViewRequester(opinionCompleteBringIntoView)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (memoPhotoPath.isNotBlank()) {
-                            coil.compose.AsyncImage(
-                                model = memoPhotoPath,
-                                contentDescription = "스티커 또는 메모 사진",
-                                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .background(Color.LightGray, RoundedCornerShape(8.dp))
-                                    .clickable { expandedImageIndex = reviewPhotos.indexOfFirst { it.filePath == memoPhotoPath }.takeIf { it >= 0 } }
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "하자 메모 사진",
-                                color = PrimaryDark,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
-                            )
-                        }
-                        Button(
-                            onClick = { memoPhotoLauncher.launch(null) },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1565C0))
-                        ) {
-                            Text(if (memoPhotoPath.isBlank()) "촬영" else "재촬영")
-                        }
-                        if (memoPhotoPath.isNotBlank()) {
-                            TextButton(onClick = { memoPhotoPath = "" }) {
-                                Text("삭제", color = Color(0xFFC62828))
-                            }
-                        }
-                    }
+                    Button(
+                        onClick = { submitOpinion(true) },
+                        enabled = residentOpinion.isNotBlank(),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Success)
+                    ) { Text("\uc810\uac80\uc790 \uc785\ub825\uc644\ub8cc", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    Button(
+                        onClick = ::adoptAiOpinion,
+                        modifier = Modifier
+                            .weight(0.78f)
+                            .height(42.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                    ) { Text("AI \ucd94\ub860\n\u2193", fontWeight = FontWeight.Bold, fontSize = 11.sp) }
                 }
-                Text(
-                    "\uc544\ub798\uc5d0 AI \uc758\uacac\uacfc \uc138\ubd80 \ud558\uc790 \ucd94\ucc9c \ub780\uc774 \uc788\uc2b5\ub2c8\ub2e4.",
-                    color = Color(0xFF1565C0),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)
-                )
                 if (precisionMeasurement) {
                     Surface(color = Color(0xFFFFF3E0), shape = RoundedCornerShape(10.dp)) {
                         Column(Modifier.fillMaxWidth().padding(9.dp)) {
@@ -811,32 +787,10 @@ fun PinTagSheet(
                         Text("2", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp,
                             modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp))
                     }
-                    Text("  2. AI\ucd94\ucc9c \ubd84\uc11d", color = PrimaryDark, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Button(onClick = ::adoptAiOpinion) { Text("AI \uc758\uacac") }
+                    Text("  2. AI 추론", color = PrimaryDark, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(3.dp))
-                Surface(
-                    color = Color(0xFFF3E5F5),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 76.dp)
-                ) {
-                    val recommendation = if (aiOpinionApplied) {
-                        mergeRecommendations(aiTextResult?.pathText.orEmpty(), photoAiPath)
-                    } else ""
-                    if (recommendation.isNotBlank()) {
-                        Text(
-                            recommendation.take(600), color = Purple, fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold, maxLines = 5,
-                            modifier = Modifier.fillMaxWidth().padding(8.dp)
-                        )
-                    } else if (aiAnalysisMessage != null) {
-                        Text(
-                            aiAnalysisMessage!!, color = Color(0xFFB3261E), fontSize = 11.sp,
-                            maxLines = 5, modifier = Modifier.fillMaxWidth().padding(8.dp)
-                        )
-                    }
-                }
-                Text("\uc138\ubd80 \ud558\uc790 \ucd94\ucc9c", color = PrimaryDark, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(top = 5.dp))
+                Text("\uc138\ubd80\ubd80\uc704AI", color = PrimaryDark, fontWeight = FontWeight.Bold, fontSize = 13.sp, modifier = Modifier.padding(top = 5.dp))
                 ExposedDropdownMenuBox(
                     expanded = detailMenuExpanded,
                     onExpandedChange = { detailMenuExpanded = !detailMenuExpanded }
@@ -865,41 +819,52 @@ fun PinTagSheet(
                     }
                 }
                 Spacer(Modifier.height(5.dp))
+                OutlinedTextField(
+                    value = finalPath,
+                    onValueChange = { finalPath = it; finalPathEdited = true }, visualTransformation = hierarchyLabelVisualTransformation,
+                    placeholder = { Text("AI 추론 결과 및 점검자 추가 의견", fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 4,
+                    maxLines = Int.MAX_VALUE,
+                    label = { Text("AI 추론", fontSize = 13.sp, fontWeight = FontWeight.Bold) }
+                )
                 Surface(
-                    color = if (finalReady) Color(0xFFFFF3CD) else Color.Transparent,
+                    color = Color(0xFFFFFCFB),
                     shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
                 ) {
-                    OutlinedTextField(
-                        value = finalPath,
-                        onValueChange = { finalPath = it; finalPathEdited = true },
-                        placeholder = { Text("AI \uc758\uacac \ubc0f \ucd94\uac00 \uc758\uacac \uc785\ub825", fontSize = 12.sp) },
-                        modifier = Modifier.fillMaxWidth().padding(if (finalReady) 4.dp else 0.dp),
-                        minLines = 4,
-                        maxLines = Int.MAX_VALUE,
-                        label = { Text("AI \uc758\uacac", fontSize = 13.sp, fontWeight = FontWeight.Bold) }
-                    )
+                    Column(Modifier.padding(9.dp)) {
+                        Text("최종 의견", color = PrimaryDark, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        Text("\uc810\uac80\uc790 \uc758\uacac", color = Color(0xFFC62828), fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 4.dp))
+                        Text(residentOpinion.ifBlank { "\uc810\uac80\uc790 \uc758\uacac \uc5c6\uc74c" }, color = PrimaryDark, fontSize = 11.sp, maxLines = 4)
+                        Spacer(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFD1C4E9)).padding(top = 6.dp))
+                        Text("AI 의견", color = Purple, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 6.dp))
+                        Text(finalPath.ifBlank { "AI 추론 버튼을 누르면 사진 기반 분류 결과가 표시됩니다." }, color = Purple, fontSize = 11.sp, maxLines = 5)
+                    }
                 }
                 Spacer(Modifier.height(7.dp))
                 Button(
                     onClick = { submitOpinion(true) },
                     modifier = Modifier.fillMaxWidth().height(44.dp),
                     enabled = residentOpinion.isNotBlank() || finalPath.isNotBlank()
-                ) { Text("확정 및 저장") }
+                ) { Text("\uc810\uac80\uc790 \uc785\ub825\uc644\ub8cc", fontWeight = FontWeight.Bold) }
                 Spacer(Modifier.height(10.dp))
             }
         }
     }
 }
+private val hierarchyLabelPattern = Regex("(?:^|\\s)(\\uc704\\uce58|\\uc7a5\\uc18c|\\uc138\\ubd80\\ubd80\\uc704|\\uacf5\\uc885|\\uc6d0\\uc778):")
+
 private val hierarchyLabelVisualTransformation = VisualTransformation { text ->
     val builder = AnnotatedString.Builder(text)
-    var start = 0
-    repeat(5) {
-        val colon = text.text.indexOf(':', start)
-        if (colon >= start) {
-            builder.addStyle(SpanStyle(color = Color(0xFFC62828), fontWeight = FontWeight.Bold), start, colon + 1)
-            start = colon + 1
-        }
+    hierarchyLabelPattern.findAll(text.text).forEach { match ->
+        val labelRange = match.groups[1]?.range ?: return@forEach
+        // Apply red only to the field name and its colon, never to its value.
+        builder.addStyle(
+            SpanStyle(color = Color(0xFFC62828), fontWeight = FontWeight.Bold),
+            labelRange.first,
+            labelRange.last + 2
+        )
     }
     TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
 }
