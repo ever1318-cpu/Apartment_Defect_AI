@@ -1,0 +1,17 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI하자점검 세대단위 점검 흐름 구현보고서 v1.7</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#172033;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65}.wrap{max-width:1050px;margin:auto;padding:28px 22px 60px}header{padding:30px;border-radius:18px;color:#fff;background:linear-gradient(135deg,#10264a,#e65100)}h1{margin:0 0 8px;font-size:28px}h2{margin:30px 0 10px;font-size:21px}.sub{margin:0;color:#ffe8d8}.pill{display:inline-block;margin:14px 6px 0 0;padding:4px 9px;border:1px solid #ffffff55;border-radius:20px;font-size:12px}.panel{margin-top:14px;padding:20px;border:1px solid #d2d9e2;border-radius:14px;background:#fff}.flow{padding:15px;border-left:5px solid #e65100;background:#fff3e8;border-radius:8px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid #b4becb;text-align:left;vertical-align:top}th{background:#e9edf2}.ok{color:#067647;font-weight:700}code{color:#a23b00}ul{padding-left:22px}footer{margin-top:28px;text-align:center;color:#6b7481;font-size:12px}@media(max-width:700px){.wrap{padding:12px 9px 36px}header{padding:22px 17px}h1{font-size:23px}.panel{overflow-x:auto;padding:13px}table{min-width:680px}}</style></head>
+<body><div class="wrap"><header><h1>세대단위 앵커촬영·라이브점검·최종마감 구현</h1><p class="sub">동·호수 선택부터 최초 위치 앵커, 하자 반복 촬영, 집계·누적핀 확인 및 세대 마감까지</p><span class="pill">Android v1.7</span><span class="pill">2026-07-24</span><span class="pill">Galaxy S25 Ultra 검증</span></header>
+<h2>1. 업무 흐름</h2><div class="panel"><div class="flow">동·호수 선택 → 최근값 저장 → 최초 공간 선택 → 앵커 사진 촬영 → 홈 → LIVE DETECTION 하자 반복 입력 → 전체 목록·집계·누적핀 확인 → 세대 점검 최종 마감 → 다음 호수</div></div>
+<h2>2. 구현 사항</h2><div class="panel"><table><thead><tr><th>영역</th><th>적용 내용</th><th>상태</th></tr></thead><tbody>
+<tr><td>인트로 입력</td><td>점검 ID 자유입력을 동 번호·호수 선택으로 분리하고 세대소유주는 ‘점검매니저’로 고정 표시</td><td class="ok">완료</td></tr>
+<tr><td>최근 세대값</td><td><code>last_household</code> 환경에 마지막 동·호수를 저장해 다음 호수 점검 시 초기값으로 복원</td><td class="ok">완료</td></tr>
+<tr><td>공간 선택</td><td>거실·안방·주방 등 공간 칩을 화면 폭 안에서 정확히 두 줄로 배치</td><td class="ok">완료</td></tr>
+<tr><td>앵커 확정</td><td>공간 좌표 선택 후 반드시 ‘최초 위치 앵커 촬영’을 수행하며, 앵커 사진 저장 전에는 일반 촬영을 활성화하지 않음</td><td class="ok">완료</td></tr>
+<tr><td>후속 하자 입력</td><td>앵커 완료 후 홈의 새 하자 입력은 모두 <code>LIVE DETECTION · 하자 촬영</code>으로 이동</td><td class="ok">완료</td></tr>
+<tr><td>상세 버튼</td><td>‘수정 / 추가 촬영 / 삭제’의 간격·가중치·내부 여백을 조정해 문구 잘림 제거</td><td class="ok">완료</td></tr>
+<tr><td>마감 보고</td><td>기존 전체 목록, 심각도·공종·공간 집계에 최종 평면도와 누적 하자 핀을 추가</td><td class="ok">완료</td></tr>
+<tr><td>최종 마감</td><td>전체·미확인·완료 건수를 확인하는 다이얼로그 후 <code>Session.done=true</code>로 저장하고 다음 세대 인트로로 이동</td><td class="ok">완료</td></tr>
+</tbody></table></div>
+<h2>3. 안전장치</h2><div class="panel"><ul><li>공간 목록이 로딩 전 비어 있어도 두 줄 분할 크기를 최소 1로 보정하여 충돌하지 않는다.</li><li>평면도 좌표 선택만으로 앵커 완료 처리하지 않고 실제 앵커 사진 존재 여부를 함께 검사한다.</li><li>최종 마감 전 전체 하자 목록과 평면도 누적 핀을 동시에 확인한다.</li><li>동·호수 입력은 숫자만 저장하며 화면 폭 때문에 마지막 숫자가 가려지지 않도록 두 칸으로 분리했다.</li></ul></div>
+<h2>4. 검증 결과</h2><div class="panel"><ul><li class="ok">Android 단위 테스트 성공</li><li class="ok">Debug APK 빌드 성공</li><li class="ok">Galaxy S25 Ultra 업데이트 설치 성공</li><li class="ok">실기기에서 동 101·호수 1501·점검매니저 전체 표시 확인</li><li class="ok">MainActivity 프로세스 유지 및 치명적 오류 0건</li></ul></div>
+<footer>AI하자점검 개발가이드 · 세대단위 점검 흐름 구현보고서 v1.7</footer></div></body></html>

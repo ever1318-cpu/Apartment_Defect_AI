@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 UI·UX 최적화 구현보고서 v4.5</title>
+<style>
+:root{--navy:#173b70;--blue:#28558a;--bg:#f4f7fb;--line:#d7e1ee;--ink:#182334;--sub:#627087;--good:#087a55;--warn:#a44e00}*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}.wrap{width:min(1080px,calc(100% - 28px));margin:auto}
+header{padding:45px 0 34px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff}h1{margin:5px 0;font-size:clamp(28px,5vw,45px)}
+main{padding:26px 0 60px}section{margin-bottom:18px;padding:21px;background:#fff;border:1px solid var(--line);border-radius:17px}h2{margin:0 0 9px}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f7f9fc}.good{color:var(--good);font-weight:800}.warn{color:var(--warn);font-weight:800}code{color:#174ea6}
+</style></head><body>
+<header><div class="wrap"><small>Apartment Defect AI · Android implementation</small><h1>UI·UX 최적화 구현보고서 v4.5</h1><p>실기기 화면 기반 최적화 제안의 타당성을 코드와 대조하고 안전하게 적용한 결과</p></div></header>
+<main class="wrap">
+<section><h2>1. 결론</h2><p class="good">DEMO 상태 비가시성, AI 신뢰도 대상 불명확, 추천 경로 표기 불일치, 목록 칩 줄바꿈, 홈 CTA 우선순위 지적은 실제 코드에서도 확인되어 구현했다.</p><p class="warn">의견 화면 전체 아코디언화는 STT·입력 상태 보존을 포함한 별도 상태 설계가 필요해 이번 변경에서는 보류했다.</p></section>
+<section><h2>2. 적용 내역</h2><table><tr><th>항목</th><th>구현 결과</th></tr>
+<tr><td>DEMO 로그인</td><td>인증 실패 시 자동 진입하지 않고 오류와 재입력을 우선 제공, 명시적 ‘DEMO로 계속’ 버튼 추가</td></tr>
+<tr><td>DEMO 지속 표시</td><td>인트로 외 모든 화면 상단에 <strong>DEMO 모드 · 서버 저장 안 됨</strong> 경고 배지 고정</td></tr>
+<tr><td>DEMO 마감 차단</td><td>보고서의 세대 마감 버튼 비활성화 및 다시 로그인 안내</td></tr>
+<tr><td>신뢰도 대상</td><td><code>위치 추정 75%</code>, <code>하자유형 추천 55%</code>처럼 숫자의 의미를 명시</td></tr>
+<tr><td>AI 추천 경로</td><td>쉼표 나열을 <code>거실 &gt; 천장 &gt; 마감</code> 계층형으로 통일하고 중복 제거 로직·테스트 갱신</td></tr>
+<tr><td>홈 CTA</td><td>‘새 하자 입력’을 먼저 배치하고 마감은 보조색·후순위로 이동</td></tr>
+<tr><td>목록 필터·정렬</td><td>가로 스크롤을 적용해 ‘최신순’ 등 문구가 세로로 쪼개지지 않도록 개선</td></tr>
+</table></section>
+<section><h2>3. 검증</h2><ul><li><code>:app:assembleDebug</code> — 성공</li><li><code>:app:testDebugUnitTest</code> — 20개 전체 성공</li><li>APK: <code>D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</code></li><li>생성: 2026-07-25 17:18:38</li></ul></section>
+<section><h2>4. 후속 검수</h2><ol><li>S25 Ultra에서 DEMO 배지와 마감 차단 확인</li><li>위치·텍스트 AI·이미지 AI 신뢰도 라벨의 한 줄 표시 확인</li><li>의견/STT 화면 아코디언은 입력 상태 보존 테스트를 먼저 추가한 뒤 별도 구현</li><li>새 캡처로 카드 클리핑과 목록 빈 여백 재판정</li></ol></section>
+</main></body></html>

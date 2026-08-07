@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI하자점검 전체 UI·UX 실기화면 검토서 v3.3</title>
+  <style>
+    :root{--bg:#f3f6fa;--card:#fff;--ink:#182230;--muted:#64748b;--line:#d8e0eb;--blue:#155eef;--teal:#087f8c;--green:#14804a;--amber:#b54708;--red:#b42318}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}
+    header{padding:58px 0 42px;background:linear-gradient(135deg,#102a56,#155eef);color:#fff}.wrap{width:min(1180px,calc(100% - 32px));margin:auto}
+    h1{margin:6px 0 10px;font-size:clamp(30px,5vw,50px);line-height:1.2}header p{max-width:900px;opacity:.9}.pill{display:inline-block;margin:10px 7px 0 0;padding:5px 10px;border:1px solid #ffffff55;border-radius:99px}
+    main{padding:30px 0 70px}.toc,.card,.shot,.note{background:var(--card);border:1px solid var(--line);border-radius:16px}.toc{padding:16px 20px;margin-bottom:20px}.toc a{display:inline-block;margin:4px 16px 4px 0;color:var(--blue);text-decoration:none}
+    section{margin:28px 0}h2{margin:0 0 7px;font-size:25px}h3{margin:0 0 6px}.lede{margin-top:0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .card,.note{padding:18px}.metric{font-size:27px;font-weight:850;color:var(--blue)}.small{color:var(--muted);font-size:13px}.good{color:var(--green)}.warn{color:var(--amber)}.bad{color:var(--red)}
+    .shots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.shot{padding:14px}.phone{display:block;width:min(100%,390px);max-height:760px;object-fit:contain;object-position:top;margin:auto;border-radius:18px;background:#eef2f6;box-shadow:0 8px 25px #0f172a18}.caption{padding:13px 4px 2px}.caption b{display:block}
+    table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}th,td{padding:11px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#edf3ff;color:#23406c}.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:800}.done{background:#dcfce7;color:#166534}.review{background:#fff4d6;color:#8a4b00}.pending{background:#fee4e2;color:#b42318}
+    .flow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}.flow div{padding:11px 7px;text-align:center;border:1px solid var(--line);border-radius:11px;background:#fff;font-size:13px}.flow strong{display:block;color:var(--blue)}
+    ul{margin:8px 0;padding-left:20px}.priority{border-left:5px solid var(--blue)}.priority.p0{border-color:var(--red)}.priority.p1{border-color:var(--amber)}.priority.p2{border-color:var(--teal)}
+    code{overflow-wrap:anywhere}@media(max-width:850px){.cards,.grid,.shots{grid-template-columns:1fr}.flow{grid-template-columns:1fr 1fr}.phone{max-height:none}}
+  </style>
+</head>
+<body>
+<header><div class="wrap">
+  <small>Apartment Defect AI · Galaxy S25 Ultra 실기 검토</small>
+  <h1>전체 UI·UX 실기화면 검토서</h1>
+  <p>현재 설치된 UI/UX v3.3을 제품 관점에서 별도로 검토한다. 데이터·백엔드·AI 정확도 평가는 제외하고 화면 구조, 정보 위계, 조작 흐름, 현장 사용성만 다룬다.</p>
+  <span class="pill">검토 기준 v3.3</span><span class="pill">2026-07-25</span><span class="pill">SM-S936N</span><span class="pill">실기 캡처 포함</span>
+</div></header>
+<main class="wrap">
+  <nav class="toc"><strong>바로가기</strong>　<a href="#summary">종합평가</a><a href="#shots">실기 화면</a><a href="#flow">전체 흐름</a><a href="#screen-review">화면별 검토</a><a href="#actions">개선 권고</a><a href="#evidence">검토 근거</a></nav>
+
+  <section id="summary">
+    <h2>1. 종합평가</h2>
+    <p class="lede">현장 입력의 핵심 흐름은 명확해졌으며, 인트로의 실데이터 도면과 사진 우선 입력 원칙은 제품 차별점으로 작동한다. 다음 개선의 중심은 세로 밀도와 화면별 강조색 통일이다.</p>
+    <div class="cards">
+      <div class="card"><div class="metric">8/10</div><b>현장 흐름 명확성</b><div class="small">세대 → 앵커 → 사진 → 의견 → 분류 → 저장</div></div>
+      <div class="card"><div class="metric">7/10</div><b>입력 최소화</b><div class="small">DB 도면, 공간 칩, 자동 위치와 AI 추천 활용</div></div>
+      <div class="card"><div class="metric">7/10</div><b>시각적 일관성</b><div class="small">카드·칩은 안정적이나 강조색 종류가 많음</div></div>
+      <div class="card"><div class="metric">6/10</div><b>한 화면 밀도</b><div class="small">인트로와 의견 화면은 추가 압축 여지 존재</div></div>
+    </div>
+  </section>
+
+  <section id="shots">
+    <h2>2. S25 Ultra 실제 구현 화면</h2>
+    <p class="lede">아래 이미지는 에뮬레이터나 설계 목업이 아니라 2026-07-25 설치 APK를 S25 Ultra에서 직접 캡처한 화면이다.</p>
+    <div class="shots">
+      <figure class="shot">
+        <img class="phone" src="assets/uiux-v3.3-review/01-current.png" alt="S25 Ultra 인트로 상단 실제 화면">
+        <figcaption class="caption"><b>2.1 인트로 상단</b>동·호수 복합입력, 아이디 선택, 인접 세대 자동 부르기, 단지·평형 카드가 구현되어 있다.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img class="phone" src="assets/uiux-v3.3-review/02-intro-lower.png" alt="S25 Ultra 단지안내도와 평면도 실제 화면">
+        <figcaption class="caption"><b>2.2 단지안내도·세대 평면도</b>현재 동 표시, 84A-1 실도면, 우측 상단 나침반이 한 흐름 안에서 확인된다.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img class="phone" src="assets/uiux-v3.3-review/05-room-chips.png" alt="S25 Ultra 최초 앵커 공간 선택 실제 화면">
+        <figcaption class="caption"><b>2.3 최초 앵커 공간 선택</b>평면도 아래의 공간 칩이 두 줄로 배치되며, 공간 선택 전 CTA는 비활성 상태로 표시된다.</figcaption>
+      </figure>
+      <figure class="shot">
+        <img class="phone" src="assets/uiux-v3.3-review/06-room-selected.png" alt="S25 Ultra 세대 정보 실제 화면">
+        <figcaption class="caption"><b>2.4 동적 세대 컨텍스트</b>104동 204호와 84A-1이 고정값이 아닌 현재 선택값으로 화면 전체에 반영된다.</figcaption>
+      </figure>
+    </div>
+    <div class="note" style="margin-top:14px">
+      <b>캡처 범위 안내</b>
+      <p>이번 실기 세션에서는 인트로 상·하단, 단지안내도, 평면도, 공간 선택까지 캡처했다. 카메라 화면으로 이동하던 중 USB 연결이 종료되어 카메라·판별확인·위치확인·의견·AI분류는 소스와 직전 S25 실행 검증을 기준으로 검토했다. 문서에는 확보하지 못한 화면을 실제 캡처로 가장하지 않았다.</p>
+    </div>
+  </section>
+
+  <section id="flow">
+    <h2>3. 현재 전체 사용자 흐름</h2>
+    <div class="flow">
+      <div><strong>01</strong>세대 선택</div><div><strong>02</strong>최초 앵커</div><div><strong>03</strong>하자사진</div><div><strong>04</strong>위치 확인</div><div><strong>05</strong>하자의견</div><div><strong>06</strong>AI분류·저장</div><div><strong>07</strong>집계·마감</div>
+    </div>
+    <div class="grid" style="margin-top:15px">
+      <div class="card"><h3 class="good">잘 구현된 점</h3><ul><li>사진 촬영이 하자 입력의 기본 진입점이다.</li><li>세대·평형·공간 컨텍스트가 다음 화면으로 이어진다.</li><li>앵커는 최초 1회만 설정하고 이후 평면도 닻 마커로 대체한다.</li><li>오프라인 로컬 저장과 최종 마감 흐름이 분리돼 있다.</li></ul></div>
+      <div class="card"><h3 class="warn">주의할 점</h3><ul><li>인트로에서 동일 평형 정보가 카드·제목·칩에 반복된다.</li><li>큰 지도와 평면도가 연속되어 첫 화면의 스크롤이 길다.</li><li>주황·보라·초록·청록·빨강 등 강조색이 동시에 경쟁한다.</li><li>실내 GPS는 호수 확정이 아니라 추천 근거로만 사용해야 한다.</li></ul></div>
+    </div>
+  </section>
+
+  <section id="screen-review">
+    <h2>4. 화면별 UI·UX 검토</h2>
+    <table>
+      <thead><tr><th>화면</th><th>현재 구현</th><th>평가</th><th>검토 의견</th></tr></thead>
+      <tbody>
+        <tr><td>인트로·세대 선택</td><td>동·호수 선택/직접입력, 아이디, 인접 세대 추천</td><td><span class="tag done">양호</span></td><td>정보 구조가 명확하다. 자동 부르기 버튼의 주황색 비중은 다소 높다.</td></tr>
+        <tr><td>단지안내도</td><td>현재 동 위치를 붉은 마커로 표시</td><td><span class="tag done">양호</span></td><td>방향 파악에 유효하다. 접기/확대 기능이 있으면 세로 공간을 더 절약할 수 있다.</td></tr>
+        <tr><td>세대 평면도</td><td>84A/B, 나침반, 최초 공간 선택</td><td><span class="tag done">양호</span></td><td>실제 도면 사용이 강점이다. 평형 표기는 한 영역에만 남겨도 의미가 유지된다.</td></tr>
+        <tr><td>앵커 촬영</td><td>최초 1회 단계, 중앙 포커스, 플래시</td><td><span class="tag done">구현</span></td><td>설정 완료 후 메뉴에서 제거하는 v3.3 원칙이 공간 효율에 적합하다.</td></tr>
+        <tr><td>하자사진 촬영</td><td>LIVE DETECTION, 셔터음, 재촬영, 플래시</td><td><span class="tag done">구현</span></td><td>촬영 버튼과 이미지 판별 결과 사이의 상태 전환을 햅틱과 짧은 문구로 함께 알려주는 것이 좋다.</td></tr>
+        <tr><td>판별확인</td><td>확대 이미지, 사진앵커 방향·거리, 재촬영</td><td><span class="tag done">구현</span></td><td>큰 나침반 제거는 적절하다. 저신뢰 상태에서는 재촬영 이유를 1문장으로 제한해야 한다.</td></tr>
+        <tr><td>위치확인·저장</td><td>자동 핀, 위치 수정 확인창, 닻 마커, 나침반</td><td><span class="tag done">구현</span></td><td>자동 위치를 보호하고 확인 후 수정하는 방식은 현장 오조작 방지에 유효하다.</td></tr>
+        <tr><td>하자의견</td><td>RAW 의견, 실시간 STT, AI 양방향 반영</td><td><span class="tag review">추가 실기검토</span></td><td>기능은 충실하지만 카드 수가 많다. 핵심 입력과 추천을 2단 구조로 더 압축할 여지가 있다.</td></tr>
+        <tr><td>AI분류</td><td>위치 → 하자부위 → 상세 → 공종 후보</td><td><span class="tag review">추가 실기검토</span></td><td>후보 확률보다 ‘왜 이 후보인가’를 짧게 제공하고 최종 사람 확정을 강조해야 한다.</td></tr>
+        <tr><td>접수현황·마감</td><td>하자 목록, 집계, 닻·핀 평면도, 세대 마감</td><td><span class="tag done">구현</span></td><td>앵커 배너 제거와 평면도 닻 대체가 적절하다. 미완료 하자만 빠르게 필터링할 수 있어야 한다.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="actions">
+    <h2>5. 개선 권고 우선순위</h2>
+    <div class="grid">
+      <div class="note priority p0"><h3>P0 · 현장 검증 필수</h3><ul><li>카메라 → 판별 → 위치 → 의견 → 저장 전 과정을 10건 연속 입력해 화면 정지·데이터 잔존 여부 확인</li><li>STT 권한 거절, 통신 단절, 무음, 긴 발화의 오류 복구 확인</li><li>새 호수 진입 시 이전 세대의 핀·집계·의견이 완전히 초기화되는지 확인</li></ul></div>
+      <div class="note priority p1"><h3>P1 · 화면 밀도 개선</h3><ul><li>단지안내도를 기본 축소 카드로 제공하고 필요 시 확대</li><li>인트로 평형 표기를 카드 또는 제목 한 곳으로 축약</li><li>의견 화면에서 RAW/STT 입력을 우선 노출하고 AI 보조 카드는 접을 수 있게 구성</li></ul></div>
+      <div class="note priority p1"><h3>P1 · 색상 체계 정리</h3><ul><li>주요 CTA는 파랑 또는 초록 한 계열로 통일</li><li>주황은 경고·추천 대기, 빨강은 하자 핀·오류에만 사용</li><li>보라 선택 칩은 보조 강조로 명도 대비를 낮춤</li></ul></div>
+      <div class="note priority p2"><h3>P2 · 제품 완성도</h3><ul><li>화면별 빈 상태·로딩·오프라인·동기화 상태 문구 통일</li><li>하자 입력 소요시간과 탭 수를 계측해 실제 UX 개선 효과 확인</li><li>접근성 글자 확대 120%와 야외 고휘도 환경 검증</li></ul></div>
+    </div>
+  </section>
+
+  <section id="evidence">
+    <h2>6. 검토 근거와 판정</h2>
+    <div class="note">
+      <p><strong>실기:</strong> Samsung Galaxy S25 Ultra SM-S936N, 패키지 <code>com.axlife.pinset.debug</code></p>
+      <p><strong>APK:</strong> <code>D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</code></p>
+      <p><strong>검토 원칙:</strong> 실제 캡처와 소스 구현을 구분해 기록했으며, 미캡처 화면에는 캡처 완료로 표시하지 않았다.</p>
+      <p><strong>최종 판정:</strong> <span class="tag done">현장 파일럿 가능</span>　<span class="tag review">전체 흐름 실기 캡처·10건 연속 입력 검증 필요</span></p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

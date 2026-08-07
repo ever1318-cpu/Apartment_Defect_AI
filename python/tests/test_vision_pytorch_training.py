@@ -1,3 +1,4 @@
+import base64
 import json
 import math
 from pathlib import Path
@@ -31,7 +32,12 @@ def _dataset(tmp_path: Path) -> tuple[Path, TrainingSpec]:
         image_id = f"{split}-image"
         image = tmp_path / "images" / f"{image_id}.png"
         image.parent.mkdir(parents=True, exist_ok=True)
-        image.write_bytes(b"\x89PNG\r\n\x1a\nfixture")
+        image.write_bytes(
+            base64.b64decode(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC"
+                "AAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+            )
+        )
         records.append(
             ImageRecord(
                 image_id, str(image.relative_to(tmp_path)), image_id, "defect",

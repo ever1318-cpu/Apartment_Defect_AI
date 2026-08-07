@@ -1,0 +1,410 @@
+openapi: 3.1.0
+info:
+  title: Apartment Defect AI Inspection API
+  version: 2.0.0
+  description: >
+    Contract-first API for PinSet capture, ConvNeXt analysis, assistant
+    clarification, user confirmation, and offline synchronization.
+servers:
+  - url: https://api.example.invalid
+    description: Placeholder only; a deployment URL is not committed.
+security:
+  - oidc: []
+paths:
+  /v2/taxonomies/{version}:
+    get:
+      operationId: getTaxonomy
+      parameters:
+        - in: path
+          name: version
+          required: true
+          schema: {type: string}
+      responses:
+        "200":
+          description: Versioned taxonomy and rule metadata
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Taxonomy"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /v2/media/upload-sessions:
+    post:
+      operationId: createUploadSession
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/UploadSessionRequest"}
+      responses:
+        "201":
+          description: Short-lived signed upload instructions
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UploadSession"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+  /v2/inspections:
+    post:
+      operationId: createInspection
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/InspectionDraft"}
+      responses:
+        "201":
+          description: Inspection draft created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Inspection"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /v2/inspections/{inspectionId}:
+    get:
+      operationId: getInspection
+      parameters:
+        - $ref: "#/components/parameters/InspectionId"
+      responses:
+        "200":
+          description: Current inspection state
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Inspection"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /v2/inspections/{inspectionId}/analysis:
+    post:
+      operationId: startAnalysis
+      parameters:
+        - $ref: "#/components/parameters/InspectionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/AnalysisRequest"}
+      responses:
+        "202":
+          description: Analysis accepted
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Analysis"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /v2/analyses/{analysisId}:
+    get:
+      operationId: getAnalysis
+      parameters:
+        - in: path
+          name: analysisId
+          required: true
+          schema: {type: string, format: uuid}
+      responses:
+        "200":
+          description: Analysis status and candidates
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Analysis"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /v2/assistant/sessions:
+    post:
+      operationId: createAssistantSession
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [inspection_id, analysis_id]
+              properties:
+                inspection_id: {type: string, format: uuid}
+                analysis_id: {type: string, format: uuid}
+      responses:
+        "201":
+          description: Assistant session created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AssistantSession"}
+  /v2/assistant/sessions/{sessionId}/messages:
+    post:
+      operationId: answerAssistant
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: {type: string, format: uuid}
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/AssistantAnswer"}
+      responses:
+        "200":
+          description: Next question or proposal
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AssistantSession"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /v2/inspections/{inspectionId}/confirmation:
+    post:
+      operationId: confirmInspection
+      parameters:
+        - $ref: "#/components/parameters/InspectionId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - in: header
+          name: If-Match
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/Confirmation"}
+      responses:
+        "200":
+          description: User-confirmed classification
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Inspection"}
+        "409": {$ref: "#/components/responses/Conflict"}
+  /v2/sync/batches:
+    post:
+      operationId: synchronizeBatch
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [device_id, operations]
+              properties:
+                device_id: {type: string, maxLength: 128}
+                operations:
+                  type: array
+                  maxItems: 100
+                  items: {$ref: "#/components/schemas/SyncOperation"}
+      responses:
+        "200":
+          description: Per-operation synchronization results
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items: {$ref: "#/components/schemas/SyncResult"}
+components:
+  securitySchemes:
+    oidc:
+      type: openIdConnect
+      openIdConnectUrl: https://identity.example.invalid/.well-known/openid-configuration
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema: {type: string, minLength: 16, maxLength: 128}
+    InspectionId:
+      in: path
+      name: inspectionId
+      required: true
+      schema: {type: string, format: uuid}
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Conflict:
+      description: Revision or state conflict
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+  schemas:
+    Error:
+      type: object
+      required: [code, message, trace_id, retryable]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        trace_id: {type: string}
+        retryable: {type: boolean}
+    Taxonomy:
+      type: object
+      required: [version, status, axes]
+      properties:
+        version: {type: string}
+        status: {type: string, enum: [draft, frozen, deprecated]}
+        axes: {type: object, additionalProperties: true}
+        rule_version: {type: string}
+    UploadSessionRequest:
+      type: object
+      required: [client_uuid, files]
+      properties:
+        client_uuid: {type: string, format: uuid}
+        files:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            type: object
+            required: [slot, mime_type, size_bytes, sha256]
+            properties:
+              slot: {type: string, enum: [wide, close, extra]}
+              mime_type: {type: string, enum: [image/jpeg, image/png, image/webp]}
+              size_bytes: {type: integer, minimum: 1, maximum: 20971520}
+              sha256: {type: string, pattern: "^[a-f0-9]{64}$"}
+    UploadSession:
+      type: object
+      required: [id, expires_at, uploads]
+      properties:
+        id: {type: string, format: uuid}
+        expires_at: {type: string, format: date-time}
+        uploads: {type: array, items: {type: object, additionalProperties: true}}
+    InspectionDraft:
+      type: object
+      required:
+        [client_uuid, taxonomy_version, site, location, capture_pair, raw_opinion]
+      properties:
+        client_uuid: {type: string, format: uuid}
+        taxonomy_version: {type: string, const: 2.0.0}
+        site: {type: object, additionalProperties: true}
+        location: {$ref: "#/components/schemas/LocationContext"}
+        capture_pair: {$ref: "#/components/schemas/CapturePair"}
+        raw_opinion: {type: string, maxLength: 4000}
+        consent:
+          type: object
+          required: [service_use, training_use]
+          properties:
+            service_use: {type: boolean}
+            training_use: {type: boolean}
+    LocationContext:
+      type: object
+      required: [building, unit, area]
+      properties:
+        building: {type: string, maxLength: 100}
+        unit: {type: string, maxLength: 100}
+        area: {type: string, maxLength: 100}
+        room_id: {type: string}
+        wall_direction: {type: string, enum: [N, NE, E, SE, S, SW, W, NW, UNKNOWN]}
+        heading_deg: {type: number, minimum: 0, exclusiveMaximum: 360}
+    CapturePair:
+      type: object
+      required: [wide_media_id, close_media_id]
+      properties:
+        wide_media_id: {type: string, format: uuid}
+        close_media_id: {type: string, format: uuid}
+        anchor_id: {type: string}
+        x_norm: {type: number, minimum: 0, maximum: 1}
+        y_norm: {type: number, minimum: 0, maximum: 1}
+    Inspection:
+      type: object
+      required: [id, client_uuid, state, revision, taxonomy_version]
+      properties:
+        id: {type: string, format: uuid}
+        client_uuid: {type: string, format: uuid}
+        state:
+          type: string
+          enum:
+            [CAPTURED, ANALYSIS_PENDING, IMAGE_ANALYZED, NEEDS_CLARIFICATION,
+             PROPOSED, USER_CONFIRMED, USER_CORRECTED, REVIEW_REQUIRED, SAVED]
+        revision: {type: integer, minimum: 1}
+        taxonomy_version: {type: string}
+        classification: {$ref: "#/components/schemas/Classification"}
+        review_required: {type: boolean}
+    AnalysisRequest:
+      type: object
+      required: [model_name, model_version]
+      properties:
+        model_name: {type: string, const: apartment-defect-convnext}
+        model_version: {type: string, const: 2.0.0}
+        top_k: {type: integer, minimum: 1, maximum: 5, default: 3}
+    Candidate:
+      type: object
+      required: [axis, code, label, confidence]
+      properties:
+        axis: {type: string, enum: [area, part, part_detail, work_kind, cause]}
+        code: {type: string}
+        label: {type: string}
+        confidence: {type: number, minimum: 0, maximum: 1}
+    Analysis:
+      type: object
+      required:
+        [id, status, model_name, model_version, taxonomy_version, candidates]
+      properties:
+        id: {type: string, format: uuid}
+        status: {type: string, enum: [PENDING, RUNNING, COMPLETED, FAILED]}
+        model_name: {type: string}
+        model_version: {type: string}
+        preprocessing_version: {type: string}
+        taxonomy_version: {type: string}
+        image_quality: {type: number, minimum: 0, maximum: 1}
+        contamination_flags:
+          type: array
+          items: {type: string, enum: [arrow, sticker, text, watermark, blur, glare]}
+        candidates: {type: array, items: {$ref: "#/components/schemas/Candidate"}}
+        review_required: {type: boolean}
+    AssistantAnswer:
+      type: object
+      required: [question_id]
+      properties:
+        question_id: {type: string}
+        option_id: {type: string}
+        free_text: {type: string, maxLength: 1000}
+    AssistantSession:
+      type: object
+      required: [id, inspection_id, state, turn_count, max_turns]
+      properties:
+        id: {type: string, format: uuid}
+        inspection_id: {type: string, format: uuid}
+        state: {type: string, enum: [NEEDS_CLARIFICATION, PROPOSED, CLOSED]}
+        turn_count: {type: integer, minimum: 0, maximum: 3}
+        max_turns: {type: integer, const: 3}
+        question: {type: object, additionalProperties: true}
+        proposal: {$ref: "#/components/schemas/Classification"}
+    Classification:
+      type: object
+      properties:
+        area_code: {type: string}
+        part_code: {type: string}
+        part_detail_code: {type: string}
+        symptom_code: {type: string}
+        work_kind_code: {type: string}
+        priority_code: {type: string, enum: [P1, P2, P3, P4]}
+        suspected_cause_code: {type: string}
+        standardized_opinion: {type: string}
+    Confirmation:
+      type: object
+      required: [classification, confirmation_source]
+      properties:
+        classification: {$ref: "#/components/schemas/Classification"}
+        confirmation_source: {type: string, enum: [accepted, corrected, manual]}
+        reason: {type: string, maxLength: 1000}
+    SyncOperation:
+      type: object
+      required: [operation_id, entity_type, entity_id, base_revision, payload]
+      properties:
+        operation_id: {type: string, format: uuid}
+        entity_type: {type: string, enum: [inspection, opinion, confirmation]}
+        entity_id: {type: string, format: uuid}
+        base_revision: {type: integer, minimum: 0}
+        payload: {type: object, additionalProperties: true}
+    SyncResult:
+      type: object
+      required: [operation_id, status]
+      properties:
+        operation_id: {type: string, format: uuid}
+        status: {type: string, enum: [applied, duplicate, conflict, rejected]}
+        server_revision: {type: integer}
+        error: {$ref: "#/components/schemas/Error"}

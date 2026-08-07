@@ -7,6 +7,7 @@ from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Iterable
+from urllib.parse import urlparse
 
 from data_engineering.io import write_json, write_jsonl
 from data_engineering.models import ImageRecord
@@ -74,10 +75,15 @@ def build_training_dataset(
     samples: dict[str, list[TrainingSample]] = {name: [] for name in _SPLITS}
     for record in sorted(record_items, key=lambda item: item.image_id):
         annotation = _select_annotation(annotations_by_id[record.image_id], settings)
-        resolved_image = inspect_image_file(record.image_path, root=root).path
-        portable_image_path = Path(
-            os.path.relpath(resolved_image, output.resolve())
-        ).as_posix()
+        if _is_remote_image_url(record.image_path):
+            # A Colab bundle replaces remote URLs with downloaded local paths.
+            # Do not attempt local file validation on the extraction machine.
+            portable_image_path = record.image_path
+        else:
+            resolved_image = inspect_image_file(record.image_path, root=root).path
+            portable_image_path = Path(
+                os.path.relpath(resolved_image, output.resolve())
+            ).as_posix()
         samples[record.split].append(
             TrainingSample(
                 image_id=record.image_id,
@@ -85,6 +91,11 @@ def build_training_dataset(
                 group_id=record.group_id,
                 split=record.split,
                 annotation=annotation,
+                paired_image_path=(
+                    str(record.metadata["original_image_path"])
+                    if record.metadata.get("original_image_path")
+                    else None
+                ),
             )
         )
 
@@ -154,10 +165,16 @@ def _validate_splits_and_files(records: list[ImageRecord], root: Path) -> None:
         if record.split not in _SPLITS:
             raise ValueError(f"record {record.image_id!r} has no training split")
         split_by_group[record.group_id].add(record.split)
-        inspect_image_file(record.image_path, root=root)
+        if not _is_remote_image_url(record.image_path):
+            inspect_image_file(record.image_path, root=root)
     leaking = sorted(group for group, splits in split_by_group.items() if len(splits) > 1)
     if leaking:
         raise ValueError(f"group leakage across splits: {leaking}")
+
+
+def _is_remote_image_url(value: str) -> bool:
+    """Return whether an image reference is an HTTP(S) URL for Colab download."""
+    return urlparse(value).scheme.lower() in {"http", "https"}
 
 
 def _select_annotation(

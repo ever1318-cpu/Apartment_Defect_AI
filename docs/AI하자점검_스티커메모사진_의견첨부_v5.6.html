@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 스티커·메모 사진 의견 첨부 v5.6</title>
+<style>body{margin:0;background:#f4f7fb;color:#172033;font:15px/1.65 system-ui,"Noto Sans KR",sans-serif}main{width:min(900px,calc(100% - 28px));margin:28px auto}.hero,.card{background:#fff;border:1px solid #dbe4ec;border-radius:18px;padding:24px;margin-bottom:16px}.hero{background:linear-gradient(135deg,#17324d,#27658a);color:#fff}h1{margin:4px 0}h2{color:#17324d}.ok{color:#2e7d32;font-weight:700}code{background:#edf2f7;padding:2px 6px;border-radius:5px}</style>
+</head><body><main>
+<section class="hero"><small>IMPLEMENTATION REPORT · v5.6 · 2026-07-26</small><h1>스티커·메모 사진 의견 첨부</h1><p>하자의견 입력 과정에서 현장 스티커와 수기 메모를 별도 사진으로 남기고 하자 데이터와 함께 저장한다.</p></section>
+<section class="card"><h2>구현 내용</h2><ul>
+<li>하자의견 입력창 바로 아래에 <strong>스티커/메모 사진</strong> 입력 단 추가</li>
+<li><strong>촬영</strong>, 촬영 후 <strong>재촬영·삭제</strong> 제공</li>
+<li>촬영 직후 64px 미리보기와 첨부 상태 표시</li>
+<li>JPEG 품질 92로 앱 내부 <code>files/memo_photos</code>에 저장</li>
+<li>하자 최종 저장 시 기존 하자 이미지와 동일한 <code>defect_photos</code> 묶음에 비주사진으로 첨부</li>
+<li>미촬영 상태에서는 기존 하자 저장 흐름에 영향을 주지 않음</li>
+</ul></section>
+<section class="card"><h2>검증</h2><p class="ok">Android Debug APK 빌드 및 단위 테스트 성공</p><ul><li>단위 테스트 22개 통과</li><li>APK 생성: 2026-07-26 00:14:28</li><li><code>D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</code></li></ul></section>
+</main></body></html>

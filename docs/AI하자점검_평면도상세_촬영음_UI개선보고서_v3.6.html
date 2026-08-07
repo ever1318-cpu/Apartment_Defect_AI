@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 평면도 상세·촬영음 UI 개선보고서 v3.6</title>
+<style>:root{--bg:#f4f7fb;--ink:#172033;--line:#dbe3ef;--blue:#155eef;--green:#087a55}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}.wrap{width:min(920px,calc(100% - 28px));margin:auto}.hero{padding:44px 0 32px;background:linear-gradient(135deg,#173b70,#155eef);color:#fff}h1{margin:4px 0;font-size:clamp(26px,5vw,40px)}main{padding:26px 0 58px}.card{margin:14px 0;padding:20px;background:#fff;border:1px solid var(--line);border-radius:16px}h2{margin:0 0 10px}.ok{color:var(--green);font-weight:800}.flow{padding:14px;border-radius:12px;background:#eef4ff;font-weight:700}table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f8fafc}code{color:#174ea6;overflow-wrap:anywhere}</style>
+</head><body><header class="hero"><div class="wrap"><small>Apartment Defect AI · Android UI 변경 이력</small><h1>평면도 상세보기·촬영음 옵션 개선</h1><p>버전 3.6 · 2026-07-25</p></div></header>
+<main class="wrap">
+<section class="card"><h2>1. 반영 결과</h2><p class="ok">평면도 전체가 상세 화면 안에 들어오도록 초기 배율을 조정하고, 조작 메뉴를 하단 가로 막대로 통합했다. 촬영음은 기본 무음이며 현장에서 토글할 수 있다.</p></section>
+<section class="card"><h2>2. 상세보기</h2><div class="flow">초기 90% 화면 맞춤 → 하단 [화면 맞춤] [－] [배율] [＋] [닫기] → 핀치 줌·이동 병행</div></section>
+<section class="card"><h2>3. 촬영음</h2><table><tr><th>기본값</th><td>무음</td></tr><tr><th>토글</th><td>카메라 하단의 ‘무음/촬영음’ 버튼</td></tr><tr><th>적용</th><td>촬영음 상태일 때만 앱의 셔터 클릭음을 재생</td></tr></table><p>※ 국가·통신사·기기 보안 정책이 강제하는 시스템 카메라음은 앱 설정과 별도로 동작할 수 있다.</p></section>
+<section class="card"><h2>4. 검증</h2><p><code>.\gradlew.bat -p android :app:assembleDebug --no-daemon</code></p><p class="ok">BUILD SUCCESSFUL</p></section>
+</main></body></html>

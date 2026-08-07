@@ -5,12 +5,22 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 from collections import Counter
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 from typing import Sequence
 
 from .etl.legacy_import import deduplicate_records, import_legacy_csv
+from .database import (
+    DatabaseConfig,
+    DatabaseConfigurationError,
+    DatabaseConnectionError,
+    DatabaseQueryError,
+    extract_defect_dataset_rows,
+    inspect_database,
+    test_database_connection,
+)
 from .io import read_jsonl, read_records, write_json, write_jsonl, write_records
 from .models import SplitRatios
 from .splitters.group_stratified import group_stratified_split
@@ -38,6 +48,22 @@ from vision_ai.training import TrainingRunner, load_training_backend
 from vision_ai.training_dataset import build_training_dataset
 from vision_ai.training_models import TrainingSpec, TrainingTasks
 from vision_ai.validators import validate_predictions
+from vision_ai.defect_dataset import defect_rows_to_dataset
+from vision_ai.remote_images import materialize_remote_images, select_training_pilot
+from vision_ai.training_report import write_comparison_report, write_training_report
+from vision_ai.overlay_cleaning import clean_overlay_images
+from vision_ai.colab_workflow import (
+    export_colab_bundle,
+    import_colab_result,
+    prepare_colab_dataset,
+)
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return parsed
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -104,6 +130,51 @@ def _parser() -> argparse.ArgumentParser:
         dest="classification_tasks",
     )
 
+    defect_dataset = commands.add_parser(
+        "vision-build-defect-dataset",
+        help="convert exported defect/image rows into hierarchical AI records",
+    )
+    defect_dataset.add_argument("input", type=Path, help="UTF-8 JSONL defect rows")
+    defect_dataset.add_argument("output", type=Path)
+    defect_dataset.add_argument("--version", required=True)
+
+    materialize = commands.add_parser(
+        "vision-materialize-defect-images",
+        help="download a deterministic training pilot from dataset image URLs",
+    )
+    materialize.add_argument("input", type=Path)
+    materialize.add_argument("output", type=Path)
+    materialize.add_argument("--max-per-split", type=_positive_int, default=100)
+    materialize.add_argument(
+        "--all", action="store_true", help="materialize every complete-label record"
+    )
+    materialize.add_argument("--workers", type=_positive_int, default=8)
+    materialize.add_argument("--seed", type=int, default=42)
+
+    training_report = commands.add_parser(
+        "vision-training-report",
+        help="create a standalone HTML utility report from a training run",
+    )
+    training_report.add_argument("run_directory", type=Path)
+    training_report.add_argument("output", type=Path)
+
+    comparison_report = commands.add_parser(
+        "vision-training-comparison-report",
+        help="compare original and cleaned/consistency training runs",
+    )
+    comparison_report.add_argument("original_run", type=Path)
+    comparison_report.add_argument("cleaned_run", type=Path)
+    comparison_report.add_argument("output", type=Path)
+
+    clean_overlays = commands.add_parser(
+        "vision-clean-overlays",
+        help="create conservative overlay masks and cleaned image variants",
+    )
+    clean_overlays.add_argument("input", type=Path)
+    clean_overlays.add_argument("output", type=Path)
+    clean_overlays.add_argument("--workers", type=_positive_int, default=8)
+    clean_overlays.add_argument("--review-coverage", type=float, default=0.25)
+
     train = commands.add_parser(
         "vision-train", help="execute a framework-neutral training workflow"
     )
@@ -113,6 +184,42 @@ def _parser() -> argparse.ArgumentParser:
     train.add_argument(
         "--device", choices=("auto", "cpu", "cuda"), default="auto"
     )
+    train.add_argument(
+        "--architecture",
+        choices=("tiny_cnn", "convnext_tiny"),
+    )
+    train.add_argument(
+        "--pretrained",
+        action="store_true",
+        help="use ImageNet pretrained weights when supported",
+    )
+    train.add_argument("--consistency-weight", type=float)
+    train.add_argument("--epochs", type=_positive_int)
+    train.add_argument("--batch-size", type=_positive_int)
+    train.add_argument("--learning-rate", type=float)
+
+    colab_export = commands.add_parser(
+        "vision-colab-export",
+        help="create a credential-free URL-backed Colab training bundle",
+    )
+    colab_export.add_argument("source_dataset", type=Path)
+    colab_export.add_argument("training_spec", type=Path)
+    colab_export.add_argument("output", type=Path)
+
+    colab_prepare = commands.add_parser(
+        "vision-colab-prepare",
+        help="materialize a portable Colab bundle before GPU training",
+    )
+    colab_prepare.add_argument("bundle_directory", type=Path)
+    colab_prepare.add_argument("output", type=Path)
+    colab_prepare.add_argument("--workers", type=_positive_int, default=16)
+
+    colab_import = commands.add_parser(
+        "vision-colab-import",
+        help="verify and import a completed Colab training result ZIP",
+    )
+    colab_import.add_argument("archive", type=Path)
+    colab_import.add_argument("output", type=Path)
 
     export = commands.add_parser(
         "vision-export-onnx", help="export a PyTorch checkpoint to ONNX"
@@ -194,6 +301,42 @@ def _parser() -> argparse.ArgumentParser:
     release_check.add_argument("--deployment-profile", default="cpu")
     release_check.add_argument("--output", type=Path, default=Path("release-check"))
     release_check.add_argument("--strict", action="store_true")
+
+    db_test = commands.add_parser(
+        "vision-db-test", help="test a read-only PostgreSQL connection"
+    )
+    db_test.add_argument("--json", action="store_true")
+
+    db_inspect = commands.add_parser(
+        "vision-db-inspect", help="inspect PostgreSQL schemas and relations"
+    )
+    db_inspect.add_argument("--schema")
+    db_inspect.add_argument("--table")
+    db_inspect.add_argument("--json", action="store_true")
+    db_inspect.add_argument(
+        "--output",
+        type=Path,
+        default=Path("workspace/db-inspection/backupdb-schema.json"),
+    )
+    db_inspect.add_argument("--top-candidates", type=_positive_int, default=20)
+    db_inspect.add_argument("--include-views", action="store_true")
+
+    db_dataset = commands.add_parser(
+        "vision-db-build-defect-dataset",
+        help="build a leakage-safe hierarchical dataset from the read-only defect DB",
+    )
+    db_dataset.add_argument(
+        "output",
+        type=Path,
+        nargs="?",
+        default=Path("workspace/datasets/defect-db"),
+    )
+    db_dataset.add_argument("--version", required=True)
+    db_dataset.add_argument("--limit", type=_positive_int)
+    db_dataset.add_argument("--seed", type=int, default=42)
+    db_dataset.add_argument("--train", type=float, default=0.70)
+    db_dataset.add_argument("--validation", type=float, default=0.15)
+    db_dataset.add_argument("--test", type=float, default=0.15)
 
     ingest = commands.add_parser(
         "vision-ingest-images", help="ingest field images into a content-addressed batch"
@@ -383,10 +526,184 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(result.training_spec_path)
         return 0
+    if args.command == "vision-build-defect-dataset":
+        if args.output.exists():
+            raise FileExistsError(f"defect dataset directory already exists: {args.output}")
+        items = defect_rows_to_dataset(
+            read_jsonl(args.input), dataset_version=args.version
+        )
+        args.output.mkdir(parents=True)
+        write_records(args.output / "records.jsonl", (item.record for item in items))
+        write_jsonl(
+            args.output / "annotations.jsonl",
+            (item.annotation.to_dict() for item in items),
+        )
+        write_json(
+            args.output / "dataset_manifest.json",
+            {
+                "dataset_version": args.version,
+                "sample_count": len(items),
+                "group_count": len({item.record.group_id for item in items}),
+                "classification_tasks": [
+                    "area",
+                    "part",
+                    "part_detail",
+                    "work_kind",
+                    "cause",
+                ],
+                "grouping_policy": "defect_id",
+            },
+        )
+        print(args.output / "dataset_manifest.json")
+        return 0
+    if args.command == "vision-materialize-defect-images":
+        records = read_records(args.input / "records.jsonl")
+        annotations = {
+            value["image_id"]: value
+            for value in read_jsonl(args.input / "annotations.jsonl")
+        }
+        complete = [
+            record for record in records
+            if record.image_id in annotations
+            and all(
+                task in annotations[record.image_id].get("classifications", {})
+                for task in ("area", "part", "part_detail", "work_kind", "cause")
+            )
+        ]
+        if args.all:
+            selected = tuple(complete)
+        else:
+            initial = select_training_pilot(
+                complete, max_per_split=args.max_per_split, seed=args.seed
+            )
+            train_ids = {
+                record.image_id for record in initial if record.split == "train"
+            }
+            known_labels: dict[str, set[str]] = {
+                task: {
+                    annotations[image_id]["classifications"][task]
+                    for image_id in train_ids
+                }
+                for task in ("area", "part", "part_detail", "work_kind", "cause")
+            }
+            eligible = [
+                record for record in complete
+                if record.split == "train"
+                or all(
+                    annotations[record.image_id]["classifications"][task]
+                    in known_labels[task]
+                    for task in known_labels
+                )
+            ]
+            selected = select_training_pilot(
+                eligible, max_per_split=args.max_per_split, seed=args.seed
+            )
+        downloaded, failures = materialize_remote_images(
+            selected, args.output, workers=args.workers
+        )
+        successful = {record.image_id for record in downloaded}
+        write_records(args.output / "records.jsonl", downloaded)
+        write_jsonl(
+            args.output / "annotations.jsonl",
+            (annotations[record.image_id] for record in downloaded),
+        )
+        write_jsonl(args.output / "download_failures.jsonl", failures)
+        write_json(
+            args.output / "materialization_manifest.json",
+            {
+                "selected_count": len(selected),
+                "downloaded_count": len(downloaded),
+                "failure_count": len(failures),
+                "max_per_split": args.max_per_split,
+                "all_records": args.all,
+                "random_seed": args.seed,
+                "split_counts": dict(Counter(record.split for record in downloaded)),
+                "source_dataset": str(args.input),
+                "complete_label_filter": True,
+                "validation_labels_known_to_train": True,
+                "successful_annotation_count": len(successful),
+            },
+        )
+        print(args.output / "materialization_manifest.json")
+        return 0
+    if args.command == "vision-training-report":
+        print(write_training_report(args.run_directory, args.output))
+        return 0
+    if args.command == "vision-training-comparison-report":
+        print(
+            write_comparison_report(
+                args.original_run, args.cleaned_run, args.output
+            )
+        )
+        return 0
+    if args.command == "vision-clean-overlays":
+        records = read_records(args.input / "records.jsonl")
+        annotations = {
+            value["image_id"]: value
+            for value in read_jsonl(args.input / "annotations.jsonl")
+        }
+        cleaned, results = clean_overlay_images(
+            records,
+            args.output,
+            workers=args.workers,
+            review_coverage=args.review_coverage,
+        )
+        write_records(args.output / "records.jsonl", cleaned)
+        write_jsonl(
+            args.output / "annotations.jsonl",
+            (annotations[record.image_id] for record in cleaned),
+        )
+        write_jsonl(
+            args.output / "cleaning_results.jsonl",
+            (asdict(result) for result in results),
+        )
+        write_json(
+            args.output / "cleaning_manifest.json",
+            {
+                "input_count": len(records),
+                "cleaned_count": len(cleaned),
+                "error_count": sum(result.status == "error" for result in results),
+                "review_count": sum(result.review_required for result in results),
+                "review_coverage": args.review_coverage,
+                "originals_preserved": True,
+                "method": "conservative_color_mask_blur",
+            },
+        )
+        print(args.output / "cleaning_manifest.json")
+        return 0
     if args.command == "vision-train":
+        if hasattr(sys.stdout, "reconfigure"):
+            sys.stdout.reconfigure(errors="replace")
+        if hasattr(sys.stderr, "reconfigure"):
+            sys.stderr.reconfigure(errors="replace")
         spec = TrainingSpec.from_dict(
             json.loads(args.spec.read_text(encoding="utf-8-sig"))
         )
+        if (
+            args.architecture is not None
+            or args.pretrained
+            or args.consistency_weight is not None
+            or args.epochs is not None
+            or args.batch_size is not None
+            or args.learning_rate is not None
+        ):
+            spec = replace(
+                spec,
+                model_architecture=args.architecture or spec.model_architecture,
+                pretrained=args.pretrained or spec.pretrained,
+                consistency_weight=(
+                    args.consistency_weight
+                    if args.consistency_weight is not None
+                    else spec.consistency_weight
+                ),
+                epochs=args.epochs or spec.epochs,
+                batch_size=args.batch_size or spec.batch_size,
+                learning_rate=(
+                    args.learning_rate
+                    if args.learning_rate is not None
+                    else spec.learning_rate
+                ),
+            )
         backend_options = (
             {"device": args.device}
             if args.backend.strip().lower() == "pytorch"
@@ -403,6 +720,27 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         print(result.manifest_path)
         return 0 if result.status == "completed" else 1
+    if args.command == "vision-colab-export":
+        project_root = Path(__file__).resolve().parents[2]
+        print(
+            export_colab_bundle(
+                args.source_dataset,
+                args.training_spec,
+                args.output,
+                project_root=project_root,
+            )
+        )
+        return 0
+    if args.command == "vision-colab-prepare":
+        print(
+            prepare_colab_dataset(
+                args.bundle_directory, args.output, workers=args.workers
+            )
+        )
+        return 0
+    if args.command == "vision-colab-import":
+        print(import_colab_result(args.archive, args.output))
+        return 0
     if args.command == "vision-package-model":
         manifest = build_model_package(
             args.training_run_directory,
@@ -509,6 +847,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1 if report.status == "fail" or (
             args.strict and report.status == "warning"
         ) else 0
+    if args.command == "vision-db-test":
+        return _run_database_test(args)
+    if args.command == "vision-db-inspect":
+        return _run_database_inspection(args)
+    if args.command == "vision-db-build-defect-dataset":
+        return _run_db_defect_dataset(args)
     if args.command == "vision-ingest-images":
         metadata = (
             json.loads(args.device_metadata.read_text(encoding="utf-8-sig"))
@@ -660,6 +1004,195 @@ def _create_cli_backend(args: argparse.Namespace):
     if args.model_version:
         options["model_version"] = args.model_version
     return create_backend(args.backend, **options)
+
+
+def _database_error(
+    message: str, exit_code: int, *, json_output: bool
+) -> int:
+    if json_output:
+        print(
+            json.dumps(
+                {"status": "error", "error": {"message": message}},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+    else:
+        print(f"Error: {message}")
+    return exit_code
+
+
+def _run_database_test(args: argparse.Namespace) -> int:
+    try:
+        config = DatabaseConfig.from_environment()
+    except DatabaseConfigurationError as exc:
+        return _database_error(str(exc), 2, json_output=args.json)
+    try:
+        result = test_database_connection(config)
+    except DatabaseConnectionError:
+        return _database_error(
+            "Database connection failed. Verify configuration and network access.",
+            3,
+            json_output=args.json,
+        )
+    except DatabaseQueryError:
+        return _database_error(
+            "Database connection query failed.",
+            4,
+            json_output=args.json,
+        )
+    if args.json:
+        print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
+    else:
+        print("Database connection successful")
+        print(f"Host: {result.host}")
+        print(f"Database: {result.database}")
+        print(f"User: {result.user}")
+        print(f"PostgreSQL version: {result.postgres_version}")
+        print(f"SSL mode: {result.sslmode}")
+    return 0
+
+
+def _run_database_inspection(args: argparse.Namespace) -> int:
+    try:
+        config = DatabaseConfig.from_environment()
+    except DatabaseConfigurationError as exc:
+        return _database_error(str(exc), 2, json_output=args.json)
+    try:
+        report = inspect_database(
+            config,
+            schema=args.schema,
+            table=args.table,
+            include_views=args.include_views,
+        )
+    except DatabaseConnectionError:
+        return _database_error(
+            "Database connection failed. Verify configuration and network access.",
+            3,
+            json_output=args.json,
+        )
+    except DatabaseQueryError:
+        return _database_error(
+            "Database catalog inspection failed.",
+            4,
+            json_output=args.json,
+        )
+    value = report.to_dict(top_candidates=args.top_candidates)
+    write_json(args.output, value)
+    summary_path = args.output.with_name("backupdb-summary.txt")
+    summary_path.parent.mkdir(parents=True, exist_ok=True)
+    summary_path.write_text(
+        report.summary_text(top_candidates=args.top_candidates),
+        encoding="utf-8",
+    )
+    if args.json:
+        print(json.dumps(value, ensure_ascii=False, sort_keys=True))
+    else:
+        summary = value["summary"]
+        print("Database inspection successful")
+        print(f"Database: {report.database}")
+        print(f"User: {report.user}")
+        print(f"SSL mode: {report.sslmode}")
+        print()
+        print(f"Schemas: {summary['schema_count']}")
+        print(f"Tables: {summary['table_count']}")
+        print(f"Views: {summary['view_count']}")
+        print()
+        print("Image/label candidates:")
+        candidates = report.candidates[:args.top_candidates]
+        if candidates:
+            for candidate in candidates:
+                print(
+                    f"{candidate.schema}.{candidate.table} "
+                    f"(score={candidate.score}; {', '.join(candidate.categories)})"
+                )
+        else:
+            print("(none)")
+        print()
+        print(f"JSON report: {args.output}")
+        print(f"Text summary: {summary_path}")
+    return 0
+
+
+def _run_db_defect_dataset(args: argparse.Namespace) -> int:
+    try:
+        config = DatabaseConfig.from_environment()
+        ratios = SplitRatios(args.train, args.validation, args.test)
+    except (DatabaseConfigurationError, ValueError) as exc:
+        return _database_error(str(exc), 2, json_output=False)
+    if args.output.exists():
+        return _database_error(
+            f"output directory already exists: {args.output}", 2, json_output=False
+        )
+    try:
+        rows = extract_defect_dataset_rows(config, limit=args.limit)
+    except DatabaseConnectionError:
+        return _database_error(
+            "Database connection failed. Verify configuration and network access.",
+            3,
+            json_output=False,
+        )
+    except DatabaseQueryError:
+        return _database_error(
+            "Read-only defect dataset extraction failed.", 4, json_output=False
+        )
+    try:
+        items = defect_rows_to_dataset(rows, dataset_version=args.version)
+        splits = group_stratified_split(
+            (item.record for item in items), ratios, seed=args.seed
+        )
+        assigned = {
+            record.image_id: record
+            for split in ("train", "validation", "test")
+            for record in splits[split]
+        }
+        annotations = {item.annotation.image_id: item.annotation for item in items}
+        args.output.mkdir(parents=True)
+        write_records(
+            args.output / "records.jsonl",
+            (assigned[item.record.image_id] for item in items),
+        )
+        write_jsonl(
+            args.output / "annotations.jsonl",
+            (annotations[item.record.image_id].to_dict() for item in items),
+        )
+        for split_name in ("train", "validation", "test"):
+            write_records(
+                args.output / f"{split_name}.jsonl", splits[split_name]
+            )
+        label_counts: dict[str, Counter[str]] = {}
+        for item in items:
+            for task, label in item.annotation.classifications.items():
+                label_counts.setdefault(task, Counter())[label] += 1
+        manifest = {
+            "dataset_version": args.version,
+            "source": "public.woohaja_defect_photo_tagged",
+            "read_only": True,
+            "image_bytes_downloaded": False,
+            "sample_count": len(items),
+            "group_count": len({item.record.group_id for item in items}),
+            "split_counts": {name: len(values) for name, values in splits.items()},
+            "split_ratios": ratios.as_dict(),
+            "random_seed": args.seed,
+            "classification_tasks": [
+                "area", "part", "part_detail", "work_kind", "cause"
+            ],
+            "label_distributions": {
+                task: dict(sorted(counts.items()))
+                for task, counts in sorted(label_counts.items())
+            },
+            "grouping_policy": "defect_id",
+        }
+        write_json(args.output / "dataset_manifest.json", manifest)
+    except (OSError, ValueError):
+        return _database_error(
+            "Dataset conversion failed; inspect source labels and output path.",
+            5,
+            json_output=False,
+        )
+    print(json.dumps(manifest, ensure_ascii=False, sort_keys=True))
+    print(args.output / "dataset_manifest.json")
+    return 0
 
 
 if __name__ == "__main__":

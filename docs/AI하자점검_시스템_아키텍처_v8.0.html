@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI 하자점검 시스템 아키텍처 v8.0</title>
+  <style>
+    :root { --ink:#172534; --muted:#566576; --line:#b9c8d4; --blue:#1769aa; --blue2:#eaf4fb; --green:#218554; --green2:#e9f7ef; --orange:#a96009; --orange2:#fff5e5; --gray:#f6f8fa; }
+    *{box-sizing:border-box} body{margin:0;background:#f1f5f8;color:var(--ink);font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;line-height:1.55}
+    main{max-width:1180px;margin:28px auto;padding:0 20px 40px} h1{margin:0;font-size:29px;color:#103e63} h2{font-size:19px;margin:30px 0 12px;color:#103e63}.lead{color:var(--muted);margin:8px 0 20px}.note{background:#fff;border-left:5px solid var(--blue);padding:13px 16px;border-radius:4px}.flow{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:13px;align-items:stretch;margin:16px 0}.box{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;position:relative;box-shadow:0 2px 8px #17324a12}.box:after{content:"→";position:absolute;right:-16px;top:42%;font-size:24px;color:var(--blue);z-index:2}.box:last-child:after{display:none}.box h3{font-size:16px;margin:0 0 7px;color:var(--blue)}.box p{font-size:13px;margin:4px 0;color:var(--muted)}.mobile{border-top:5px solid var(--orange)}.local{border-top:5px solid #7b5cb9}.sync{border-top:5px solid var(--blue)}.api{border-top:5px solid #128a83}.server{border-top:5px solid var(--green)}
+    .diagram{background:#fff;border:1px solid var(--line);border-radius:12px;padding:20px;overflow:auto}.lane{display:grid;grid-template-columns:180px 1fr;gap:16px;align-items:stretch;margin:10px 0}.lane-title{font-weight:700;padding:15px;background:var(--gray);border-radius:8px;display:flex;align-items:center}.lane-body{display:flex;gap:10px;align-items:center;min-width:720px}.node{min-width:150px;flex:1;border:1px solid var(--line);border-radius:8px;padding:11px;background:#fff;font-size:13px}.node strong{display:block;font-size:14px;margin-bottom:4px}.arrow{color:var(--blue);font-size:22px}.offline{background:var(--orange2);border-color:#e9c27f}.online{background:var(--green2);border-color:#9ed1b4}.table{width:100%;border-collapse:collapse;background:#fff;font-size:14px}.table th,.table td{border:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}.table th{background:#eaf4fb;color:#164b75}.tag{display:inline-block;padding:2px 7px;border-radius:12px;font-size:12px;font-weight:700;background:var(--blue2);color:var(--blue)}.ok{background:var(--green2);color:var(--green)}.todo{background:var(--orange2);color:var(--orange)}ul{margin:6px 0;padding-left:20px}@media(max-width:850px){.flow{grid-template-columns:1fr}.box:after{content:"↓";right:48%;top:auto;bottom:-27px}.box{margin-bottom:14px}.lane{grid-template-columns:1fr}.lane-body{min-width:650px}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>AI 하자점검 시스템 아키텍처 v8.0</h1>
+  <p class="lead">기준일: 2026-07-27 · Android 현장 앱, 오프라인 동기화, FastAPI, 로컬 PostgreSQL 및 사진 저장소</p>
+  <div class="note"><b>핵심 원칙:</b> 현장에서는 통신이 끊겨도 사진과 하자정보를 휴대폰에 먼저 저장합니다. 통신이 확인되면 서버로 재전송하며, 모든 전송이 끝난 뒤에만 해당 세대의 서버 세션을 마감합니다.</div>
+
+  <h2>1. 전체 데이터 흐름</h2>
+  <figure style="margin:0 0 20px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;overflow:auto">
+    <svg viewBox="0 0 1120 330" width="100%" role="img" aria-labelledby="diagramTitle diagramDesc" xmlns="http://www.w3.org/2000/svg">
+      <title id="diagramTitle">AI 하자점검 시스템 아키텍처</title>
+      <desc id="diagramDesc">휴대폰 앱의 현장 입력은 로컬 저장소에 저장되고, 동기화 관리자를 거쳐 FastAPI와 PostgreSQL 및 사진 저장소로 전달된다. 서버 마감 결과는 다시 휴대폰으로 돌아온다.</desc>
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#1769aa"/></marker></defs>
+      <rect x="18" y="30" width="180" height="112" rx="12" fill="#fff5e5" stroke="#d39a46" stroke-width="2"/>
+      <text x="108" y="65" text-anchor="middle" font-size="19" font-weight="700" fill="#8d4e04">① 현장 휴대폰</text><text x="108" y="92" text-anchor="middle" font-size="15" fill="#172534">사진 · STT · 하자의견</text><text x="108" y="115" text-anchor="middle" font-size="15" fill="#172534">평면도 핀 · 세대 마감</text>
+      <rect x="250" y="30" width="180" height="112" rx="12" fill="#f3edff" stroke="#8b70c4" stroke-width="2"/>
+      <text x="340" y="65" text-anchor="middle" font-size="19" font-weight="700" fill="#60449a">② 로컬 저장</text><text x="340" y="92" text-anchor="middle" font-size="15" fill="#172534">Room DB · 사진 파일</text><text x="340" y="115" text-anchor="middle" font-size="15" fill="#172534">오프라인 전송 큐</text>
+      <rect x="482" y="30" width="180" height="112" rx="12" fill="#eaf4fb" stroke="#3a84bd" stroke-width="2"/>
+      <text x="572" y="65" text-anchor="middle" font-size="19" font-weight="700" fill="#1769aa">③ 동기화 관리자</text><text x="572" y="92" text-anchor="middle" font-size="15" fill="#172534">대기 · 재시도 · 충돌</text><text x="572" y="115" text-anchor="middle" font-size="15" fill="#172534">미전송 항목 검사</text>
+      <rect x="714" y="30" width="180" height="112" rx="12" fill="#e7f8f6" stroke="#16897f" stroke-width="2"/>
+      <text x="804" y="65" text-anchor="middle" font-size="19" font-weight="700" fill="#116f68">④ FastAPI 서버</text><text x="804" y="92" text-anchor="middle" font-size="15" fill="#172534">세대 조회 · 업로드</text><text x="804" y="115" text-anchor="middle" font-size="15" fill="#172534">세션 집계 · 마감</text>
+      <rect x="946" y="30" width="156" height="112" rx="12" fill="#e9f7ef" stroke="#3a9b65" stroke-width="2"/>
+      <text x="1024" y="65" text-anchor="middle" font-size="19" font-weight="700" fill="#218554">⑤ 서버 저장</text><text x="1024" y="92" text-anchor="middle" font-size="15" fill="#172534">PostgreSQL</text><text x="1024" y="115" text-anchor="middle" font-size="15" fill="#172534">field-media 사진</text>
+      <path d="M198 86H244M430 86H476M662 86H708M894 86H940" stroke="#1769aa" stroke-width="3" marker-end="url(#arrow)"/>
+      <path d="M572 145V203H340V150" fill="none" stroke="#a96009" stroke-width="3" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+      <text x="456" y="194" text-anchor="middle" font-size="15" font-weight="700" fill="#a96009">통신 불량: 계속 로컬에 저장</text>
+      <path d="M804 150V248H108V150" fill="none" stroke="#218554" stroke-width="3" marker-end="url(#arrow)"/>
+      <text x="456" y="278" text-anchor="middle" font-size="15" font-weight="700" fill="#218554">전송 완료 · 서버 세션 마감 → 다음 동·호수 초기 화면</text>
+    </svg>
+    <figcaption style="color:var(--muted);font-size:13px;padding:4px 4px 0">그림 1. 오프라인 우선 현장 하자점검 데이터 흐름</figcaption>
+  </figure>
+  <section class="flow" aria-label="전체 시스템 흐름">
+    <div class="box mobile"><h3>① 점검자 휴대폰</h3><p>PinSet Android 앱</p><p>사진 촬영·STT·하자의견·위치핀·세대 마감</p></div>
+    <div class="box local"><h3>② 휴대폰 로컬 DB</h3><p>Room / 파일 저장소</p><p>세션, 하자, 사진 경로, 전송 큐를 즉시 보관</p></div>
+    <div class="box sync"><h3>③ 오프라인 동기화</h3><p>OfflineSyncManager</p><p>네트워크 복구 시 대기·재시도 항목을 순차 전송</p></div>
+    <div class="box api"><h3>④ 현장 API</h3><p>FastAPI :8001</p><p>세대 조회, 사진 업로드, 하자 동기화, 세션 집계·마감</p></div>
+    <div class="box server"><h3>⑤ 서버 저장</h3><p>PostgreSQL + field-media</p><p>구조화 하자 데이터와 원본 사진 파일을 분리 보관</p></div>
+  </section>
+
+  <h2>2. 현장 입력부터 세대 마감까지</h2>
+  <section class="diagram" aria-label="현장 점검 처리 순서">
+    <div class="lane"><div class="lane-title">현장 앱</div><div class="lane-body"><div class="node"><strong>세대 선택</strong>동·호수, 평형, 평면도, 앵커 위치</div><span class="arrow">→</span><div class="node"><strong>하자 입력</strong>사진, 스티커·메모 사진, STT/문자 의견, AI 추천</div><span class="arrow">→</span><div class="node"><strong>로컬 저장</strong>하자 상세·사진·원문 의견·전송 작업 생성</div></div></div>
+    <div class="lane"><div class="lane-title">통신 상태</div><div class="lane-body"><div class="node offline"><strong>오프라인</strong>전송 큐는 PENDING / RETRY 상태로 유지<br>세대·하자 입력은 계속 가능</div><span class="arrow">→</span><div class="node online"><strong>온라인 확인</strong>검증된 네트워크에서 자동 또는 수동 동기화 실행</div><span class="arrow">→</span><div class="node online"><strong>완료</strong>큐를 COMPLETED로 표시<br>서버 revision을 로컬에 반영</div></div></div>
+    <div class="lane"><div class="lane-title">서버 처리</div><div class="lane-body"><div class="node"><strong>사진 업로드</strong><code>PUT /v2/media/uploads/{id}</code><br>field-media에 원본 파일 저장</div><span class="arrow">→</span><div class="node"><strong>하자·미디어 등록</strong><code>POST /v2/field/sync/batches</code><br><code>POST /defects/{id}/media</code></div><span class="arrow">→</span><div class="node"><strong>세션 마감</strong>미전송 0건 확인 → 서버 집계 → <code>POST /complete</code></div></div></div>
+  </section>
+
+  <h2>3. 저장 데이터의 역할</h2>
+  <table class="table"><thead><tr><th>구역</th><th>주요 데이터</th><th>목적</th><th>현재 상태</th></tr></thead><tbody>
+    <tr><td>휴대폰 로컬</td><td>Session, Defect, DefectPhoto, SyncQueue</td><td>현장 입력 보존·오프라인 지속·재전송</td><td><span class="tag ok">구현</span></td></tr>
+    <tr><td>FastAPI</td><td>세대 조회, 세션 생성/조회/집계/마감, 하자·미디어 API</td><td>휴대폰과 PostgreSQL의 안전한 서비스 경계</td><td><span class="tag ok">구현</span></td></tr>
+    <tr><td>PostgreSQL</td><td>inspection_sessions, defects, media, idempotency_records</td><td>하자 분류·세대·점검 이력의 구조화 저장</td><td><span class="tag ok">구현</span></td></tr>
+    <tr><td>파일 저장소</td><td>workspace/field-media/*.jpg</td><td>촬영 사진의 실제 바이너리 보관</td><td><span class="tag ok">구현</span></td></tr>
+    <tr><td>AI 분석</td><td>이미지 모델 결과, 텍스트/음성 의견, 최종 분류 코드</td><td>위치·부위·상세·공종 후보 추천 및 학습 데이터 축적</td><td><span class="tag todo">현재는 추천/분류값 연동, 운영 모델 고도화 필요</span></td></tr>
+  </tbody></table>
+
+  <h2>4. 세대 마감 안전장치</h2>
+  <table class="table"><thead><tr><th>확인 순서</th><th>앱 동작</th><th>사용자에게 보이는 결과</th></tr></thead><tbody>
+    <tr><td>1. 로컬 전송 큐 검사</td><td>해당 세대의 PENDING·RETRY·CONFLICT 항목 수를 계산</td><td>미전송 사진 또는 하자정보가 있으면 건수를 안내하고 마감 중지</td></tr>
+    <tr><td>2. 즉시 전송 시도</td><td>통신 가능 시 대기 큐를 한 번 비우도록 동기화 실행</td><td>전송 성공 시 다음 단계, 실패 시 통신 확인 안내</td></tr>
+    <tr><td>3. 서버 세션 검증</td><td>안정적인 client UUID로 서버 세션을 조회하고 서버 집계를 확인</td><td>서버에 하자가 없거나 응답 오류면 마감 중지</td></tr>
+    <tr><td>4. 서버 세션 완료</td><td>revision을 사용해 세션을 COMPLETED로 변경</td><td>전송 건수·세션 마감 완료 메시지 후 다음 동·호수 초기 화면으로 이동</td></tr>
+  </tbody></table>
+
+  <h2>5. 다음 구현 우선순위</h2>
+  <ol><li>실제 현장 점검 1세대를 끝까지 입력하고, PostgreSQL의 <code>media</code>·<code>defects</code>·<code>inspection_sessions</code> 값을 대조한다.</li><li>서버 사진 저장소를 로컬 폴더에서 S3 등 운영용 객체 저장소로 전환하고 접근 권한·보존 정책을 적용한다.</li><li>서버 인증 토큰과 점검자 권한을 적용한다. 현재는 개발용 로컬 API 연결 구조다.</li><li>ConvNeXt 이미지 분석과 텍스트 분석 결과를 서버 작업으로 실행하고, 점검자 확정값을 학습용 피드백 데이터로 축적한다.</li></ol>
+</main>
+</body>
+</html>

@@ -119,6 +119,7 @@ class TrainingSample:
     group_id: str
     split: str
     annotation: GroundTruthAnnotation
+    paired_image_path: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -127,6 +128,7 @@ class TrainingSample:
             "group_id": self.group_id,
             "split": self.split,
             "annotation": self.annotation.to_dict(),
+            "paired_image_path": self.paired_image_path,
         }
 
 
@@ -144,6 +146,9 @@ class TrainingSpec:
     random_seed: int
     output_directory: str
     model_artifact_name: str
+    model_architecture: str = "tiny_cnn"
+    pretrained: bool = False
+    consistency_weight: float = 0.0
     onnx_export: Mapping[str, Any] = field(
         default_factory=lambda: {
             "opset": 17,
@@ -170,6 +175,10 @@ class TrainingSpec:
         artifact = Path(self.model_artifact_name)
         if artifact.is_absolute() or len(artifact.parts) != 1:
             raise ValueError("model_artifact_name must be a relative file name")
+        if self.model_architecture not in {"tiny_cnn", "convnext_tiny"}:
+            raise ValueError("model_architecture must be tiny_cnn or convnext_tiny")
+        if self.consistency_weight < 0:
+            raise ValueError("consistency_weight cannot be negative")
         opset = self.onnx_export.get("opset", 17)
         input_shape = self.onnx_export.get("input_shape", [1, 3, 224, 224])
         if not isinstance(opset, int) or opset <= 0:
@@ -199,6 +208,9 @@ class TrainingSpec:
             random_seed=value["random_seed"],
             output_directory=value["output_directory"],
             model_artifact_name=value["model_artifact_name"],
+            model_architecture=value.get("model_architecture", "tiny_cnn"),
+            pretrained=bool(value.get("pretrained", False)),
+            consistency_weight=float(value.get("consistency_weight", 0.0)),
             onnx_export=dict(
                 value.get(
                     "onnx_export",

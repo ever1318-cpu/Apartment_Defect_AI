@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI하자점검 키보드 음성·종료명령·AI 이동 구현보고서 v5.4</title>
+  <style>
+    :root{--navy:#17324d;--blue:#27658a;--green:#2e7d32;--gold:#fff3cd;--line:#dbe4ec;--bg:#f5f8fb}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:#172033;font:15px/1.65 system-ui,"Noto Sans KR",sans-serif}
+    main{width:min(960px,calc(100% - 28px));margin:28px auto 60px}.hero,.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:16px}
+    .hero{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff}.hero h1{margin:4px 0 8px;font-size:clamp(25px,4vw,38px)}
+    h2{color:var(--navy);margin:0 0 12px}.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.step{padding:14px;border-radius:12px;background:#eef5f9;text-align:center}
+    .active{outline:3px solid #f0c24b;background:var(--gold)}code{background:#edf2f7;padding:2px 6px;border-radius:5px}
+    table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#eef5f9}
+    .ok{color:var(--green);font-weight:700}@media(max-width:650px){.flow{grid-template-columns:1fr}}
+  </style>
+</head>
+<body><main>
+  <section class="hero">
+    <small>IMPLEMENTATION REPORT · v5.4 · 2026-07-25</small>
+    <h1>키보드 음성입력·종료명령·AI 단계 이동</h1>
+    <p>하자의견 입력을 하나의 입력창으로 단순화하고, 음성/문자 입력부터 AI 분석과 종합의견 확정까지 연속 흐름으로 구성했다.</p>
+  </section>
+
+  <section class="card">
+    <h2>구현 결과</h2>
+    <table>
+      <tr><th>항목</th><th>적용 내용</th></tr>
+      <tr><td>입력 선택</td><td><strong>1. 하자의견</strong> 옆에 <strong>음성인식 / 문자</strong> 버튼 배치. 초기값은 음성인식 강조 상태다.</td></tr>
+      <tr><td>키보드 음성</td><td>음성인식을 누르면 의견 입력창에 초점을 주고 스마트폰 키보드를 표시한다. 사용자는 키보드 왼쪽 아래 마이크를 눌러 말하며, 변환 문자는 동일 입력창에 기록된다.</td></tr>
+      <tr><td>문자 입력</td><td>문자를 선택하면 같은 입력창에 일반 키보드 입력을 이어서 기록한다.</td></tr>
+      <tr><td>종료 명령</td><td><code>끝</code>, <code>마감</code>, <code>엔터</code>, <code>종료</code>, <code>엔드</code>가 문장 끝에 입력되면 종료어를 본문에서 제거하고 의견 입력을 마감한다.</td></tr>
+      <tr><td>단계 이동</td><td>입력 마감 후 AI 분석/분류를 실행하고 해당 영역으로 이동한다. 분석 완료 뒤 종합의견 영역을 강조하여 최종 저장을 유도한다.</td></tr>
+      <tr><td>오입력 방지</td><td><code>마감재 균열</code>처럼 종료어가 다른 단어의 일부인 경우에는 마감하지 않는다.</td></tr>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2>사용 흐름</h2>
+    <div class="flow">
+      <div class="step"><strong>1. 하자의견</strong><br>음성인식 기본 강조<br>키보드 마이크 또는 문자</div>
+      <div class="step"><strong>2. AI 분석/분류</strong><br>종료 명령 또는 3초 입력 정지 후 자동 이동</div>
+      <div class="step active"><strong>3. 종합의견</strong><br>결과 강조·검토<br>최종 저장</div>
+    </div>
+    <p>Android 보안 정책상 앱이 키보드 내부 마이크 버튼을 자동으로 누를 수는 없다. 따라서 입력창 포커스와 키보드 표시까지 자동화하고, 마이크 시작은 사용자가 키보드에서 한 번 누르는 방식으로 구성했다.</p>
+  </section>
+
+  <section class="card">
+    <h2>검증</h2>
+    <p class="ok">Android Debug APK 빌드 및 단위 테스트 성공</p>
+    <ul>
+      <li>총 단위 테스트: 22개 통과</li>
+      <li>종료 명령 감지·본문 제거 테스트 추가</li>
+      <li>“마감재” 오탐 방지 테스트 추가</li>
+      <li>APK: <code>D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</code></li>
+      <li>생성 시각: 2026-07-25 23:56:25</li>
+    </ul>
+  </section>
+</main></body></html>

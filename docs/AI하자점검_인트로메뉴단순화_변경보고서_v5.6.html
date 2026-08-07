@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI하자점검 인트로 메뉴 단순화 변경보고서 v5.6</title>
+  <style>body{margin:0;background:#f4f7fb;color:#172033;font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;line-height:1.65}.wrap{max-width:960px;margin:auto;padding:28px}.hero{background:linear-gradient(135deg,#123b6d,#155eef);color:#fff;border-radius:18px;padding:28px}.card{margin-top:16px;padding:20px;background:#fff;border:1px solid #dbe3ef;border-radius:14px}h1,h2{margin-top:0}li{margin:7px 0}.before{color:#9d3131}.after{color:#087443;font-weight:700}.note{padding:14px;background:#eef5ff;border-left:4px solid #155eef;border-radius:8px}</style>
+</head>
+<body><main class="wrap">
+  <header class="hero"><small>Apartment Defect AI · UI/UX 변경</small><h1>인트로 메뉴 단순화 변경보고서 v5.6</h1><p>작성일: 2026-07-29 · 대상: Android PinSet-App 인트로 화면</p></header>
+  <section class="card"><h2>변경 목적</h2><p>세대 점검의 시작 화면에서 동일한 공용부 진입 경로와 보고서 경로가 중복되어 조작 흐름이 분산되는 문제를 정리했습니다.</p></section>
+  <section class="card"><h2>반영 내용</h2><ul><li class="before">삭제: 동·호수 입력 바로 아래의 <strong>공용부·기타 하자 입력</strong> 버튼</li><li class="before">삭제: 하단 작업행의 <strong>보고서</strong> 버튼</li><li class="after">유지: 하단 작업행에는 <strong>공용부·기타</strong>, <strong>하자DB</strong> 두 메뉴만 표시</li><li>공용부·기타를 누르면 기존과 동일하게 발생 위치를 선택한 뒤 사진 촬영 및 하자의견 기록을 시작합니다.</li></ul></section>
+  <section class="card"><h2>최종 인트로 하단 메뉴</h2><p class="note">공용부·기타 &nbsp; | &nbsp; 하자DB</p><p>보고서는 세대 점검 흐름에서 생성되는 결과 화면을 통해 확인하며, 인트로의 중복 진입 버튼은 제거했습니다.</p></section>
+  <section class="card"><h2>검증</h2><p>Android 디버그 APK 빌드로 컴파일 검증을 수행합니다. 적용 소스: <code>HouseholdIntroScreen.kt</code></p></section>
+</main></body></html>

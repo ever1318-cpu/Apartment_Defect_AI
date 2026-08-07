@@ -1,0 +1,116 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "AI하자점검 Phase 3 Android Real API 연동보고서",
+    "description": "PinSet Android의 API v2 실제 통신 어댑터 구현과 검증 결과",
+    "generatedAt": "2026-07-24T19:00:00+09:00",
+    "sources": [
+      {
+        "id": "android-real-api",
+        "label": "Android Real API 구현",
+        "path": "PinSet-App/android/app/src",
+        "query": {
+          "engine": "filesystem",
+          "description": "Real Repository, HTTP transport, BuildConfig 전환 및 계약 테스트",
+          "tables_used": ["RealAiInspectionRepository.kt", "AiInspectionViewModel.kt", "RealAiInspectionRepositoryTest.kt"]
+        }
+      },
+      {
+        "id": "api-contract",
+        "label": "Inspection API v2 계약",
+        "path": "Apartment_Defect_AI/contracts/v2/openapi.yaml",
+        "query": {
+          "engine": "openapi",
+          "description": "검사 생성부터 사용자 확정까지 API v2 계약",
+          "tables_used": ["openapi.yaml", "inspection_v2.py", "serving_app.py"]
+        }
+      }
+    ],
+    "charts": [
+      {
+        "id": "gate-chart",
+        "title": "Phase 3 연동 구성요소별 상태",
+        "subtitle": "통신 어댑터와 계약 시험은 완료했으며 미디어 업로드와 운영 저장은 후속 게이트입니다.",
+        "type": "bar",
+        "dataset": "gate_status",
+        "sourceId": "android-real-api",
+        "source": {
+          "id": "gate-status",
+          "label": "Phase 3 구현 상태",
+          "query": {
+            "engine": "duckdb",
+            "description": "연동 구성요소별 구현 완료도",
+            "sql": "SELECT * FROM gate_status ORDER BY completion DESC, area ASC",
+            "tables_used": ["gate_status"]
+          }
+        },
+        "encodings": {
+          "x": {"field": "area", "type": "nominal", "label": "구성요소"},
+          "y": {"field": "completion", "type": "quantitative", "label": "완료도"},
+          "tooltip": [{"field": "status", "type": "nominal", "label": "상태"}]
+        },
+        "layout": "full",
+        "maxRows": 10
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# AI하자점검 Phase 3 Android Real API 연동보고서\n\n**API v2 실제 통신 경계 구현·계약 검증 · 2026-07-24**"
+      },
+      {
+        "id": "conclusion",
+        "type": "markdown",
+        "body": "## 1. 결론\n\nAndroid 앱에 API v2용 `RealAiInspectionRepository`를 구현했습니다. 앱은 검사 생성, ConvNeXt 분석 시작, 어시스턴트 세션 생성, 질문 응답, 최신 revision 조회, 사용자 확정을 순서대로 수행할 수 있습니다.\n\n서버 주소가 설정되지 않으면 Fake Repository를 사용합니다. 주소가 설정되면 HTTPS만 허용하며, 이미지 업로드에서 발급된 원거리·근거리 media UUID 두 개가 없을 경우 네트워크 요청 전에 차단합니다. 가짜 이미지 ID나 운영 DB 저장을 사용하지 않았습니다."
+      },
+      {
+        "id": "implementation",
+        "type": "markdown",
+        "sourceId": "android-real-api",
+        "body": "## 2. 구현 내용\n\n- `HttpURLConnection` 기반 coroutine IO transport\n- 연결 timeout 10초, 읽기 timeout 30초\n- JSON 요청·응답 및 표준 API 오류 변환\n- 모든 변경 요청의 `Idempotency-Key`\n- Bearer token 주입 경계\n- 확정 전 최신 inspection revision 조회 및 `If-Match` 전송\n- 질문 option label과 서버 option ID 매핑\n- 서버 classification code 보존과 확정 재전송\n- `PINSET_AI_API_BASE_URL` Gradle property 기반 Fake/Real 자동 전환\n- 화면에 현재 Fake API 또는 Real API 모드 표시"
+      },
+      {
+        "id": "chart",
+        "type": "chart",
+        "chartId": "gate-chart"
+      },
+      {
+        "id": "validation",
+        "type": "markdown",
+        "body": "## 3. 검증 결과\n\nAndroid 단위 테스트는 **5 tests, 0 failures, 0 errors**입니다. API v2 여섯 단계 호출, Idempotency-Key, Bearer header, option ID 변환, If-Match revision, 이미지 누락 사전 차단, 비 HTTPS 주소 거부를 검증했습니다.\n\n`testDebugUnitTest`와 `assembleDebug`를 함께 실행한 결과 **BUILD SUCCESSFUL**이며 Debug APK가 생성되었습니다."
+      },
+      {
+        "id": "limits",
+        "type": "markdown",
+        "body": "## 4. 현재 제한\n\n현재 홈의 독립 AI 화면은 실제 촬영 media UUID를 아직 전달받지 않습니다. 따라서 서버 주소만 설정한 Real 모드에서는 이미지 누락 오류를 표시하고 요청을 보내지 않습니다. 이는 잘못된 데이터로 분석하거나 운영 서버에 임의 레코드를 만드는 것을 막기 위한 의도적인 게이트입니다.\n\nOIDC token 발급, media upload session·signed upload, Room outbox·migration, 운영 API URL과 인증서는 아직 연결하지 않았습니다."
+      },
+      {
+        "id": "next",
+        "type": "markdown",
+        "body": "## 5. 다음 단계\n\n1. API v2 media upload session용 Android 업로더 구현\n2. 기존 Camera 결과의 wide·close 파일을 SHA-256과 함께 업로드\n3. 발급된 media UUID와 PinPlacement 위치 문맥을 AI 화면 ViewModel에 전달\n4. 개발 서버 URL·OIDC 인증을 비밀정보 저장소에서 주입\n5. 로컬 Fake 서버와 Galaxy S25 E2E 시험\n6. 별도 승인 후 Room outbox migration과 서버 저장 연계\n\n운영 AWS RDS는 이번 단계에서도 읽거나 수정하지 않았습니다."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-24T19:00:00+09:00",
+    "status": "ready",
+    "datasets": {
+      "gate_status": [
+        {"area": "Real Repository", "completion": 100, "status": "완료"},
+        {"area": "API v2 상태 흐름", "completion": 100, "status": "계약 테스트 통과"},
+        {"area": "HTTPS·timeout", "completion": 100, "status": "완료"},
+        {"area": "revision·멱등성", "completion": 100, "status": "완료"},
+        {"area": "미디어 업로드", "completion": 0, "status": "다음 게이트"},
+        {"area": "Room·운영 DB", "completion": 0, "status": "별도 승인 필요"}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "android-real-api", "label": "Android Real API 구현", "path": "PinSet-App/android/app/src"},
+    {"id": "api-contract", "label": "Inspection API v2 계약", "path": "Apartment_Defect_AI/contracts/v2/openapi.yaml"}
+  ]
+}

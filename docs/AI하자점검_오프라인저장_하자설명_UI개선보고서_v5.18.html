@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI하자점검 오프라인 저장·하자설명 UI 개선보고서 v5.18</title>
+  <style>body{font-family:"Malgun Gothic",Arial,sans-serif;max-width:920px;margin:32px auto;padding:0 18px;line-height:1.7;color:#1f2937}h1{color:#075985}h2{border-left:5px solid #0284c7;padding-left:10px;margin-top:28px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:10px;text-align:left}th{background:#e0f2fe}.ok{color:#047857;font-weight:700}.box{background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:14px}</style>
+</head>
+<body>
+  <h1>AI하자점검 오프라인 저장·하자설명 UI 개선보고서 v5.18</h1>
+  <p>작성일: 2026-07-30 · 대상: PinSet-App 현장 점검 기능</p>
+  <h2>적용 사항</h2>
+  <table>
+    <tr><th>요청</th><th>반영</th></tr>
+    <tr><td>통신 불량 시 저장</td><td>사진·메타데이터는 전송 전에 스마트폰 내부 파일과 Room 로컬 DB에 저장합니다. VPN 미연결·서버 중단 상태에서는 전송 대기열에 보존하고, 검증된 네트워크가 복구되면 자동 전송합니다.</td></tr>
+    <tr><td>최초 앵커</td><td>새 세션에서 앵커 위치가 비어 있으면 기본값을 <strong>현관문 앞</strong>으로 설정합니다. 사용자가 지정한 기존 앵커는 유지합니다.</td></tr>
+    <tr><td>하자설명</td><td>기존 “하자의견(점검자)”를 <strong>하자설명</strong>으로 변경했습니다.</td></tr>
+    <tr><td>저장 버튼</td><td>설명 박스 바로 아래 버튼을 <strong>의견입력 완료 및 저장</strong>으로 변경하고 실제 로컬 결함 저장 동작에 연결했습니다. 맨 아래에도 <strong>확정 및 저장</strong> 버튼을 유지하여 같은 저장 동작을 제공합니다.</td></tr>
+    <tr><td>근경·원경</td><td>하자설명 우측에 근경과 원경 미니 사진을 동시에 표시합니다. 각 사진을 누르면 확대 화면으로 확인할 수 있습니다.</td></tr>
+    <tr><td>스티커 사진</td><td>“하자 메모 사진”을 <strong>설명 스티커</strong>로 변경했습니다. 촬영된 사진은 미니로 표시되고, 누르면 확대됩니다.</td></tr>
+  </table>
+  <h2>전송 안전성</h2>
+  <div class="box"><ol><li>현장 입력 → 기기 내부 파일·로컬 DB 저장</li><li>전송 큐 생성</li><li>VPN/서버/인터넷 복구 감지 → 자동 재시도</li><li>앱 종료 중 업로드는 다음 실행 시 대기 상태로 복구</li><li>서버 수신은 idempotency key로 중복 등록을 방지</li></ol></div>
+  <p class="ok">Android Debug APK 빌드 성공: 2026-07-30</p>
+  <p>APK 위치: D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</p>
+</body>
+</html>

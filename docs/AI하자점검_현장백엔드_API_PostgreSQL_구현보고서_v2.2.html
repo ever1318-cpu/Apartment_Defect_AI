@@ -1,0 +1,41 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 현장 백엔드 API·PostgreSQL 구현보고서 v2.2</title><style>
+body{margin:0;font-family:"Malgun Gothic",sans-serif;color:#172033;line-height:1.65}header{padding:42px 24px;background:linear-gradient(135deg,#10233f,#1769aa);color:#fff}
+main{max-width:1050px;margin:auto;padding:30px 22px 60px}h1{margin:0 0 8px}h2{color:#10233f;border-bottom:2px solid #d8e0ea;padding-bottom:8px}
+.card{background:#f4f7fb;border:1px solid #d8e0ea;border-radius:14px;padding:18px;margin:14px 0}table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #d8e0ea;padding:10px;text-align:left;vertical-align:top}th{background:#eaf1f8}.ok{color:#08783e;font-weight:700}.warn{color:#a15c00;font-weight:700}
+code{background:#e8edf3;padding:2px 5px;border-radius:4px}</style></head><body>
+<header><h1>현장 백엔드 API·PostgreSQL 구현보고서</h1><div>AI하자점검 개발가이드 · Backend v2.2 · 2026-07-24</div></header>
+<main>
+<h2>1. 구현 결론</h2><div class="card">기존 AI 분석용 <code>/v2</code> 계약을 유지하면서 Android 현장 운영을 위한
+<code>/v2/field</code> API 경계를 추가했다. 세대 점검 시작부터 앵커, 하자, RAW/STT 의견, 최종확인,
+이미지 메타데이터, 집계, 마감, 오프라인 동기화까지 서버 계약과 PostgreSQL 저장 동작을 구현했다.</div>
+<h2>2. 현장 API</h2><table><tr><th>Method</th><th>Endpoint</th><th>기능</th></tr>
+<tr><td>POST</td><td><code>/v2/field/sessions</code></td><td>세대 점검 세션 생성</td></tr>
+<tr><td>PUT</td><td><code>/v2/field/sessions/{id}/anchor</code></td><td>인트로 공간 좌표·앵커 방위 확정</td></tr>
+<tr><td>GET</td><td><code>/v2/field/sessions/{id}/summary</code></td><td>전체·대기·확정·재검토 집계와 목록</td></tr>
+<tr><td>POST</td><td><code>/v2/field/sessions/{id}/complete</code></td><td>세대 점검 마감</td></tr>
+<tr><td>PUT</td><td><code>/v2/field/defects</code></td><td>하자 생성·수정, RAW/STT 의견 보존</td></tr>
+<tr><td>POST</td><td><code>/v2/field/defects/{id}/confirmation</code></td><td>최종 분류·표준화 의견 확정</td></tr>
+<tr><td>POST</td><td><code>/v2/field/defects/{id}/media</code></td><td>원본·근접·광각·추가 사진 메타데이터 등록</td></tr>
+<tr><td>POST</td><td><code>/v2/field/sync/batches</code></td><td>통신 복구 후 오프라인 작업 일괄 동기화</td></tr></table>
+<h2>3. 데이터 안전성</h2><ul>
+<li><code>Idempotency-Key</code>로 모바일 재전송 중복 저장 방지</li>
+<li><code>If-Match</code> revision으로 동시 수정 충돌 검출</li>
+<li>사진 바이너리와 DB 메타데이터 분리, SHA-256·크기·object key 기록</li>
+<li>입주민/STT RAW 원문과 LLM 표준화 의견을 별도 필드로 보존</li>
+<li>빈 세대 점검 마감 방지, 삭제 상태 하자 집계 제외</li>
+<li>응답과 로그에 DB 비밀번호·DSN을 포함하지 않음</li>
+</ul>
+<h2>4. 검증</h2><div class="card"><span class="ok">145 passed, 6 skipped</span><br>
+신규 현장 흐름 집중 테스트 15개와 전체 Python 회귀 테스트 및 신규 파일 컴파일을 통과했다.</div>
+<h2>5. 운영 반영 상태</h2><div class="card"><span class="warn">운영 AWS RDS에는 적용하지 않음</span><br>
+현재 코드는 메모리 테스트 어댑터와 PostgreSQL 어댑터를 모두 제공한다. 다음 Gate에서 로컬 PostgreSQL에
+마이그레이션을 적용하고 HTTP 통합시험을 거친 뒤, 별도 승인 후 스테이징 RDS에 적용한다.</div>
+<h2>6. 다음 구현</h2><ol>
+<li>로컬 PostgreSQL에 <code>001_apartment_ai_core.sql</code> 적용</li>
+<li>단지·동·평형·세대 seed 데이터 구성</li>
+<li>Android Retrofit/HTTP 클라이언트를 <code>/v2/field</code>에 연결</li>
+<li>사진 저장소(S3 presigned upload) 연결</li>
+<li>네트워크 복구 시 WorkManager 동기화 통합시험</li>
+</ol></main></body></html>

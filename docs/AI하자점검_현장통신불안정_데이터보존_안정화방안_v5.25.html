@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI하자점검 현장 통신불안정 데이터보존 안정화방안 v5.25</title>
+<style>
+body{font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;max-width:1080px;margin:32px auto;padding:0 22px;color:#17212b;line-height:1.72}h1{color:#153f67;border-bottom:3px solid #2d719f;padding-bottom:12px}h2{color:#1b587f;margin-top:32px;border-left:5px solid #5c98bd;padding-left:10px}h3{margin-top:22px;color:#254e67}.lead{background:#eef6fb;padding:16px;border-radius:10px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}.card{border:1px solid #c9d9e5;border-radius:9px;padding:13px;background:#fbfdff}.good{color:#087a55;font-weight:700}.warn{color:#9a6700;font-weight:700}table{width:100%;border-collapse:collapse;margin:10px 0 16px}th,td{border:1px solid #bdccd7;padding:10px;text-align:left;vertical-align:top}th{background:#eaf2f8}code{background:#edf1f4;padding:2px 4px;border-radius:3px}.flow{background:#172b3a;color:#fff;padding:14px;border-radius:9px;white-space:pre-wrap;font-family:Consolas,monospace;font-size:13px}.priority{font-weight:700;color:#b42318}</style>
+</head>
+<body>
+<h1>현장 통신불안정 환경의 하자데이터 보존·전송 안정화방안 v5.25</h1>
+<p>작성일: 2026-08-03 · 대상: S25/노트10 현장 점검 앱, PostgreSQL Field API, VPN·무선망</p>
+<div class="lead"><b>결론</b> — 통신 성공을 전제로 저장하면 현장에서 사진과 메타데이터가 유실됩니다. <b>촬영 직후 휴대폰 내부에 사진과 메타데이터를 하나의 로컬 작업 단위로 먼저 확정</b>하고, 서버 전송은 이후 재시도 가능한 별도 단계로 분리해야 합니다. 현재 앱의 Room 로컬 DB·동기화 대기열 구조를 이 원칙에 맞춰 강화하면 됩니다.</div>
+<h2>1. 목표 구조: Local-first, Sync-later</h2>
+<div class="flow">[카메라 근경/원경/스티커 사진]
+            ↓  즉시 저장(앱 내부 저장소)
+[파일 해시·촬영시각·동호수·위치 메타데이터]
+            ↓  하나의 SQLite 트랜잭션
+[하자 레코드 + 사진 목록 + operationId + 전송대기열]
+            ↓
+  네트워크/VPN 정상? ─ 아니오 → 로컬 보관·자동 재시도
+            │
+           예
+            ↓
+[사진 재개 업로드] → [서버 검증] → [메타데이터 확정] → [완료 ACK]
+            ↓
+      로컬 대기열 COMPLETED 표시</div>
+<div class="grid"><div class="card"><b>사진 보존</b><br>근경·원경·설명 스티커 사진을 각 파일별로 저장하고, 한 장 실패가 다른 사진의 보존을 막지 않게 합니다.</div><div class="card"><b>메타데이터 보존</b><br>동·호/공용부, 위치, 5계층 분류, 점검자 원문, AI 추천, GPS·방향·촬영시각을 로컬 DB에 함께 확정합니다.</div><div class="card"><b>전송 독립</b><br>전송 실패는 저장 실패가 아닙니다. UI에는 <b>로컬 저장 완료 · 전송 대기</b>로 명확히 구분합니다.</div></div>
+<h2>2. 휴대폰 로컬 저장 안정화</h2>
+<table><tr><th>대책</th><th>구현 방식</th><th>효과</th></tr>
+<tr><td>원자적 사진 저장</td><td><code>.tmp</code> 파일에 완전 기록 후 파일 길이·해시 확인, 성공 시 최종 파일명으로 rename합니다.</td><td>촬영 중 앱 종료·배터리 부족 때 손상 JPEG가 정상 사진으로 보이는 문제를 막습니다.</td></tr>
+<tr><td>사진·메타데이터 묶음</td><td>사진 파일이 존재하고 SHA-256이 계산된 경우에만 Room의 하자·사진·sync_queue를 하나의 트랜잭션으로 생성합니다.</td><td>DB만 남거나 사진만 남는 불일치를 줄입니다.</td></tr>
+<tr><td>복구 검사</td><td>앱 시작 시 <code>captures</code> 폴더와 DB 사진 목록을 대조합니다. 파일만 있으면 복구 후보, DB 경로만 있으면 재촬영/오류 후보로 표시합니다.</td><td>강제 종료 후에도 누락을 발견·복구합니다.</td></tr>
+<tr><td>저장공간 감시</td><td>여유 공간이 임계값(예: 2GB) 아래면 촬영 전 경고하고, 완료 전송 사진은 정책에 따라 저해상도 보관 또는 관리자 백업 후 정리합니다.</td><td>용량 부족으로 인한 연속 촬영 실패를 예방합니다.</td></tr>
+<tr><td>파일명과 내부 ID 분리</td><td>표시 파일명은 <code>101-1404_안방-천장_근경_20260803-142501.jpg</code>처럼 사람이 읽게 하고, 중복 방지는 UUID/operationId로 처리합니다.</td><td>파일명을 바꿔도 중복 전송과 데이터 충돌을 막습니다.</td></tr></table>
+<h2>3. 불안정 VPN·무선망 전송 안정화</h2>
+<table><tr><th>대책</th><th>권장 방식</th><th>주의점</th></tr>
+<tr><td>연결 판정</td><td>Wi-Fi/모바일 연결 표시만 보지 말고, 실제 <code>/health</code> 응답과 업로드 가능한 서버 응답을 확인합니다.</td><td>VPN 아이콘이 켜져 있어도 서버가 응답하지 않을 수 있습니다.</td></tr>
+<tr><td>재시도</td><td>지수 백오프 + 무작위 지연: 10초, 30초, 1분, 3분, 10분… 앱 재시작·네트워크 복구 시 즉시 재시도합니다.</td><td>모든 기기가 동시에 재시도하는 폭주를 피합니다.</td></tr>
+<tr><td>업로드 재개</td><td>사진은 파일 단위 또는 청크 단위로 <b>재개 가능 업로드</b>를 사용합니다. 서버는 받은 바이트·해시를 기록합니다.</td><td>긴 사진 전송이 끊겨도 0%부터 다시 보내지 않습니다.</td></tr>
+<tr><td>멱등성</td><td>각 하자 묶음에 고정 <code>operationId</code>를 사용하고 서버는 같은 ID를 중복 저장하지 않습니다.</td><td>응답을 못 받았을 때 재전송해도 중복 하자가 생기지 않습니다.</td></tr>
+<tr><td>우선순위</td><td>메타데이터·썸네일 → 근경 → 원경 → 스티커 순으로 보낼 수 있게 합니다.</td><td>망이 다시 끊겨도 최소한 하자 존재·분류는 서버에서 확인됩니다.</td></tr>
+<tr><td>WorkManager</td><td><code>네트워크 연결됨</code> 조건의 백그라운드 작업으로 전송하며, 앱을 닫아도 재개합니다.</td><td>배터리 최적화 예외가 필요한 기기는 현장 배포 전 점검합니다.</td></tr></table>
+<h2>4. 서버 측 확정 규칙</h2>
+<ul><li>서버는 사진을 안전 저장·해시 검증한 뒤에만 해당 사진을 <span class="good">완료</span> 처리합니다.</li><li>하자 메타데이터는 사진 업로드 상태를 참조하며, 사진이 아직 도착하지 않았어도 <span class="warn">PENDING_MEDIA</span> 상태로 먼저 보관할 수 있습니다.</li><li>서버 응답은 <code>operationId</code>, 수신 사진 목록, 해시, revision을 포함합니다. 휴대폰은 이 응답을 받은 뒤에만 로컬 대기열을 COMPLETED로 바꿉니다.</li><li>운영 전환 시 PC 폴더 저장 대신 객체 스토리지(S3 호환) 또는 백업 정책이 있는 파일 스토리지를 사용합니다. PostgreSQL에는 경로·해시·메타데이터를 저장합니다.</li></ul>
+<h2>5. 현장 화면 UX</h2>
+<table><tr><th>상태</th><th>사용자에게 보일 문구</th><th>작동</th></tr>
+<tr><td>저장 직후</td><td>로컬 저장 완료 · 전송 대기 2건</td><td>촬영·입력은 계속 가능</td></tr><tr><td>전송 중</td><td>전송 중: 근경 1/2</td><td>취소하지 않고 백그라운드 진행</td></tr><tr><td>망 복구</td><td>통신 복구 · 미전송 2건 자동 전송 중</td><td>사용자 조작 없이 재개</td></tr><tr><td>완료</td><td>서버 저장 완료 · 사진 2장, 메타데이터 1건</td><td>마감·다음 세대 이동 가능</td></tr><tr><td>장기 실패</td><td>로컬 보관 중 · 재시도 예정</td><td>사진 위치와 재시도 시각, 수동 재전송 버튼 표시</td></tr></table>
+<h2>6. 우선 구현 순서</h2>
+<ol><li><span class="priority">1순위</span> 사진 원자 저장, 파일/DB 복구 검사, 로컬 저장 완료와 전송 대기 상태의 명확한 분리</li><li><span class="priority">2순위</span> operationId 기반 중복 방지, 자동 재시도·네트워크 복구 트리거, 실제 health 체크</li><li><span class="priority">3순위</span> 청크/재개 업로드, 서버 해시 검증·ACK, 전송 우선순위</li><li><span class="priority">4순위</span> S25 실행상태 시뮬레이터에 전송 단계·실패 사유·마지막 성공 시각을 표시</li><li><span class="priority">5순위</span> 비행기 모드, VPN 종료, 서버 재시작, 강제 종료, 저장공간 부족을 포함한 현장 복원력 시험</li></ol>
+<h2>7. 현재 구현 기반과 보완점</h2>
+<p>현재 앱은 Room 로컬 DB와 sync_queue, 휴대폰 내부 사진 저장, VPN/서버 health 표시, 미전송 건수 표시의 기반을 갖추고 있습니다. 다음 구현에서 핵심은 <b>전송 실패에도 하자 묶음 자체는 이미 로컬에서 확정되었다는 보장</b>을 파일·DB·전송 응답까지 일관되게 강화하는 것입니다.</p>
+</body></html>
