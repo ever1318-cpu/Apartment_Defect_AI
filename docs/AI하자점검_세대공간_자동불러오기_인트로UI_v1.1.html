@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 세대 공간 자동 불러오기 인트로 UI v1.1</title>
+<style>
+:root{--orange:#f57c00;--orange2:#e65100;--teal:#00897b;--purple:#6a1b9a;--ink:#17212b;--sub:#657181;--line:#d9e0e8;--bg:#edf1f5;--white:#fff;--blue:#2767a5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,"Noto Sans KR","Malgun Gothic",sans-serif}
+button,input{font:inherit}.page{width:min(1280px,calc(100% - 28px));margin:24px auto 60px}
+.top{background:linear-gradient(135deg,var(--orange2),var(--orange));border-radius:24px;color:#fff;padding:25px 28px;box-shadow:0 14px 35px #e6510030}
+.top small{letter-spacing:.11em;opacity:.82}.top h1{margin:7px 0 5px;font-size:clamp(25px,4vw,42px)}.top p{margin:0;opacity:.9}
+.shell{display:grid;grid-template-columns:360px 1fr;gap:20px;margin-top:20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 8px 24px #17212b0b}
+.step{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--orange);color:#fff;font-weight:900;margin-right:7px}
+h2{font-size:19px;margin:0 0 14px}.muted{color:var(--sub);font-size:12px;line-height:1.55}
+.project{display:flex;gap:9px;margin-bottom:12px}.field{flex:1}.field label{display:block;font-size:11px;color:var(--sub);margin-bottom:4px;font-weight:800}
+.field input{width:100%;padding:12px 11px;border:1.5px solid var(--line);border-radius:10px;outline:0}.field input:focus{border-color:var(--orange);box-shadow:0 0 0 3px #f57c0018}
+.load{width:100%;border:0;border-radius:11px;padding:13px;background:var(--orange);color:#fff;font-weight:900;cursor:pointer}.load:hover{background:var(--orange2)}
+.auto-hint{display:flex;align-items:center;gap:7px;margin:7px 0 12px;color:var(--teal);font-size:11px;font-weight:800}.pulse{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 5px #00897b18}
+.idbox{margin-top:12px;padding:11px;border-radius:11px;background:#fff5e9;border:1px solid #ffd4a6;font-size:12px}.idbox code{font-size:14px;font-weight:900;color:var(--orange2)}
+.status{margin:13px 0;display:flex;align-items:center;gap:7px;font-size:12px}.dot{width:9px;height:9px;border-radius:50%;background:#9ca8b4}.status.ok .dot{background:#23a26d}.status.fallback .dot{background:#f0a024}
+.recent{border-top:1px solid var(--line);margin-top:16px;padding-top:15px}.recent button{width:100%;text-align:left;border:1px solid var(--line);background:#fafbfd;padding:9px 10px;border-radius:9px;margin-top:6px;cursor:pointer}.recent button:hover{border-color:var(--orange)}
+.zone-list{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.zone{border:1px solid var(--line);background:#fff;border-radius:20px;padding:7px 10px;font-size:11px;cursor:pointer}.zone.on{background:var(--purple);border-color:var(--purple);color:#fff}
+.continue{width:100%;border:0;border-radius:11px;padding:13px;background:var(--teal);color:#fff;font-weight:900;margin-top:15px;cursor:pointer}.continue:disabled{background:#b5bfca;cursor:not-allowed}
+.workspace{display:grid;grid-template-rows:auto 1fr;gap:16px}.summary{display:flex;justify-content:space-between;align-items:center;gap:12px}.summary h2{margin:0}.badges{display:flex;gap:6px;flex-wrap:wrap}.badge{padding:5px 8px;border-radius:14px;background:#edf4fb;color:var(--blue);font-size:10px;font-weight:800}.badge.fallback{background:#fff3df;color:#aa6100}
+.tabs{display:flex;gap:6px;margin-top:14px}.tab{border:0;border-radius:9px;padding:9px 13px;background:#edf1f5;color:var(--sub);font-weight:800;cursor:pointer}.tab.on{background:var(--blue);color:#fff}
+.canvas-grid{display:grid;grid-template-columns:1fr 1.25fr;gap:16px}.map-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;min-height:555px}.map-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.map-title b{font-size:14px}.source{font-size:9px;padding:3px 6px;border-radius:9px;background:#e8f5e9;color:#267748;font-weight:800}.source.fallback{background:#fff3e0;color:#a65e00}
+.site{height:465px;border-radius:13px;background:#e6ecea;position:relative;overflow:hidden;border:1px solid #cad5d2}
+.road{position:absolute;background:#c7cfd3}.road.h{height:54px;left:-10%;right:-10%;top:44%;transform:rotate(-6deg)}.road.v{width:48px;top:-5%;bottom:-5%;left:48%;transform:rotate(8deg)}
+.building{position:absolute;border:3px solid #fff;border-radius:9px;background:#608bb2;color:#fff;font-weight:900;font-size:12px;display:grid;place-items:center;box-shadow:0 3px 9px #0002;cursor:pointer}.building.active{background:var(--orange);box-shadow:0 0 0 5px #f57c0030}
+.gate{position:absolute;left:44%;bottom:4%;background:var(--teal);color:#fff;border-radius:14px;padding:5px 9px;font-size:10px;font-weight:900}.north{position:absolute;right:12px;top:10px;width:44px;height:44px;border:2px solid #394b59;border-radius:50%;background:#fff}.north:before{content:"N";position:absolute;left:50%;top:-2px;transform:translateX(-50%);font-size:9px;color:#d22;font-weight:900}.north:after{content:"";position:absolute;left:17px;top:8px;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:22px solid #d22}
+.floorplan{height:465px;border-radius:13px;background:#f7f3eb;position:relative;overflow:hidden;border:1px solid #d4cbbd;padding:8px}
+.room{position:absolute;border:2px solid #8c8070;background:#fffaf1;border-radius:5px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;font-weight:900;color:#5c5145;cursor:pointer;transition:.15s}.room:hover{background:#fff0d9}.room.on{border-color:var(--purple);background:#f3e5f5;color:var(--purple);box-shadow:inset 0 0 0 2px #6a1b9a33}
+.room small{display:block;font-size:8px;font-weight:500}.fp-north{position:absolute;right:12px;top:12px;width:42px;height:42px;border-radius:50%;border:2px solid #455a64;background:#fff;z-index:5}.fp-north b{position:absolute;top:-4px;left:50%;transform:translateX(-50%);font-size:9px;color:#d32f2f}.fp-north i{position:absolute;left:16px;top:7px;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:22px solid #d32f2f}
+.anchor{position:absolute;left:48%;bottom:3%;background:var(--teal);color:#fff;padding:4px 8px;border-radius:12px;font-size:9px;font-weight:900;z-index:4}
+.legend{display:flex;gap:8px;margin-top:8px;color:var(--sub);font-size:10px}.legend span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;background:#fffaf1;border:1px solid #8c8070;margin-right:4px}.legend .selected:before{background:#f3e5f5;border-color:var(--purple)}
+.fallback-note{display:none;margin-top:11px;padding:10px;background:#fff8e8;border-left:4px solid #f0a024;border-radius:7px;font-size:11px}.fallback-note.show{display:block}
+.handoff{margin-top:16px;background:#f3e5f5;border:1px solid #d8b6e4;border-radius:12px;padding:11px;font-size:11px}.handoff b{color:var(--purple)}
+.spec{margin-top:20px}.spec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.spec article{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px}.spec h3{font-size:14px;margin:0 0 6px}.spec ul{padding-left:18px;font-size:11px;color:var(--sub);line-height:1.65}
+@media(max-width:940px){.shell,.canvas-grid{grid-template-columns:1fr}.site,.floorplan{height:410px}.spec-grid{grid-template-columns:1fr}.map-card{min-height:auto}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="top"><small>AI DEFECT INSPECTION · ZERO-TOUCH SPACE INTRO</small><h1>세대 공간 자동 불러오기</h1><p>점검 ID 또는 세대소유주 하나만 입력하면 DB에서 단지 안내도, 세대 평면도와 공간 구성을 자동으로 준비합니다.</p></header>
+
+<div class="shell">
+<aside class="card">
+  <h2><span class="step">1</span>점검자·세대 확인</h2>
+  <p class="muted">점검 ID, 동-호수 또는 세대소유주를 입력하세요. 입력이 멈추면 자동으로 조회하며 별도의 불러오기 버튼은 사용하지 않습니다.</p>
+  <div class="field"><label>점검 ID 또는 세대소유주</label><input id="identity" value="102-1503" autocomplete="off" placeholder="예: INS-240724-001 · 102-1503 · 홍길동"></div>
+  <div class="auto-hint"><span class="pulse"></span>입력 후 자동 조회 · Enter로 즉시 조회</div>
+  <div class="idbox">세대 ID<br><code id="householdId">SAMPLE-102-1503</code></div>
+  <div class="status ok" id="status"><span class="dot"></span><b id="statusText">등록 도면 준비됨</b></div>
+
+  <div class="recent"><b>최근 점검 세대</b>
+    <button data-query="102-1503">102동 1503호 · 홍*동 · 등록 도면</button>
+    <button data-query="INS-240724-002">101동 804호 · 김*희 · 등록 도면</button>
+    <button data-query="105-1201">105동 1201호 · 이*수 · 기본 도면 사용</button>
+  </div>
+
+  <h2 style="margin-top:20px"><span class="step">2</span>점검 공간 선택</h2>
+  <div class="zone-list" id="zoneList"></div>
+  <button class="continue" id="continue" disabled>선택 공간으로 하자 점검 시작</button>
+  <div class="handoff"><b>다음 화면 전달값</b><br><span id="handoff">공간을 선택하세요.</span></div>
+</aside>
+
+<main class="workspace">
+<section class="card">
+  <div class="summary"><div><h2 id="unitTitle">샘플 아파트 · 102동 1503호</h2><span class="muted">동·호수와 도면 버전을 확인한 뒤 공간을 선택합니다.</span></div>
+    <div class="badges"><span class="badge" id="siteBadge">단지 안내도 v2.1</span><span class="badge" id="floorBadge">84A 평면도 v3.0</span></div></div>
+  <div class="tabs"><button class="tab on" data-view="both">동시 보기</button><button class="tab" data-view="site">단지 안내도</button><button class="tab" data-view="floor">세대 평면도</button></div>
+</section>
+
+<div class="canvas-grid" id="canvasGrid">
+  <section class="map-card" id="siteCard"><div class="map-title"><b>단지 안내도</b><span class="source" id="siteSource">등록 이미지</span></div>
+    <div class="site"><div class="road h"></div><div class="road v"></div><div class="north"></div>
+      <div class="building" style="left:8%;top:12%;width:28%;height:22%">101동</div>
+      <div class="building active" id="activeBuilding" style="left:55%;top:11%;width:28%;height:23%">102동</div>
+      <div class="building" style="left:10%;bottom:10%;width:28%;height:23%">103동</div>
+      <div class="building" style="right:8%;bottom:9%;width:29%;height:24%">105동</div><div class="gate">정문 · 앵커 시작</div>
+    </div>
+    <div class="fallback-note" id="siteFallback">등록된 단지 안내 이미지가 없어 기본 배치 안내도를 표시합니다. 실제 건물 위치와 다를 수 있습니다.</div>
+  </section>
+
+  <section class="map-card" id="floorCard"><div class="map-title"><b>호수별 평면도 · 공간 선택</b><span class="source" id="floorSource">등록 이미지</span></div>
+    <div class="floorplan" id="floorplan"><div class="fp-north"><b>N</b><i></i></div>
+      <div class="room" data-zone="거실" style="left:28%;top:27%;width:40%;height:36%">거실<br><small>LIVING</small></div>
+      <div class="room" data-zone="방1" style="left:3%;top:6%;width:24%;height:32%">방1<br><small>BED 1</small></div>
+      <div class="room" data-zone="방2" style="right:3%;top:7%;width:25%;height:30%">방2<br><small>BED 2</small></div>
+      <div class="room" data-zone="주방" style="left:4%;bottom:9%;width:30%;height:26%">주방<br><small>KITCHEN</small></div>
+      <div class="room" data-zone="화장실" style="right:4%;top:40%;width:25%;height:23%">화장실<br><small>BATH</small></div>
+      <div class="room" data-zone="베란다" style="left:29%;top:4%;width:39%;height:18%">베란다<br><small>BALCONY</small></div>
+      <div class="room" data-zone="현관" style="left:39%;bottom:4%;width:23%;height:22%">현관<br><small>ENTRANCE</small></div>
+      <div class="anchor">현관 앵커</div>
+    </div>
+    <div class="legend"><span>공간</span><span class="selected">선택 공간</span></div>
+    <div class="fallback-note" id="floorFallback">해당 호수의 평면도가 없어 84㎡ 표준 기본 평면도를 표시합니다. 첫 점검 전에 공간 경계를 확인해 주세요.</div>
+  </section>
+</div>
+</main>
+</div>
+
+<section class="spec card">
+<h2>최소입력 UX 원칙</h2>
+<div class="spec-grid">
+<article><h3>사용자 입력 최소화</h3><ul><li>점검 ID 또는 소유주 한 항목만 입력</li><li>300ms 입력 중지 후 자동 조회</li><li>최근 세대는 원탭 재개</li><li>정상 조회 시 확인 팝업 생략</li></ul></article>
+<article><h3>다음 화면 전달</h3><ul><li>complex_id, building_no, unit_no</li><li>household_id, floorplan_id</li><li>room_code, room_label</li><li>north_offset, source_type</li></ul></article>
+<article><h3>예외에서만 입력 요청</h3><ul><li>동명이인일 때 세대 목록 선택</li><li>도면 없음은 기본값 자동 적용</li><li>공간 불일치 때만 수정 요청</li><li>소유주 이름은 마스킹 표시</li></ul></article>
+</div>
+</section>
+</div>
+
+<script>
+const zones=["거실","방1","방2","주방","베란다","현관","화장실"];
+const records={
+  "102-1503":{building:"102",unit:"1503",owner:"홍*동",complex:"샘플 아파트",registered:true},
+  "INS-240724-001":{building:"102",unit:"1503",owner:"홍*동",complex:"샘플 아파트",registered:true},
+  "INS-240724-002":{building:"101",unit:"804",owner:"김*희",complex:"샘플 아파트",registered:true},
+  "홍길동":{building:"102",unit:"1503",owner:"홍*동",complex:"샘플 아파트",registered:true},
+  "105-1201":{building:"105",unit:"1201",owner:"이*수",complex:"샘플 아파트",registered:false}
+};
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+let selected="", lookupTimer;
+function renderZones(){
+  $("#zoneList").innerHTML=zones.map(z=>`<button class="zone${z===selected?" on":""}" data-zone="${z}">${z}</button>`).join("");
+  $$(".zone").forEach(b=>b.onclick=()=>selectZone(b.dataset.zone));
+}
+function selectZone(zone){
+  selected=zone; renderZones();
+  $$(".room").forEach(r=>r.classList.toggle("on",r.dataset.zone===zone));
+  $("#continue").disabled=false;
+  $("#handoff").textContent=`${$("#householdId").textContent} · ${zone} · 평면도 ${$("#floorSource").textContent}`;
+}
+function loadUnit(){
+  const query=$("#identity").value.trim();
+  if(!query){$("#status").className="status fallback";$("#statusText").textContent="점검 ID 또는 세대소유주를 입력하세요";return}
+  const record=records[query]||(()=>{
+    const match=query.match(/^(\d{3,4})[-동\s]*(\d{3,4})호?$/);
+    return match?{building:match[1],unit:match[2],owner:"소유주 미확인",complex:"샘플 아파트",registered:false}:null;
+  })();
+  if(!record){$("#status").className="status fallback";$("#statusText").textContent="일치 세대 없음 · 신규 세대 기본값 준비";return}
+  const b=record.building,u=record.unit,fallback=!record.registered; selected="";
+  $("#householdId").textContent=`SAMPLE-${b}-${u}`;
+  $("#unitTitle").textContent=`${record.complex} · ${b}동 ${u}호 · ${record.owner}`;
+  $("#activeBuilding").textContent=`${b}동`;
+  $("#status").className=`status ${fallback?"fallback":"ok"}`;
+  $("#statusText").textContent=fallback?"등록 도면 없음 · 초기설정값 적용":"등록 도면 준비됨";
+  $("#siteSource").textContent=fallback?"기본 안내도":"등록 이미지";
+  $("#floorSource").textContent=fallback?"84㎡ 기본값":"84A 등록 도면";
+  $("#siteSource").className=`source${fallback?" fallback":""}`;
+  $("#floorSource").className=`source${fallback?" fallback":""}`;
+  $("#siteBadge").textContent=fallback?"단지 안내도 · 기본값":"단지 안내도 v2.1";
+  $("#floorBadge").textContent=fallback?"84㎡ 평면도 · 기본값":"84A 평면도 v3.0";
+  $("#siteBadge").className=`badge${fallback?" fallback":""}`;
+  $("#floorBadge").className=`badge${fallback?" fallback":""}`;
+  $("#siteFallback").classList.toggle("show",fallback);
+  $("#floorFallback").classList.toggle("show",fallback);
+  $("#continue").disabled=true;$("#handoff").textContent="공간을 선택하세요.";
+  $$(".room").forEach(r=>r.classList.remove("on"));renderZones();
+}
+$("#identity").addEventListener("input",()=>{clearTimeout(lookupTimer);$("#status").className="status";$("#statusText").textContent="DB 자동 조회 대기…";lookupTimer=setTimeout(loadUnit,300)});
+$("#identity").addEventListener("keydown",e=>{if(e.key==="Enter"){clearTimeout(lookupTimer);loadUnit()}});
+$$(".recent button").forEach(b=>b.onclick=()=>{$("#identity").value=b.dataset.query;loadUnit()});
+$$(".room").forEach(r=>r.onclick=()=>selectZone(r.dataset.zone));
+$$(".tab").forEach(t=>t.onclick=()=>{
+  $$(".tab").forEach(x=>x.classList.toggle("on",x===t));
+  const v=t.dataset.view;$("#siteCard").style.display=v==="floor"?"none":"block";$("#floorCard").style.display=v==="site"?"none":"block";
+  $("#canvasGrid").style.gridTemplateColumns=v==="both"?"1fr 1.25fr":"1fr";
+});
+$("#continue").onclick=()=>alert(`${$("#handoff").textContent}\\n\\n이 값으로 하자 촬영·AI 분류 화면을 시작합니다.`);
+renderZones();
+</script>
+</body>
+</html>

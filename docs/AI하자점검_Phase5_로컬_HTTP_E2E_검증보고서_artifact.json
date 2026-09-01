@@ -1,0 +1,122 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "AI하자점검 Phase 5 로컬 HTTP E2E 검증보고서",
+    "description": "개발용 FastAPI 실제 포트와 Android emulator loopback 설정 검증 결과",
+    "generatedAt": "2026-07-24T21:00:00+09:00",
+    "sources": [
+      {
+        "id": "http-e2e",
+        "label": "실제 HTTP E2E 테스트",
+        "path": "Apartment_Defect_AI/python/tests/test_inspection_http_e2e.py",
+        "query": {
+          "engine": "pytest-urllib-uvicorn",
+          "description": "임시 로컬 포트에서 업로드부터 분류 확정까지 실제 HTTP 호출",
+          "tables_used": ["inspection_dev_app.py", "test_inspection_http_e2e.py"]
+        }
+      },
+      {
+        "id": "android-debug",
+        "label": "Android Debug 로컬 연결 설정",
+        "path": "PinSet-App/android/app/src/debug",
+        "query": {
+          "engine": "gradle",
+          "description": "10.0.2.2 전용 cleartext 허용과 로컬 API URL 주입 Debug APK",
+          "tables_used": ["AndroidManifest.xml", "network_security_config_debug.xml", "RealAiInspectionRepository.kt"]
+        }
+      }
+    ],
+    "charts": [
+      {
+        "id": "e2e-chart",
+        "title": "Phase 5 E2E 검증 단계별 상태",
+        "subtitle": "실제 HTTP 서버 흐름은 통과했으며 연결 기기·AVD 부재로 화면 자동화는 보류되었습니다.",
+        "type": "bar",
+        "dataset": "e2e_status",
+        "sourceId": "http-e2e",
+        "source": {
+          "id": "e2e-status",
+          "label": "Phase 5 검증 상태",
+          "query": {
+            "engine": "duckdb",
+            "description": "E2E 검증 단계별 결과",
+            "sql": "SELECT * FROM e2e_status ORDER BY completion DESC, step ASC",
+            "tables_used": ["e2e_status"]
+          }
+        },
+        "encodings": {
+          "x": {"field": "step", "type": "nominal", "label": "검증 단계"},
+          "y": {"field": "completion", "type": "quantitative", "label": "완료도"},
+          "tooltip": [{"field": "status", "type": "nominal", "label": "상태"}]
+        },
+        "layout": "full",
+        "maxRows": 10
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# AI하자점검 Phase 5 로컬 HTTP E2E 검증보고서\n\n**미디어 업로드 → 분석 → 질문 → 사용자 확정 실제 HTTP 검증 · 2026-07-24**"
+      },
+      {
+        "id": "conclusion",
+        "type": "markdown",
+        "body": "## 1. 결론\n\n메모리 전용 개발 FastAPI를 실제 임시 포트에 실행하고 표준 HTTP 클라이언트로 업로드 세션, wide·close binary PUT, 검사 생성, 분석, 대화 질문, revision 조회, 사용자 확정까지 전 과정을 통과했습니다.\n\nAndroid Debug APK에는 emulator가 PC 로컬 서버에 접근하는 `10.0.2.2`만 HTTP로 허용했습니다. Release 빌드는 HTTPS 전용이며, Debug에서도 임의 사설 IP나 외부 HTTP 주소는 앱 코드에서 거부합니다."
+      },
+      {
+        "id": "environment",
+        "type": "markdown",
+        "body": "## 2. 실행환경 확인\n\nAndroid SDK, ADB, emulator 실행 파일은 설치되어 있습니다. 그러나 현재 연결된 Android 기기가 없고 생성된 AVD 목록도 비어 있어 앱 화면에서 촬영하는 자동 E2E는 실행할 수 없었습니다.\n\n대신 Android 단위·빌드 검증과 독립된 실제 HTTP 서버 E2E를 완료했습니다. S25 USB 디버깅 연결 또는 AVD 생성 후 화면 E2E를 이어갈 수 있습니다."
+      },
+      {
+        "id": "http",
+        "type": "markdown",
+        "sourceId": "http-e2e",
+        "body": "## 3. 실제 HTTP 검증\n\n`uvicorn.Server`를 가용 임시 포트에서 실행하고 `urllib`로 실제 TCP 요청을 보냈습니다. 메서드, header, JSON, binary body가 ASGI 내부 호출이 아닌 네트워크 경계를 통과합니다.\n\n확인 항목은 health, upload session, 파일 무결성 PUT, inspection, analysis, assistant session, 반복 질문, 최신 revision, confirmation입니다."
+      },
+      {
+        "id": "chart",
+        "type": "chart",
+        "chartId": "e2e-chart"
+      },
+      {
+        "id": "android",
+        "type": "markdown",
+        "sourceId": "android-debug",
+        "body": "## 4. Android 개발 연결\n\nDebug 전용 Network Security Config는 `10.0.2.2`와 `localhost`만 cleartext를 허용합니다. 앱의 URL 검증도 `allowLocalHttp`가 명시된 Debug 빌드에서 loopback 주소만 예외로 인정합니다.\n\n`PINSET_AI_API_BASE_URL=http://10.0.2.2:8000`을 주입한 Debug APK가 정상 빌드되었습니다. Release 동작에는 이 예외가 적용되지 않습니다."
+      },
+      {
+        "id": "validation",
+        "type": "markdown",
+        "body": "## 5. 검증 결과\n\n- Python 통합 묶음: **25 passed, 3 skipped**\n- 실제 포트 HTTP E2E 단독·서비스 테스트: 통과\n- Android 단위 테스트: 통과\n- 로컬 URL 주입 Debug APK: **BUILD SUCCESSFUL**\n- Python `vision_ai` compileall: 통과\n\npytest cache 경고 1건은 작업공간 `.pytest_cache` 쓰기 권한에 관한 것으로 테스트 결과에는 영향을 주지 않습니다."
+      },
+      {
+        "id": "run",
+        "type": "markdown",
+        "body": "## 6. 실행 및 다음 단계\n\n개발 서버는 `scripts/run_inspection_dev_server.ps1`로 실행합니다. 에뮬레이터 빌드는 Gradle property `PINSET_AI_API_BASE_URL=http://10.0.2.2:8000`을 사용합니다.\n\n다음 작업은 AVD를 생성하거나 Galaxy S25 USB 디버깅을 연결한 뒤 APK 설치, 카메라 권한, 촬영, 업로드 진행 표시, 질문 선택, 확정 화면을 실제 UI에서 검증하는 것입니다. 실제 S25는 PC 주소 접근 방식이 emulator와 다르므로 `adb reverse tcp:8000 tcp:8000`과 localhost Debug 예외를 사용하는 것이 안전합니다."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-24T21:00:00+09:00",
+    "status": "ready",
+    "datasets": {
+      "e2e_status": [
+        {"step": "FastAPI 실제 포트", "completion": 100, "status": "통과"},
+        {"step": "미디어 binary PUT", "completion": 100, "status": "통과"},
+        {"step": "분석·질문·확정", "completion": 100, "status": "통과"},
+        {"step": "Debug 보안 경계", "completion": 100, "status": "빌드 통과"},
+        {"step": "Android 화면 E2E", "completion": 0, "status": "기기·AVD 필요"},
+        {"step": "운영 HTTPS·OIDC", "completion": 0, "status": "후속 게이트"}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "http-e2e", "label": "실제 HTTP E2E 테스트", "path": "Apartment_Defect_AI/python/tests/test_inspection_http_e2e.py"},
+    {"id": "android-debug", "label": "Android Debug 로컬 연결 설정", "path": "PinSet-App/android/app/src/debug"}
+  ]
+}

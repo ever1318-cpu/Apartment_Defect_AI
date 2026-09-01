@@ -61,7 +61,7 @@ def build_model_package(
     training_spec = TrainingSpec.from_dict(
         _read_json_file(source / "training_spec.json", "training spec")
     )
-    LabelMapping.from_dict(
+    label_mapping = LabelMapping.from_dict(
         _read_json_file(source / "label_mapping.json", "label mapping")
     )
     model_source = source / "model.onnx"
@@ -100,7 +100,16 @@ def build_model_package(
         serialized_shape: tuple[int | str, ...] = (
             ("batch", *input_shape[1:]) if dynamic_batch else input_shape
         )
-        outputs = _output_contracts(dynamic_batch)
+        expected_output_names = _expected_output_names(label_mapping)
+        exported_output_names = tuple(
+            export.get("output_names", expected_output_names)
+        )
+        if exported_output_names != expected_output_names:
+            raise ValueError(
+                "export metadata output names do not match label mapping: "
+                f"expected {expected_output_names}, got {exported_output_names}"
+            )
+        outputs = _output_contracts(dynamic_batch, label_mapping)
         compatibility = CompatibilityManifest(
             python_min="3.11",
             python_max="3.13",
@@ -249,6 +258,7 @@ def validate_model_package(
         )
     except Exception as exc:
         errors.append(f"invalid compatibility manifest: {exc}")
+    mapping: LabelMapping | None = None
     try:
         mapping = LabelMapping.from_dict(
             _read_json_file(root / "label_mapping.json", "label mapping")
@@ -292,7 +302,12 @@ def validate_model_package(
             compatibility_names = tuple(
                 item.get("name") for item in compatibility.outputs
             )
-            if output_names != ONNX_OUTPUT_NAMES:
+            expected_output_names = (
+                _expected_output_names(mapping)
+                if mapping is not None
+                else ONNX_OUTPUT_NAMES
+            )
+            if output_names != expected_output_names:
                 errors.append("model output contract does not match ONNX backend")
             if output_names != compatibility_names:
                 errors.append("manifest output contracts do not match")
@@ -509,21 +524,50 @@ def load_package_configuration(
     }
 
 
-def _output_contracts(dynamic_batch: bool) -> tuple[dict[str, Any], ...]:
+def _classification_tasks(mapping: LabelMapping) -> tuple[str, ...]:
+    tasks = sorted(
+        task.removeprefix("classification:")
+        for task in mapping.tasks
+        if task.startswith("classification:")
+    )
+    legacy = ("space", "trade", "component")
+    if set(tasks) == set(legacy):
+        return legacy
+    return tuple(tasks)
+
+
+def _expected_output_names(mapping: LabelMapping) -> tuple[str, ...]:
+    return (
+        "quality",
+        *(f"{task}_scores" for task in _classification_tasks(mapping)),
+        "boxes",
+        "detection_scores",
+        "detection_labels",
+    )
+
+
+def _output_contracts(
+    dynamic_batch: bool,
+    mapping: LabelMapping,
+) -> tuple[dict[str, Any], ...]:
     batch: int | str = "batch" if dynamic_batch else 1
+    classification_shapes = tuple(
+        [batch, f"{task}_classes"]
+        for task in _classification_tasks(mapping)
+    )
     shapes = (
         [batch, 1],
-        [batch, "space_classes"],
-        [batch, "trade_classes"],
-        [batch, "component_classes"],
+        *classification_shapes,
         [batch, "detections", 4],
         [batch, "detections"],
         [batch, "detections"],
     )
-    dtypes = ("float32",) * 6 + ("int64",)
+    dtypes = ("float32",) * (len(shapes) - 1) + ("int64",)
     return tuple(
         {"name": name, "dtype": dtype, "shape": shape}
-        for name, dtype, shape in zip(ONNX_OUTPUT_NAMES, dtypes, shapes)
+        for name, dtype, shape in zip(
+            _expected_output_names(mapping), dtypes, shapes
+        )
     )
 
 

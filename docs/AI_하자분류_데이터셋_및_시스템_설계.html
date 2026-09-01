@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 기반 하자 분류·메타데이터 생성 시스템 설계</title>
+  <style>
+    :root {
+      --ink: #172033; --muted: #607087; --line: #dce4ee;
+      --blue: #175cd3; --blue-soft: #eef4ff; --green: #067647;
+      --green-soft: #ecfdf3; --amber: #b54708; --amber-soft: #fffaeb;
+      --red: #b42318; --paper: #fff; --ground: #f4f7fb;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--ink); background: var(--ground);
+      font: 15px/1.7 "Pretendard", "Noto Sans KR", "Malgun Gothic", sans-serif; }
+    main { width: min(1120px, calc(100% - 32px)); margin: 28px auto 72px; }
+    header, section { background: var(--paper); border: 1px solid var(--line);
+      border-radius: 18px; box-shadow: 0 8px 30px rgba(23,32,51,.05); }
+    header { padding: 52px 56px; background: linear-gradient(135deg,#102a56,#175cd3);
+      color: white; border: 0; }
+    header p { max-width: 800px; color: #dbe8ff; font-size: 17px; margin-bottom: 0; }
+    h1 { font-size: clamp(30px,5vw,48px); line-height: 1.2; margin: 0 0 18px; }
+    h2 { font-size: 25px; margin: 0 0 22px; }
+    h3 { font-size: 18px; margin: 28px 0 10px; }
+    section { padding: 38px 44px; margin-top: 18px; }
+    .eyebrow { font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+      color: #b9d2ff; margin-bottom: 12px; }
+    .summary { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-top: 28px; }
+    .stat { padding: 18px; border-radius: 12px; background: rgba(255,255,255,.12); }
+    .stat strong { display: block; font-size: 25px; }
+    .stat span { color: #dbe8ff; font-size: 13px; }
+    .callout { padding: 20px 22px; border-left: 5px solid var(--blue);
+      border-radius: 10px; background: var(--blue-soft); }
+    .callout.warn { border-color: var(--amber); background: var(--amber-soft); }
+    .grid-2, .grid-3 { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(2,1fr); }
+    .grid-3 { grid-template-columns: repeat(3,1fr); }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+    .card h3 { margin-top: 0; }
+    .tag { display: inline-block; padding: 3px 10px; margin: 2px;
+      color: var(--blue); background: var(--blue-soft); border-radius: 999px; font-size: 13px; }
+    .flow { display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+      gap: 10px; padding: 22px; background: #f8fafc; border-radius: 14px; }
+    .node { min-width: 145px; padding: 15px; text-align: center; background: white;
+      border: 1px solid var(--line); border-radius: 10px; font-weight: 700; }
+    .arrow { color: var(--blue); font-size: 22px; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { padding: 12px 14px; text-align: left; vertical-align: top;
+      border-bottom: 1px solid var(--line); }
+    th { background: #f8fafc; color: #344054; }
+    code { padding: 2px 6px; color: #1249a0; background: #eef4ff; border-radius: 5px; }
+    pre { overflow-x: auto; padding: 20px; color: #dbe8ff; background: #101828;
+      border-radius: 12px; font-size: 13px; line-height: 1.55; }
+    ol.steps { padding-left: 0; counter-reset: step; }
+    ol.steps li { list-style: none; position: relative; margin: 12px 0; padding: 15px 18px 15px 58px;
+      border: 1px solid var(--line); border-radius: 10px; }
+    ol.steps li::before { counter-increment: step; content: counter(step); position: absolute;
+      left: 16px; top: 13px; width: 28px; height: 28px; color: white;
+      background: var(--blue); border-radius: 50%; text-align: center; line-height: 28px; font-weight: 700; }
+    .good { color: var(--green); font-weight: 700; }
+    .risk { color: var(--red); font-weight: 700; }
+    footer { padding: 28px; color: var(--muted); text-align: center; }
+    @media (max-width: 760px) {
+      header, section { padding: 28px 22px; }
+      .summary, .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); }
+    }
+    @media print {
+      body { background: white; } main { width: 100%; margin: 0; }
+      header, section { box-shadow: none; break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Apartment Defect AI · Solution Blueprint</div>
+    <h1>AI 기반 하자 분류·메타데이터 생성 시스템 설계</h1>
+    <p>하자 이미지를 분석하여 위치, 하자원인, 공종, 하자부위와 상세부위를 실시간으로 분류하고 서버 및 운영 DB에 안전하게 전달하기 위한 데이터셋·모델·서비스 설계안</p>
+    <div class="summary">
+      <div class="stat"><strong>121</strong><span>사용자 테이블</span></div>
+      <div class="stat"><strong>9</strong><span>사용자 뷰</span></div>
+      <div class="stat"><strong>111,402</strong><span>통합 학습 후보 이미지 행</span></div>
+      <div class="stat"><strong>485</strong><span>상세부위 기준정보 행</span></div>
+    </div>
+  </header>
+
+  <section>
+    <h2>1. 핵심 설계 원칙</h2>
+    <div class="callout">
+      <strong>권장 결론:</strong> 이미지 하나로 모든 메타데이터를 직접 결정하는 단일 평면 분류 모델보다,
+      이미지·접수 텍스트·현장 문맥을 결합한 <strong>계층형 멀티태스크 모델</strong>이 정확성과 운영 안정성 면에서 유리하다.
+    </div>
+    <div class="grid-3" style="margin-top:16px">
+      <div class="card"><h3>시각 정보</h3><p>균열, 누수 흔적, 오염, 파손, 들뜸 등 사진에서 관찰 가능한 하자를 탐지한다.</p></div>
+      <div class="card"><h3>업무 문맥</h3><p>단지·동·호·실, 고객 민원, 기존 공종 후보를 함께 사용해 모호성을 줄인다.</p></div>
+      <div class="card"><h3>기준정보 검증</h3><p>DB의 공종·부위·상세부위 관계에 어긋나는 조합을 후보에서 제거한다.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. 권장 데이터 원천</h2>
+    <table>
+      <thead><tr><th>우선순위</th><th>데이터 원천</th><th>용도</th><th>핵심 컬럼</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><code>woohaja_defect_photo_tagged</code></td><td>초기 AI 학습용 통합 데이터</td>
+          <td><code>photo_url</code>, <code>부위</code>, <code>상세부위</code>, <code>공종</code>, <code>하자원인</code></td></tr>
+        <tr><td>2</td><td><code>v_defect_with_files2</code></td><td>운영 데이터 조인 검증</td>
+          <td><code>full_path</code>, <code>part</code>, <code>part_detail</code>, <code>work_kind_name</code>, <code>cause_name</code></td></tr>
+        <tr><td>3</td><td><code>site_defect_file + site_defect</code></td><td>운영 원천 및 신규 데이터</td>
+          <td><code>defect_id</code>, <code>full_path</code>, <code>requirement</code>, <code>work_kind_id</code></td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn">
+      <strong>품질 확인:</strong> 통합 테이블의 <code>defect_id</code>는 명시적인 FK가 없으므로
+      운영 데이터와의 매칭률, 중복 이미지, 경로 유효성, 라벨 충돌을 학습 전에 검사해야 한다.
+    </div>
+  </section>
+
+  <section>
+    <h2>3. 정규화 DB 연결 구조</h2>
+    <div class="flow">
+      <div class="node">site_defect_file<br><small>이미지·경로</small></div><div class="arrow">→</div>
+      <div class="node">site_defect<br><small>하자 본체</small></div><div class="arrow">→</div>
+      <div class="node">site_site_defect_item<br><small>현장별 하자 항목</small></div><div class="arrow">→</div>
+      <div class="node">부위 매핑<br><small>공간·부위·상세부위</small></div>
+    </div>
+    <table>
+      <thead><tr><th>분류 축</th><th>기준 테이블</th><th>대표 필드</th></tr></thead>
+      <tbody>
+        <tr><td>공종</td><td><code>defect_work_kind</code></td><td><code>id, name, code</code></td></tr>
+        <tr><td>위치/공간</td><td><code>defect_area</code></td><td><code>id, name, code</code></td></tr>
+        <tr><td>하자부위</td><td><code>defect_part</code></td><td><code>id, name, code</code></td></tr>
+        <tr><td>상세부위</td><td><code>defect_part_detail</code></td><td><code>id, name, code, work_kind_id</code></td></tr>
+        <tr><td>하자원인</td><td><code>defect_cause</code>, <code>defect_detail_cause_map</code></td><td>원인 및 상세원인 매핑</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>4. 분류 체계</h2>
+    <div class="flow">
+      <div class="node">공간<br><small>욕실·주방·거실</small></div><div class="arrow">→</div>
+      <div class="node">부위<br><small>벽체·바닥·천장</small></div><div class="arrow">→</div>
+      <div class="node">상세부위<br><small>벽타일·창틀·실리콘</small></div><div class="arrow">→</div>
+      <div class="node">하자·공종·원인<br><small>복수 후보 + 신뢰도</small></div>
+    </div>
+    <h3>업무 라벨과 시각 라벨의 분리</h3>
+    <div class="grid-2">
+      <div class="card"><h3>이미지에서 관찰하는 라벨</h3>
+        <span class="tag">균열</span><span class="tag">누수 흔적</span><span class="tag">오염</span>
+        <span class="tag">파손</span><span class="tag">들뜸</span><span class="tag">변색</span>
+      </div>
+      <div class="card"><h3>업무 기준 라벨</h3>
+        <span class="tag">위치</span><span class="tag">부위</span><span class="tag">상세부위</span>
+        <span class="tag">공종</span><span class="tag">하자원인</span>
+      </div>
+    </div>
+    <p class="risk">균열 같은 시각 현상과 타일공사 같은 업무 분류를 하나의 평면 클래스에 합치지 않는다.</p>
+  </section>
+
+  <section>
+    <h2>5. 모델 파이프라인</h2>
+    <div class="flow">
+      <div class="node">품질·중복 검사</div><div class="arrow">→</div>
+      <div class="node">하자 영역 탐지/분할</div><div class="arrow">→</div>
+      <div class="node">멀티태스크 분류</div><div class="arrow">→</div>
+      <div class="node">텍스트·현장정보 결합</div><div class="arrow">→</div>
+      <div class="node">기준정보 검증</div>
+    </div>
+    <table>
+      <thead><tr><th>모델 출력</th><th>방식</th><th>설명</th></tr></thead>
+      <tbody>
+        <tr><td>시각 하자</td><td>다중 레이블</td><td>한 이미지에 여러 하자 유형 허용</td></tr>
+        <tr><td>공간·부위</td><td>계층형 분류</td><td>상위 결과로 하위 후보 제한</td></tr>
+        <tr><td>상세부위</td><td>조건부 분류</td><td>485개 전체를 한 번에 비교하지 않음</td></tr>
+        <tr><td>공종</td><td>후보 순위화</td><td>이미지와 DB 관계를 결합</td></tr>
+        <tr><td>하자원인</td><td>상위 N개 후보</td><td>이미지만으로 확정하기 어려우므로 검토 지원</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>6. 데이터셋 구성과 분할</h2>
+    <div class="grid-2">
+      <div class="card"><h3>학습 레코드 단위</h3>
+        <ul><li>이미지 ID와 <code>defect_id</code></li><li>이미지 URI와 품질 상태</li>
+          <li>위치·부위·상세부위 ID</li><li>공종·원인과 라벨 신뢰도</li>
+          <li>접수내용 및 현장 문맥</li><li>중복 그룹과 출처</li></ul>
+      </div>
+      <div class="card"><h3>누수 방지 분할</h3>
+        <ul><li>동일 <code>defect_id</code>는 한 split에만 배치</li>
+          <li>동일·유사 사진 그룹을 분리하지 않음</li><li>가능하면 현장 단위 분할</li>
+          <li>최근 기간과 신규 현장을 별도 테스트</li></ul>
+      </div>
+    </div>
+    <p><span class="good">권장:</span> Train 70% · Validation 15% · Test 15%와 별도의 최근 데이터 운영 검증 세트</p>
+  </section>
+
+  <section>
+    <h2>7. 희소 클래스와 라벨 품질 정책</h2>
+    <table>
+      <thead><tr><th>클래스 데이터 수</th><th>권장 처리</th></tr></thead>
+      <tbody>
+        <tr><td>100건 이상</td><td>독립 클래스로 학습</td></tr>
+        <tr><td>30~99건</td><td>유사 클래스 병합 또는 상위 분류 보조</td></tr>
+        <tr><td>30건 미만</td><td>기타/검토필요 또는 few-shot 후보</td></tr>
+        <tr><td>원인 불명·라벨 충돌</td><td>억지로 정답화하지 않고 unknown 처리</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>8. 실시간 추론 응답 표준</h2>
+    <pre>{
+  "request_id": "uuid",
+  "model_version": "defect-multitask-2026.01",
+  "defects": [{
+    "bbox": [120, 88, 630, 720],
+    "visual_defect": {"code": "CRACK", "confidence": 0.94},
+    "area": {"id": 3, "name": "욕실", "confidence": 0.81},
+    "part": {"id": 7, "name": "벽체", "confidence": 0.91},
+    "part_detail": {"id": 42, "name": "벽타일", "confidence": 0.87},
+    "work_kind": {"id": 12, "name": "타일공사", "confidence": 0.79},
+    "cause_candidates": [
+      {"id": 5, "name": "접착불량", "confidence": 0.62}
+    ]
+  }],
+  "review_required": true
+}</pre>
+  </section>
+
+  <section>
+    <h2>9. DB 저장 및 검수 구조</h2>
+    <div class="grid-3">
+      <div class="card"><h3>추론</h3><p><code>ai_inference_request</code><br><code>ai_defect_prediction</code><br><code>ai_prediction_region</code></p></div>
+      <div class="card"><h3>후보·근거</h3><p><code>ai_prediction_candidate</code><br>클래스 ID, 신뢰도, 순위, 모델 버전</p></div>
+      <div class="card"><h3>검수·재학습</h3><p><code>ai_human_review</code><br><code>ai_model_version</code><br>수정 라벨과 승인 이력</p></div>
+    </div>
+    <p class="risk">AI 결과로 기존 운영 하자 컬럼을 즉시 덮어쓰지 않는다. 별도 추론 테이블에 저장하고 정책에 따라 승인 후 반영한다.</p>
+  </section>
+
+  <section>
+    <h2>10. 신뢰도 기반 운영 정책</h2>
+    <table>
+      <thead><tr><th>신뢰도</th><th>처리 정책</th></tr></thead>
+      <tbody>
+        <tr><td>0.90 이상</td><td>자동 저장 가능</td></tr>
+        <tr><td>0.70~0.90</td><td>저장 후 사용자 확인</td></tr>
+        <tr><td>0.50~0.70</td><td>상위 3개 후보 제시</td></tr>
+        <tr><td>0.50 미만</td><td>자동 분류 보류</td></tr>
+        <tr><td>계층 규칙 위반</td><td>신뢰도와 무관하게 검토</td></tr>
+      </tbody>
+    </table>
+    <p>실제 임계값은 공종·부위·상세부위·원인별 검증 결과로 각각 보정한다.</p>
+  </section>
+
+  <section>
+    <h2>11. 권장 구축 순서</h2>
+    <ol class="steps">
+      <li><code>woohaja_defect_photo_tagged</code> 이미지 접근성과 라벨 품질 검증</li>
+      <li><code>defect_id</code> 기준 중복 제거 및 누수 없는 데이터 split 생성</li>
+      <li>공종·부위·상세부위를 운영 DB 기준정보 ID로 정규화</li>
+      <li>이미지 품질 모델과 기본 멀티태스크 분류 모델 구축</li>
+      <li><code>v_defect_with_files2</code> 및 접수 텍스트를 결합한 멀티모달 모델 확장</li>
+      <li>탐지·분할 라벨을 점진적으로 추가하고 설명 가능성 확보</li>
+      <li>추론 API, AI 전용 저장 테이블, 사용자 검수 화면 구축</li>
+      <li>사용자 수정 결과를 재학습 큐로 순환시키는 운영 체계 구축</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>12. MVP 권장 범위</h2>
+    <div class="callout">
+      <strong>1차 MVP:</strong> 통합 이미지 테이블로 <strong>시각 하자 유형·부위·상세부위</strong>를 학습하고,
+      공종과 하자원인은 이미지 예측, 접수 텍스트 및 DB 매핑 규칙을 결합해 후보로 생성한다.
+      검수된 결과는 AI 전용 테이블에 저장하고 다음 학습 데이터로 환류한다.
+    </div>
+  </section>
+
+  <footer>Apartment Defect AI · 데이터 조사 기반 설계 문서 · 2026-07-21</footer>
+</main>
+</body>
+</html>

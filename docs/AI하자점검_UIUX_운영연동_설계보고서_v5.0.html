@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI하자점검 UI/UX 운영연동 설계보고서 v5.0</title>
+  <style>
+    :root { --ink:#17212b; --muted:#617080; --navy:#173b5c; --blue:#2673a8; --mint:#287c70; --amber:#a06412; --red:#a94747; --line:#d8e0e7; --paper:#fff; --bg:#f3f6f8; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:var(--bg); font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif; line-height:1.65; }
+    main { max-width:1120px; margin:0 auto; padding:28px 20px 56px; }
+    .hero { color:#fff; background:linear-gradient(135deg,#143451,#256a83); border-radius:18px; padding:30px 32px; box-shadow:0 10px 30px #173b5c30; }
+    .hero h1 { margin:6px 0 8px; font-size:clamp(25px,4vw,38px); line-height:1.25; }
+    .hero p { margin:0; opacity:.92; }
+    .meta, .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+    .chip { display:inline-block; padding:3px 10px; border-radius:999px; font-size:13px; background:#ffffff20; border:1px solid #ffffff45; }
+    section { background:var(--paper); margin-top:18px; padding:22px 24px; border:1px solid var(--line); border-radius:14px; box-shadow:0 3px 11px #2637460b; }
+    h2 { margin:0 0 12px; color:var(--navy); font-size:22px; line-height:1.35; }
+    h3 { margin:0 0 6px; color:#245a7c; font-size:16px; }
+    p { margin:7px 0; } ul { margin:8px 0; padding-left:22px; } li { margin:3px 0; }
+    .notice { border-left:5px solid var(--amber); background:#fff9ed; } .ok { border-left:5px solid var(--mint); background:#eff9f6; } .pending { border-left:5px solid var(--blue); background:#f1f8fc; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(245px,1fr)); gap:12px; }
+    .card { padding:15px; border:1px solid var(--line); border-radius:10px; background:#fbfdfe; }
+    table { width:100%; border-collapse:collapse; font-size:14px; } th,td { border:1px solid var(--line); padding:10px; vertical-align:top; text-align:left; } th { color:#fff; background:#315d7a; } tr:nth-child(even) td { background:#f8fafb; }
+    .flow { overflow:auto; color:#eaf4f9; background:#102c41; padding:16px; border-radius:10px; font-family:Consolas,"D2Coding",monospace; font-size:14px; white-space:pre; }
+    .status { font-weight:700; white-space:nowrap; } .done { color:var(--mint); } .deploy { color:var(--amber); } .next { color:var(--blue); }
+    code { color:#173b5c; background:#edf3f6; padding:1px 5px; border-radius:4px; word-break:break-all; }
+    .foot { text-align:center; color:var(--muted); font-size:13px; padding-top:15px; }
+    @media(max-width:640px) { main{padding:16px 12px 35px}.hero{padding:23px 20px}section{padding:18px 15px}table{font-size:13px}th,td{padding:8px} }
+  </style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div>UI/UX · 모바일–서버 운영연동 설계보고서</div>
+    <h1>AI하자점검 UI/UX 운영연동 설계보고서 v5.0</h1>
+    <p>현장 사진·의견 입력, AI 추천, 오프라인 보관·동기화, PostgreSQL 저장 및 하자DB 갤러리 조회까지의 최신 구현 상태를 정리한 운영 기준 문서</p>
+    <div class="meta"><span class="chip">작성일 2026-07-27</span><span class="chip">Android · PostgreSQL · FastAPI</span><span class="chip">Galaxy S25 Ultra 현장 검증 기준</span></div>
+  </header>
+
+  <section class="ok">
+    <h2>1. 이번 반영 범위</h2>
+    <p>앱의 입력·사진·의견·마감 화면을 현장 사용 흐름으로 정돈하고, 저장된 이미지와 메타데이터를 휴대폰에서 다시 조회하는 <strong>하자DB</strong> 화면을 추가했다. 사진 또는 의견이 누락되어도 점검 건을 저장·집계할 수 있도록 안전한 기본값을 적용했다.</p>
+    <div class="chips"><span class="chip" style="background:#287c70;color:white">구현 완료</span><span class="chip" style="background:#a06412;color:white">서버 재시작 필요 가능</span><span class="chip" style="background:#2673a8;color:white">운영 검증 단계</span></div>
+  </section>
+
+  <section>
+    <h2>2. 현장 화면 흐름</h2>
+    <div class="flow">[초기환경 / 세대 선택]
+  ├─ 앵커 촬영 (세대 최초 1회만) ──┐
+  ├─ 하자 입력 ────────────────────┼→ [하자사진] → [하자의견] → 저장
+  ├─ 보고서                          │                     │
+  └─ 하자DB ─ 저장 사진·메타데이터 조회 ┘                     ↓
+                                                     [전송 및 마감]
+
+휴대폰 로컬 보관 → VPN/네트워크 → Field API → PostgreSQL + field-media</div>
+    <div class="grid" style="margin-top:14px">
+      <div class="card"><h3>초기환경</h3><p>동·호수와 평형을 기준으로 평면도·세대 정보를 불러오며, <b>앵커 촬영</b>과 <b>하자 입력</b>, <b>보고서</b>, <b>하자DB</b>로 바로 이동한다.</p></div>
+      <div class="card"><h3>하자사진</h3><p>기본은 <b>근경 1장</b>이며 필요 시 <b>근경 + 원경</b>을 선택한다. 촬영 후 별도 판별확인 화면 없이 하자의견 입력으로 이동한다.</p></div>
+      <div class="card"><h3>하자의견</h3><p>음성인식 또는 문자 입력을 사용한다. AI 추천은 사진·문자 근거를 색상으로 구분하고, 최종 의견은 점검자 의견과 AI 결과를 함께 편집한다.</p></div>
+      <div class="card"><h3>완료·조회</h3><p>보고서에서 건수와 통계를 확인한 뒤 <b>전송 및 마감</b>한다. 하자DB에서는 세대별 저장 사진과 메타데이터를 갤러리로 확인한다.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. 최신 UI/UX 적용 내역</h2>
+    <table>
+      <thead><tr><th>화면·기능</th><th>반영 내용</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td>초기환경</td><td>하단 메뉴에 <b>보고서</b>, <b>하자DB</b>를 함께 배치했다. 앵커 설정·촬영은 최초 1회만 노출하며 이후에는 앵커 위치 텍스트와 평면도 표시로 대체한다.</td><td class="status done">구현</td></tr>
+        <tr><td>라이브 디텍션</td><td>기본 촬영 모드를 <b>근경 1장</b>으로 변경하고, <b>근경 + 원경</b> 선택을 유지했다. 촬영 완료 시 하자의견 화면으로 바로 전환한다.</td><td class="status done">구현</td></tr>
+        <tr><td>하자의견 상세</td><td>표현을 <b>AI분석 추천 :사진/문자</b>로 단순화했다. 번호 1·2를 크게 표시하고, 최종 입력 영역은 <b>점검자 의견, AI 종합</b>으로 정리했다.</td><td class="status done">구현</td></tr>
+        <tr><td>AI 추천</td><td>즉시 규칙 기반 추천을 먼저 표시하고, Gemini 설정이 완료된 경우 사진·점검자 의견·센서 문맥을 사용한 LLM 결과로 갱신한다. 네트워크 또는 키 미설정 시 안전한 규칙 기반 결과를 유지한다.</td><td class="status done">구현</td></tr>
+        <tr><td>사진·의견 누락</td><td>사진이 없으면 <b>가상 참고 이미지 · 실제 촬영 없음</b>이 명시된 도식 이미지를 생성한다. 의견이 없으면 위치·상세부위·유형·공종을 조합한 기본 추천을 저장한다.</td><td class="status done">구현</td></tr>
+        <tr><td>보고서</td><td>심각도·공종·방 통계를 한 단으로 축약하고 가운데 정렬했다. 공종의 <b>기타</b>는 인접 값과 혼동되지 않도록 간격을 보정했다.</td><td class="status done">구현</td></tr>
+        <tr><td>마감</td><td>최근 하자 목록 화면에서 <b>전송 및 마감</b>을 실행한다. 동기화 미완료가 있으면 마감을 보류하고 사유를 안내한다.</td><td class="status done">구현</td></tr>
+        <tr><td>상단 통신 표시</td><td>서버 <code>/health</code>를 주기적으로 확인한다. VPN 주소(100.x)를 사용하는 경우 VPN 연결·확인중·미연결 상태로 표시한다.</td><td class="status done">구현</td></tr>
+        <tr><td>하자DB 갤러리</td><td>동·호 풀다운, 서버 저장 매체 갤러리, 이미지·메타데이터 조회, 데이터 없음·통신 오류 안내를 제공한다. 가상 참고 이미지는 별도 표시한다.</td><td class="status done">앱 구현</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>4. 저장·동기화·조회 아키텍처</h2>
+    <div class="flow">S25 현장 앱
+  ├─ Room/로컬 파일: 사진·메모·스티커 사진·메타데이터 임시 보관
+  ├─ WorkManager: 통신 복구 시 업로드 재시도
+  └─ HTTPS 또는 Tailscale VPN API
+                 │
+                 ▼
+FastAPI Field API (포트 8001)
+  ├─ /v2/media/uploads/{id}        이미지 업로드
+  ├─ /v2/field/sync/batches        하자·세션 동기화
+  ├─ /v2/field/gallery/households  세대 선택 목록
+  └─ /v2/field/media/{id}/content  저장 이미지 조회
+                 │
+                 ▼
+PostgreSQL (하자·세대·세션·메타데이터) + workspace/field-media (실제 이미지 파일)</div>
+    <p>이미지 파일명은 동·호·위치·상세부위·타임스탬프 등 메타데이터를 반영할 수 있으며, DB에는 원본 파일의 식별자·경로·분류값을 함께 저장한다. 업로드 전에는 휴대폰 로컬 큐에 유지하므로 현장 통신 품질이 낮아도 입력 데이터가 즉시 사라지지 않는다.</p>
+  </section>
+
+  <section class="pending">
+    <h2>5. 운영 반영 확인 사항</h2>
+    <p><strong>앱 코드에는 하자DB 조회 API와 갤러리 화면이 반영되어 있다.</strong> 다만 실행 중인 API 프로세스가 이전 코드인 경우 <code>/health</code>는 정상(200)이어도 <code>/v2/field/gallery/households</code>가 404일 수 있다. 이는 VPN 불량이 아니라 <b>서버 프로세스 재시작이 필요한 배포 상태</b>다.</p>
+    <ol>
+      <li>기존 Field API를 종료한다.</li>
+      <li><code>D:\AI_projects\Apartment_Defect_AI\scripts\run_field_postgres_server.ps1 -Port 8001</code>로 최신 서버를 시작한다.</li>
+      <li>PC에서 <code>Invoke-RestMethod http://127.0.0.1:8001/v2/field/gallery/households</code>를 실행해 목록 응답을 확인한다.</li>
+      <li>휴대폰 앱의 API 주소를 PC Tailscale 주소인 <code>http://100.116.105.9:8001</code>로 설정하고 하자DB를 새로고침한다.</li>
+    </ol>
+    <p>실제 운영 환경에서는 외부 공개 HTTP 대신 인증, HTTPS, 접근제어를 적용한 서버 주소로 전환해야 한다. 현재 Tailscale 주소는 현장 검증망 용도다.</p>
+  </section>
+
+  <section>
+    <h2>6. 검증 결과 및 다음 현장 점검</h2>
+    <div class="grid">
+      <div class="card"><h3>코드 검증</h3><ul><li>백엔드 갤러리 관련 테스트: 15건 성공</li><li>Android <code>:app:testDebugUnitTest</code> 성공</li><li>Android Debug APK 조립 성공</li></ul></div>
+      <div class="card"><h3>현장 수용 기준</h3><ul><li>사진 1장 저장 후 앱 상태가 전송 완료가 되는지</li><li>보고서의 전송 및 마감 후 세션이 완료되는지</li><li>하자DB에서 동일 동·호의 사진·메타데이터가 조회되는지</li><li>VPN을 끊었다가 복구했을 때 자동 재전송되는지</li></ul></div>
+      <div class="card"><h3>주의 사항</h3><ul><li>가상 참고 이미지는 실제 현장 증빙 사진이 아니다.</li><li>AI 추천은 점검자의 최종 검토·수정을 전제로 한다.</li><li>마감은 미전송 매체가 모두 처리된 뒤에만 완료된다.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="notice">
+    <h2>7. 결론</h2>
+    <p>현재 UI/UX는 <b>현장 입력 → 로컬 보관 → 통신 복구 시 전송 → 서버 저장 → 휴대폰 갤러리 재조회</b>라는 운영 순환을 갖추었다. 다음 실기기 확인의 핵심은 최신 API 프로세스를 재시작한 뒤, VPN 상태에서 하자DB의 동·호 목록과 저장 이미지가 정상 조회되는지 검증하는 것이다.</p>
+  </section>
+  <p class="foot">AI하자점검 UI/UX 운영연동 설계보고서 v5.0 · UTF-8 · 2026-07-27</p>
+</main>
+</body>
+</html>

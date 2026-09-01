@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 공용부·기타 DB 적용 점검보고서 v5.3</title>
+<style>body{font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;line-height:1.65;color:#182430;background:#f5f8fb;margin:0}.wrap{max-width:940px;margin:28px auto;background:#fff;padding:32px 40px;box-shadow:0 4px 20px #16304b18}h1{color:#173b5c;margin:0}h2{color:#245b8f;border-bottom:2px solid #d5e1eb;padding-bottom:8px;margin-top:32px}.ok,.warn,.box{padding:15px 18px;border-radius:9px;margin:13px 0}.ok{background:#edf8f1;border-left:5px solid #278452}.warn{background:#fff6e8;border-left:5px solid #b87512}.box{background:#eff6fc;border-left:5px solid #245b8f}table{width:100%;border-collapse:collapse;margin:13px 0}th,td{border:1px solid #cfdae4;padding:10px;text-align:left;vertical-align:top}th{background:#edf4f9;color:#173b5c}code,pre{font-family:Consolas,monospace}pre{white-space:pre-wrap;background:#172431;color:#edf6ff;padding:14px;border-radius:8px;overflow:auto}a{color:#145998;font-weight:bold}</style></head>
+<body><main class="wrap"><h1>AI하자점검 공용부·기타 DB 적용 점검보고서 v5.3</h1>
+<p>점검일: 2026-07-28 · 대상: 로컬 PostgreSQL Field API <code>http://127.0.0.1:8001</code></p>
+<h2>1. 현재 확인 결과</h2>
+<div class="ok"><b>서버 상태:</b> 정상. <code>/health</code> 응답은 <code>healthy / postgresql / ready</code>로 확인되었고, 기존 세대 완료 점검 기록은 갤러리 목록에서 조회됩니다.</div>
+<div class="warn"><b>공용부 DB 대상:</b> 아직 생성되지 않았습니다. <code>GET /v2/field/households/resolve?building_no=COMMON&amp;unit_no=0000</code> 호출 결과가 <code>404 HOUSEHOLD_NOT_FOUND</code>였습니다. 따라서 현재는 공용부 사진·의견이 서버 DB에 저장되거나 하자DB 갤러리에 표시될 수 없습니다.</div>
+<table><thead><tr><th>점검 항목</th><th>결과</th><th>의미</th></tr></thead><tbody><tr><td>Field API health</td><td>정상</td><td>서버·PostgreSQL 연결은 정상</td></tr><tr><td>세대 하자DB 목록</td><td>기존 완료 세대 기록 조회</td><td>갤러리 기본 기능 정상</td></tr><tr><td>COMMON / 0000 조회</td><td>404</td><td>공용부 전용 DB 마이그레이션 미적용</td></tr><tr><td>공용부 사진·의견</td><td>현재 미저장</td><td>마이그레이션 및 서버 재시작 후 가능</td></tr></tbody></table>
+<h2>2. 원인과 처리 방식</h2><p>공용부는 실제 세대 동·호가 아니므로, DB 내부에는 전용 기술 대상 <code>COMMON / 0000</code>을 만들고 실제 발생 장소는 세션의 <code>inspection_kind=COMMON_AREA</code>, <code>common_area_label</code>에 저장하도록 구현했습니다. 이는 기존 사진, 의견, AI 분류, 완료·재전송, 갤러리 기능을 그대로 재사용하면서 세대 통계와 공용부를 구분하는 방식입니다.</p>
+<h2>3. 적용 절차</h2><pre>cd D:\AI_projects\Apartment_Defect_AI<br>.\scripts\setup_local_field_db.ps1<br><br># 기존 Field API를 Ctrl+C로 종료한 뒤 다시 실행<br>.\scripts\run_field_postgres_server.ps1 -Port 8001</pre>
+<p>첫 명령은 로컬 PostgreSQL 암호를 묻습니다. 암호는 화면·보고서·DB 메타데이터에 기록되지 않습니다. 성공 시 <code>003_common_area_inspections.sql</code>이 적용되어 공용부 대상과 세션 컬럼이 생성됩니다.</p>
+<h2>4. 적용 후 즉시 검증</h2><pre>Invoke-RestMethod 'http://127.0.0.1:8001/v2/field/households/resolve?building_no=COMMON&amp;unit_no=0000'<br>Invoke-RestMethod 'http://127.0.0.1:8001/v2/field/gallery/households'</pre>
+<p>첫 호출이 <code>COMMON</code>, <code>0000</code> 정보를 반환하면 준비 완료입니다. 휴대폰에서 <b>공용부·기타 하자 입력</b> → 발생 위치 입력 → 사진·의견 저장 → 세대점검 마감 순서로 완료한 후, 두 번째 호출 목록과 앱 하자DB에서 <b>공용부·기타 / 공용부 기록</b> 항목을 확인합니다.</p>
+<h2>5. 사진·의견 열람 보장 범위</h2><div class="box">완료된 공용부 세션은 하자DB 목록에 표시되며, 선택 시 하자별 촬영사진·스티커/메모 사진·원문 의견·AI 추천·최종 분류를 함께 조회합니다. 전송 중이거나 미완료인 세션은 의도적으로 갤러리에 노출하지 않습니다.</div>
+<p style="margin-top:30px;color:#667889;font-size:13px">문서 버전 v5.3 · UTF-8</p></main></body></html>

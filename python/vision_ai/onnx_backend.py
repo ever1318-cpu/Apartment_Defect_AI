@@ -21,7 +21,7 @@ class OnnxSession(Protocol):
 SessionFactory = Callable[[Path, Sequence[str] | None], OnnxSession]
 InputLoader = Callable[[str], Any]
 
-_OUTPUT_NAMES = (
+_DEFAULT_OUTPUT_NAMES = (
     "quality",
     "space_scores",
     "trade_scores",
@@ -89,6 +89,17 @@ class OnnxVisionBackend:
     _cached_outputs: dict[str, Any] | None = field(
         init=False, default=None, repr=False
     )
+
+    @property
+    def output_names(self) -> tuple[str, ...]:
+        tasks = tuple(self.classification_labels)
+        return (
+            "quality",
+            *(f"{task}_scores" for task in tasks),
+            "boxes",
+            "detection_scores",
+            "detection_labels",
+        )
 
     def __post_init__(self) -> None:
         path = Path(self.model_path)
@@ -175,13 +186,14 @@ class OnnxVisionBackend:
         if image_path == self._cached_path and self._cached_outputs is not None:
             return self._cached_outputs
         tensor = self.input_loader(image_path)
-        values = self._session.run(_OUTPUT_NAMES, {self._input_name: tensor})
-        if len(values) != len(_OUTPUT_NAMES):
+        output_names = self.output_names
+        values = self._session.run(output_names, {self._input_name: tensor})
+        if len(values) != len(output_names):
             raise ValueError(
                 f"ONNX session returned {len(values)} outputs; "
-                f"expected {len(_OUTPUT_NAMES)}"
+                f"expected {len(output_names)}"
             )
-        outputs = dict(zip(_OUTPUT_NAMES, values))
+        outputs = dict(zip(output_names, values))
         self._cached_path = image_path
         self._cached_outputs = outputs
         return outputs
