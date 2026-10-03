@@ -358,3 +358,32 @@ def test_training_cli_end_to_end(tmp_path, capsys) -> None:
     assert json.loads((run_dir / "run_manifest.json").read_text(encoding="utf-8"))[
         "status"
     ] == "completed"
+
+
+def test_builder_supports_remote_urls_for_colab_export(tmp_path) -> None:
+    records = [
+        ImageRecord("train", "https://example.invalid/train.jpg", "group-1", "defect", split="train"),
+        ImageRecord("validation", "https://example.invalid/validation.jpg", "group-2", "defect", split="validation"),
+        ImageRecord("test", "https://example.invalid/test.jpg", "group-3", "defect", split="test"),
+    ]
+    annotations = [
+        annotation("train"),
+        annotation("validation"),
+        annotation("test"),
+    ]
+
+    build_training_dataset(
+        records,
+        annotations,
+        tmp_path / "remote-colab",
+        dataset_version="dataset-7",
+        tasks=TrainingTasks(
+            classification=True,
+            detection=False,
+            severity=False,
+            classification_tasks=("space",),
+        ),
+    )
+
+    row = json.loads((tmp_path / "remote-colab" / "train.jsonl").read_text(encoding="utf-8").splitlines()[0])
+    assert row["image_path"] == "https://example.invalid/train.jpg"

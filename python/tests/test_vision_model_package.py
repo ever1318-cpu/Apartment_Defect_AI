@@ -148,6 +148,78 @@ def test_builds_complete_valid_package_and_deterministic_checksums(tmp_path) -> 
     assert "checksums.json" not in checksum_paths
 
 
+def test_package_contract_follows_dynamic_convnext_tasks(tmp_path) -> None:
+    run = _training_run(tmp_path)
+    tasks = {
+        "area": ["거실", "주방"],
+        "cause": ["누수", "균열"],
+        "part": ["벽", "바닥"],
+        "part_detail": ["벽지", "타일"],
+        "work_kind": ["도배공사", "타일공사"],
+    }
+    write_json(
+        run / "label_mapping.json",
+        {
+            "tasks": {
+                f"classification:{task}": _vocabulary(sorted(labels))
+                for task, labels in tasks.items()
+            }
+        },
+    )
+    expected = [
+        "quality",
+        "area_scores",
+        "cause_scores",
+        "part_scores",
+        "part_detail_scores",
+        "work_kind_scores",
+        "boxes",
+        "detection_scores",
+        "detection_labels",
+    ]
+    export = json.loads((run / "export_metadata.json").read_text())
+    export["output_names"] = expected
+    write_json(run / "export_metadata.json", export)
+    spec = json.loads((run / "training_spec.json").read_text())
+    spec["tasks"]["classification_tasks"] = list(tasks)
+    spec["tasks"]["detection"] = False
+    write_json(run / "training_spec.json", spec)
+
+    package = tmp_path / "convnext-package"
+    build_model_package(
+        run,
+        package,
+        "apartment-defect-convnext",
+        "2.0.0",
+        created_at="2026-07-24T00:00:00+00:00",
+    )
+
+    manifest = json.loads((package / "model_manifest.json").read_text())
+    assert [item["name"] for item in manifest["output_contract"]] == expected
+    assert validate_model_package(package, strict=True).valid
+    backend = OnnxVisionBackend(
+        package,
+        session_factory=lambda path, providers: _Session(),
+        input_loader=lambda path: "tensor",
+    )
+    assert tuple(backend.classification_labels) == tuple(tasks)
+    assert backend.output_names == tuple(expected)
+
+
+def test_package_rejects_export_names_that_do_not_match_labels(tmp_path) -> None:
+    run = _training_run(tmp_path)
+    export = json.loads((run / "export_metadata.json").read_text())
+    export["output_names"] = ["quality", "wrong_scores"]
+    write_json(run / "export_metadata.json", export)
+    with pytest.raises(ValueError, match="do not match label mapping"):
+        build_model_package(
+            run,
+            tmp_path / "invalid-package",
+            "apartment-defect",
+            "2.0.0",
+        )
+
+
 def test_builder_rejects_collision_and_missing_inputs(tmp_path) -> None:
     run = _training_run(tmp_path)
     output = tmp_path / "existing"

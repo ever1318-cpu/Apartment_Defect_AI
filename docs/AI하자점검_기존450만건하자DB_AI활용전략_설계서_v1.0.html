@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI하자점검 기존 450만 건 하자DB AI 활용전략 설계서 v1.0</title><style>body{font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;max-width:1120px;margin:30px auto;padding:0 22px;color:#17212b;line-height:1.72}h1{color:#173f67;border-bottom:3px solid #2d719f;padding-bottom:11px}h2{margin-top:32px;color:#1c5a81;border-left:5px solid #6199bb;padding-left:10px}h3{color:#234f6c}.lead{background:#edf6fb;border-radius:10px;padding:16px}.flow{background:#132c3c;color:#f8fbff;border-radius:9px;padding:16px;white-space:pre-wrap;font-family:Consolas,monospace;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}.card{border:1px solid #c7d7e4;border-radius:9px;padding:13px;background:#fbfdff}table{border-collapse:collapse;width:100%;margin:10px 0 18px}th,td{border:1px solid #bdccd7;padding:9px;text-align:left;vertical-align:top}th{background:#eaf2f8}.p1{color:#b42318;font-weight:700}.p2{color:#9a6700;font-weight:700}code{background:#edf1f4;padding:2px 4px;border-radius:3px}</style></head><body>
+<h1>기존 450만 건 하자DB의 AI 보조 점검 앱 활용전략 v1.0</h1>
+<p>작성일: 2026-08-03 · 대상: 기존 하자DB 약 450만 건, 신규 AI 보조 품질/하자점검 앱</p>
+<div class="lead"><b>결론</b> — 450만 건을 곧바로 하나의 CNN 학습셋으로 쓰는 방식은 비효율적입니다. 기존 DB를 <b>① 유사사례 검색 지식베이스, ② 표준 분류체계 사전, ③ 고품질 계층형 학습셋, ④ 현장 AI 추천의 근거, ⑤ 신규 입력의 피드백 루프</b>로 나누어 활용해야 합니다. 사진이 없는 메타데이터도 텍스트·분류·검색 학습에는 매우 큰 가치가 있습니다.</div>
+<h2>1. 현재 확인된 활용 가능 자산</h2>
+<p>프로젝트의 기존 표본 데이터셋에는 하자 이미지와 함께 <b>하자 ID, 단지 코드·명, 동·호, 공간(area), 원문 하자설명, 기존 라벨</b>이 존재합니다. 예를 들어 공간은 거실·안방·주방·욕실·발코니 등으로, 라벨은 타일·벽지·창호·마루·목문·코킹·수전 등으로 나타납니다.</p>
+<table><tr><th>기존 필드</th><th>AI 앱에서의 역할</th><th>주의점</th></tr>
+<tr><td>하자 사진</td><td>이미지 분류·유사 이미지 검색·검수 근거</td><td>스티커·화살표·중복·저품질·정상 사진을 분리</td></tr>
+<tr><td>원문 하자설명</td><td>STT/문자 입력 정규화, LLM 추천, 텍스트 검색</td><td>오탈자·약어·현장 표현은 원문 보존 후 표준화</td></tr>
+<tr><td>공간·동·호·단지</td><td>평면도 위치 문맥, 분포 분석, 그룹 누수 방지</td><td>개인·세대 식별정보는 최소화·권한 분리</td></tr>
+<tr><td>기존 라벨/공종</td><td>초기 약한 정답(weak label), 분류체계 매핑</td><td>라벨 불일치·동의어를 사람이 검증</td></tr>
+<tr><td>처리·완료 이력</td><td>심각도·우선순위·원인 추정 보조</td><td>처리 결과와 최초 접수 의견을 구분</td></tr></table>
+<h2>2. 450만 건을 다섯 층으로 분해</h2>
+<div class="flow">[원천 450만 건: 읽기 전용 스냅샷]
+       │
+       ├─ A. 원천·감사 보존층 (변경 금지)
+       ├─ B. 표준화·검색층 (텍스트, 공간, 라벨, 임베딩)
+       ├─ C. 미디어 품질층 (사진, 해시, 중복, 스티커/화살표, 품질)
+       ├─ D. 학습 승인층 (검증된 5계층 라벨·그룹 분리)
+       └─ E. 앱 피드백층 (신규 입력·점검자 확정·오류 사례)</div>
+<div class="grid"><div class="card"><b>A. 원천 보존층</b><br>운영 DB를 수정하지 않고 추출 시각·원본 PK·해시·추출 조건을 기록합니다. 재현성과 감사의 기준입니다.</div><div class="card"><b>B. 검색 지식층</b><br>사진이 없더라도 원문 설명·공간·기존 라벨을 정규화해 현장 입력과 유사한 과거 사례를 찾습니다.</div><div class="card"><b>C. 미디어 품질층</b><br>이미지 파일 존재 여부, 해상도, 해시 중복, 흐림·가림, 스티커·화살표 여부를 별도 관리합니다.</div><div class="card"><b>D. 학습 승인층</b><br>고품질 사진과 검증된 표준 라벨만 모델 학습에 사용합니다. 전체의 일부여도 더 중요합니다.</div><div class="card"><b>E. 피드백층</b><br>앱에서 점검자가 확정한 분류를 신규 골드 라벨로 축적하고 주기적으로 재학습합니다.</div></div>
+<h2>3. 가장 효과적인 우선 활용법</h2>
+<table><tr><th>우선순위</th><th>활용 방식</th><th>450만 건의 사용 범위</th><th>앱 효과</th></tr>
+<tr><td><span class="p1">1</span></td><td><b>유사사례 검색</b></td><td>텍스트·라벨이 있는 최대 범위. 사진이 있으면 멀티모달 검색.</td><td>점검자가 “안방 창틀 코킹 들뜸”을 입력하면 유사 사례, 표준 문구, 공종 후보를 즉시 추천.</td></tr>
+<tr><td><span class="p1">2</span></td><td><b>표준 분류체계 구축</b></td><td>기존 라벨·설명 전체를 동의어·약어 포함 사전으로 정규화.</td><td>앱의 위치.하자부위.상세부위.공종.원인 5계층 풀다운과 AI 추천이 일관됨.</td></tr>
+<tr><td><span class="p1">3</span></td><td><b>고품질 이미지 학습</b></td><td>이미지 존재·품질 통과·라벨 검증 건만 선별.</td><td>ConvNeXt 등 이미지 모델의 실제 정확도와 신뢰도가 향상.</td></tr>
+<tr><td><span class="p2">4</span></td><td><b>문자/STT 정규화</b></td><td>원문 의견 전체를 활용한 용어 사전·LLM 예시·검색 인덱스.</td><td>입주자·점검자 표현을 표준 하자문구로 변환하되 원문은 보존.</td></tr>
+<tr><td><span class="p2">5</span></td><td><b>품질·공종 패턴 분석</b></td><td>단지·공간·자재·시기·처리 결과를 집계.</td><td>특정 단지·동·공간에서 반복되는 하자와 우선 점검 항목을 사전 제시.</td></tr></table>
+<h2>4. 표준 5계층 라벨로의 매핑</h2>
+<p>기존 단일 라벨(예: 타일, PL창, 벽지)은 그대로 최종 정답으로 쓰지 않고, 원문 설명·공간·사진·처리 결과를 함께 이용해 아래 구조에 매핑합니다.</p>
+<table><tr><th>계층</th><th>예시</th><th>데이터 출처·검증</th></tr>
+<tr><td>1. 위치</td><td>거실, 안방, 주방, 공용욕실, EV홀, 지하주차장</td><td>기존 area, 평면도, 점검자 선택</td></tr>
+<tr><td>2. 하자부위</td><td>천장, 벽, 바닥, 창호, 문틀, 수전, 타일</td><td>기존 라벨+설명 명사+이미지</td></tr>
+<tr><td>3. 상세부위</td><td>창틀 하부, 타일 줄눈, 문짝 모서리, 코킹 접합부</td><td>설명 텍스트 추출 후 점검자 검수</td></tr>
+<tr><td>4. 공종</td><td>도장, 도배, 타일, 창호, 목공, 설비, 전기</td><td>기존 공종·자재 라벨·전문가 규칙</td></tr>
+<tr><td>5. 원인/유형</td><td>미시공, 들뜸, 균열, 오염, 수평불량, 작동불량</td><td>원문·조치 이력·사진 검토</td></tr></table>
+<h2>5. 학습 데이터 선별 원칙</h2>
+<ul><li><b>전체 450만 건 ≠ 450만 장의 학습 정답</b>: 이미지 존재, 품질, 라벨 신뢰도, 중복 여부를 각각 측정합니다.</li><li><b>그룹 분리</b>: 같은 하자, 같은 세대, 같은 연속 촬영 사진이 train/validation/test에 섞이지 않게 <code>defect_id</code>, 세대, 단지 단위로 분할합니다.</li><li><b>롱테일 처리</b>: 타일·벽지처럼 많은 클래스를 무작정 늘리기보다, 희소 공종은 표본 추가·상위 계층 분류·검수 큐로 보완합니다.</li><li><b>오염 라벨 처리</b>: 스티커·화살표 사진은 분리 태그를 두고, 원본 모델과 정제본 모델을 별도로 비교합니다.</li><li><b>시간·단지 외부 검증</b>: 특정 단지·시기만 잘 맞는 모델을 피하기 위해 다른 단지·다른 시기의 hold-out test를 둡니다.</li></ul>
+<h2>6. 앱의 실시간 AI 보조 흐름</h2>
+<div class="flow">[근경·원경 사진] + [하자설명 STT/문자] + [평면도 위치]
+                    ↓
+      ① 이미지 모델: 부위·하자유형 후보
+      ② 텍스트/검색: 기존 450만 건 유사 사례·표준 문구
+      ③ 위치 문맥: 공간에서 가능한 공종·상세부위 보정
+                    ↓
+ [5계층 후보 3개 + 근거 사례 + 신뢰도]
+                    ↓
+         점검자 확정/수정 → 원문·AI·최종값 모두 저장
+                    ↓
+          승인된 신규 사례 → 다음 학습 데이터 버전</div>
+<p>중요한 원칙은 AI가 자동 확정하지 않는 것입니다. 저신뢰도·희소 사례는 “확인 필요”로 표시하고, 점검자 확정값을 향후 학습의 골드 라벨로 사용합니다.</p>
+<h2>7. 450만 건 처리 파이프라인</h2>
+<table><tr><th>단계</th><th>방법</th><th>운영 DB 안전장치</th></tr>
+<tr><td>0. 데이터 인벤토리</td><td>테이블·행 추정치·이미지 연결률·라벨 분포·NULL 비율을 read-only로 조사</td><td>COUNT(*) 전수 대신 통계·증분 배치·샘플링 사용</td></tr>
+<tr><td>1. 증분 추출</td><td>PK 범위 또는 created_at/updated_at watermark 단위로 JSONL/Parquet 추출</td><td>읽기 전용 계정, 짧은 배치, 재개 가능한 체크포인트</td></tr>
+<tr><td>2. 정규화</td><td>동의어 사전, 공백·오탈자 정리, 5계층 후보 생성</td><td>원문 컬럼은 절대 덮어쓰지 않고 별도 canonical 컬럼 생성</td></tr>
+<tr><td>3. 이미지 처리</td><td>다운로드/복사, SHA-256, 중복·품질·오염 판정</td><td>원본 경로·접근권한 분리, 실패 목록 재시도</td></tr>
+<tr><td>4. 라벨 검수</td><td>자동 신뢰도 점수로 고·중·저 신뢰 군을 나눠 표본 검수</td><td>모든 수정에 reviewer·시각·근거 기록</td></tr>
+<tr><td>5. 데이터셋 버전</td><td>manifest, taxonomy version, split, 코드 버전, 해시를 고정</td><td>재현 가능한 학습·평가·롤백</td></tr></table>
+<h2>8. 단계별 실행 제안</h2>
+<ol><li><span class="p1">Gate A (2주)</span>: 450만 건의 구성부터 확정합니다. 전체 건수보다 <b>사진 연결 건수, 공간·라벨 충족률, 중복률, 상위 50개 라벨, 단지별 편향</b>을 read-only로 산출합니다.</li><li><span class="p1">Gate B (2~4주)</span>: 5계층 taxonomy와 동의어 사전을 만들고, 5~10만 건 규모의 텍스트·메타데이터 검색 인덱스를 먼저 구축합니다.</li><li><span class="p1">Gate C (4~6주)</span>: 품질·중복·오염을 통과한 이미지 중 대표 표본 3만~10만 장을 계층형 학습/검증 세트로 만듭니다. 기존 3,000장 ConvNeXt 실험을 기준 모델로 보존합니다.</li><li><span class="p2">Gate D</span>: 앱에서 유사사례·표준 문구·5계층 후보를 먼저 제공하고, 점검자 확정 데이터를 누적합니다.</li><li><span class="p2">Gate E</span>: 월 또는 분기별로 승인 데이터만 재학습하며, 단지 외부 테스트와 현장 오류율로 모델 배포 여부를 결정합니다.</li></ol>
+<h2>9. 개인정보·권한·비용</h2>
+<ul><li>동·호·점검자 정보는 검색·학습 데이터에서 가명키로 치환하고, 운영 화면에서 필요한 경우에만 권한별로 복원합니다.</li><li>원본 사진·원문 의견은 목적 제한, 접근 로그, 보존 기간, 삭제 요청 정책을 둡니다.</li><li>450만 건 원본 이미지를 전부 즉시 GPU 학습에 넣지 않습니다. 인벤토리·품질 판정·임베딩·고품질 선별을 순차 실행해 저장공간·GPU 비용을 제어합니다.</li></ul>
+<h2>10. 최종 권고</h2>
+<p>기존 450만 건의 가장 큰 가치는 “대형 CNN 학습셋” 하나가 아니라, <b>현장 하자 언어와 공종·공간·자재의 실제 분포를 담은 지식 기반</b>이라는 점입니다. 먼저 유사사례 검색과 표준 분류 추천에 광범위하게 쓰고, 검증된 이미지·라벨만 엄격히 선별해 ConvNeXt/멀티모달 모델 학습에 사용하십시오. 이렇게 하면 신규 앱은 첫날부터 과거 사례를 근거로 추천하고, 시간이 갈수록 점검자 확정값으로 더 정확해집니다.</p>
+</body></html>

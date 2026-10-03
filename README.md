@@ -27,6 +27,9 @@ Install only the environment being validated:
 
 # Complete development matrix
 .\.venv\Scripts\python.exe -m pip install -e ".[full]"
+
+# PostgreSQL read-only database inspection
+.\.venv\Scripts\python.exe -m pip install -e ".[database]"
 ```
 
 The core package imports without any ML or web framework. Optional modules are
@@ -34,6 +37,29 @@ loaded only when their backend, exporter, or application factory is used.
 
 The `apartment-data` CLI supports legacy import, manifest validation, leakage-safe
 splitting, version manifests, and serialized Vision AI prediction validation.
+
+## PostgreSQL database inspection
+
+Configure the AWS RDS or PostgreSQL endpoint through environment variables; do
+not store credentials in the repository:
+
+```powershell
+$env:APARTMENT_DB_HOST = "database.example.com"
+$env:APARTMENT_DB_NAME = "apartments"
+$env:APARTMENT_DB_USER = "read_only_inspector"
+$env:APARTMENT_DB_PASSWORD = "<from-secret-manager>"
+
+apartment-data vision-db-test
+apartment-data vision-db-inspect --schema public --json `
+  --output output/db-inspection.json
+```
+
+`APARTMENT_DB_PORT` defaults to `5432`, `APARTMENT_DB_SSLMODE` defaults to
+`require`, and the connection timeout is ten seconds. Both commands use
+read-only transactions. Inspection lists schemas, tables, views, columns,
+primary/foreign keys, planner row estimates, and likely image/label columns
+without running bulk `COUNT(*)` queries. Passwords and complete DSNs are never
+printed. See [`docs/DATABASE_INSPECTION.md`](docs/DATABASE_INSPECTION.md).
 
 ## Field data workflow
 

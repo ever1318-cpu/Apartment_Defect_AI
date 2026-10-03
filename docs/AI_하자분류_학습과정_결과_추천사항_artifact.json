@@ -1,0 +1,123 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "AI 하자분류 학습 종합보고서",
+    "description": "DB 데이터셋 구축부터 ConvNeXt-Tiny 전체 학습과 운영 적용 판단까지의 기술 요약",
+    "generatedAt": "2026-07-21T10:00:00+09:00",
+    "sources": [
+      {"id": "full-run", "label": "ConvNeXt-Tiny 전체 학습 final_metrics.json", "path": "defect-convnext-full-run/final_metrics.json", "query": {"engine": "duckdb", "sql": "SELECT * FROM read_json_auto('defect-convnext-full-run/final_metrics.json')", "description": "전체 학습 모델의 최종 시험 지표", "tables_used": ["defect-convnext-full-run/final_metrics.json"], "filters": ["최고 검증 정확도 checkpoint"], "metric_definitions": ["정확도=정답 예측 수/전체 시험 표본", "Macro F1=클래스별 F1의 동일 가중 평균", "Top-3=상위 3개 예측에 정답이 포함된 비율"]}},
+      {"id": "baseline-run", "label": "ConvNeXt-Tiny 3,000장 기준 학습 final_metrics.json", "path": "defect-convnext-original-tuned-run-3000/final_metrics.json", "query": {"engine": "duckdb", "sql": "SELECT * FROM read_json_auto('defect-convnext-original-tuned-run-3000/final_metrics.json')", "description": "3,000장 기준 모델의 최종 시험 지표", "tables_used": ["defect-convnext-original-tuned-run-3000/final_metrics.json"]}},
+      {"id": "training-spec", "label": "ConvNeXt-Tiny 전체 학습 training_spec.json", "path": "defect-convnext-full-run/training_spec.json", "query": {"engine": "duckdb", "sql": "SELECT * FROM read_json_auto('defect-convnext-full-run/training_spec.json')", "description": "ConvNeXt-Tiny 전체 학습 하이퍼파라미터", "tables_used": ["defect-convnext-full-run/training_spec.json"]}},
+      {"id": "dataset-manifest", "label": "DB 하자이미지 데이터셋 명세", "path": "defect-convnext-full-training/dataset_manifest.json", "query": {"engine": "duckdb", "sql": "SELECT * FROM read_json_auto('defect-convnext-full-training/dataset_manifest.json')", "description": "학습·검증·시험 데이터셋 명세", "tables_used": ["defect-convnext-full-training/dataset_manifest.json"]}}
+    ],
+    "cards": [
+      {"id": "card-val", "dataset": "summary", "sourceId": "full-run", "description": "5개 메타데이터 분류 헤드의 평균 검증 정확도", "metrics": [{"label": "최고 검증 정확도", "field": "best_validation_accuracy", "format": "percent"}, {"label": "최적 Epoch", "field": "best_epoch", "format": "number"}]},
+      {"id": "card-part", "dataset": "summary", "sourceId": "full-run", "description": "시험 이미지에서 하자부위 정답률", "metrics": [{"label": "하자부위 정확도", "field": "part_accuracy", "format": "percent"}, {"label": "Macro F1", "field": "part_f1", "format": "percent"}]},
+      {"id": "card-work", "dataset": "summary", "sourceId": "full-run", "description": "시험 이미지에서 공종 정답률", "metrics": [{"label": "공종 정확도", "field": "work_accuracy", "format": "percent"}, {"label": "Top-3", "field": "work_top3", "format": "percent"}]},
+      {"id": "card-cause", "dataset": "summary", "sourceId": "full-run", "description": "시험 이미지에서 하자원인 정답률", "metrics": [{"label": "하자원인 정확도", "field": "cause_accuracy", "format": "percent"}, {"label": "Top-3", "field": "cause_top3", "format": "percent"}]}
+    ],
+    "charts": [
+      {
+        "id": "chart-performance",
+        "title": "분류 항목별 시험 정확도",
+        "subtitle": "전체 108,092장 학습은 3,000장 기준보다 모든 분류 항목을 개선했다",
+        "type": "bar",
+        "dataset": "task_metrics",
+        "sourceId": "full-run",
+        "encodings": {
+          "x": {"field": "task", "type": "nominal", "label": "메타데이터 분류 항목"},
+          "y": {"field": "full_accuracy", "type": "quantitative", "format": "percent", "label": "전체 학습 정확도"},
+          "tooltip": [{"field": "class_count", "type": "quantitative", "label": "클래스 수"}, {"field": "test_samples", "type": "quantitative", "label": "시험 이미지"}]
+        },
+        "valueFormat": "percent",
+        "layout": "full",
+        "maxRows": 10
+      },
+      {
+        "id": "chart-metric-gap",
+        "title": "3,000장 기준 대비 정확도 향상폭",
+        "subtitle": "위치·공종·세부부위에서 데이터 확대 효과가 가장 크다",
+        "type": "bar",
+        "dataset": "task_metrics",
+        "sourceId": "full-run",
+        "encodings": {
+          "x": {"field": "task", "type": "nominal", "label": "메타데이터 분류 항목"},
+          "y": {"field": "accuracy_delta", "type": "quantitative", "format": "percent", "label": "3,000장 기준 대비 정확도 향상"},
+          "tooltip": [{"field": "class_count", "type": "quantitative", "label": "클래스 수"}, {"field": "test_samples", "type": "quantitative", "label": "시험 이미지"}]
+        },
+        "valueFormat": "percent",
+        "layout": "full",
+        "maxRows": 10
+      }
+    ],
+    "blocks": [
+      {"id": "title", "type": "markdown", "body": "# AI 하자분류 학습 종합보고서"},
+      {"id": "summary", "type": "markdown", "sourceId": "full-run", "body": "## 기술 요약\n\n**전체 데이터 학습은 효과가 명확하다.** DB에서 구축한 108,092장으로 ConvNeXt-Tiny를 학습한 결과, 3,000장 기준 모델보다 모든 메타데이터 분류의 정확도가 향상했다. 하자부위는 90.59%로 자동분류 후보이며, 위치·공종은 신뢰도 기반 검수를 병행하면 실무 적용 가능성이 높다.\n\n**아직 전면 자동확정 단계는 아니다.** 세부부위·공종·원인의 Macro F1이 각각 28.99%, 41.30%, 30.93%로 정확도보다 낮다. 빈도가 높은 클래스에 예측이 편중될 수 있으므로 Top-3 추천과 사람 검수가 필요하다.\n\n**화살표·스티커 정제는 일괄 확대하지 않는다.** 3,000장 비교에서 색상 기반 정제본은 원인 정확도만 2.1%p 개선했고 다른 항목은 보합 또는 소폭 하락했다. 화살표 탐지·OCR·수동 마스크로 정제 정확도를 먼저 높여야 한다."},
+      {"id": "metrics", "type": "metric-strip", "cardIds": ["card-val", "card-part", "card-work", "card-cause"]},
+      {"id": "finding-1", "type": "markdown", "sourceId": "full-run", "body": "## 데이터 확대가 모든 태스크를 개선했다\n\n정확도 향상폭은 위치 +37.36%p, 공종 +17.14%p, 세부부위 +17.09%p, 하자부위 +8.39%p, 원인 +2.83%p이다. 이는 표본 학습의 병목이 모델 구조보다 데이터 커버리지에 있었음을 보여준다. 다만 원인은 이미지만으로 직접 추론하기 어려운 개념이므로 향상폭이 제한적이다."},
+      {"id": "chart-performance-block", "type": "chart", "chartId": "chart-performance"},
+      {"id": "finding-2", "type": "markdown", "sourceId": "full-run", "body": "## 평균 정확도보다 희소 클래스 성능이 더 중요하다\n\n하자부위는 정확도 90.59%와 Macro F1 87.32%가 함께 높아 비교적 균형적이다. 반면 세부부위는 정확도 62.59%에 비해 Macro F1이 28.99%이고, 공종과 원인도 같은 패턴이다. 전체 정확도만 보고 자동확정하면 소수 하자유형이 잘못 저장될 위험이 있다. Top-3가 86.53~91.63%이므로 운영 초기에는 상위 후보를 제시하고 사용자가 확정하는 방식이 효율적이다."},
+      {"id": "chart-gap-block", "type": "chart", "chartId": "chart-metric-gap"},
+      {"id": "scope", "type": "markdown", "sourceId": "dataset-manifest", "body": "## 평가 범위와 지표 정의\n\n- DB에서 완전한 5개 분류 라벨을 가진 이미지는 111,399장이며, 다운로드·검증에 성공한 108,092장을 사용했다.\n- split은 학습 75,697장, 검증 16,199장, 시험 16,196장이며 같은 하자 ID가 다른 split으로 누수되지 않도록 그룹 분할했다.\n- 정확도는 전체 정답 비율, Macro F1은 각 클래스 F1의 동일 가중 평균, Top-3는 상위 3개 예측 안에 정답이 있는 비율이다.\n- 클래스 수는 위치 17, 하자부위 3, 세부부위 171, 공종 57, 원인 9개이다."},
+      {"id": "method", "type": "markdown", "sourceId": "training-spec", "body": "## ConvNeXt-Tiny 전이학습과 다중 분류 설계\n\nImageNet 사전학습 ConvNeXt-Tiny 백본에 위치·하자부위·세부부위·공종·원인 분류 헤드를 연결했다. 입력은 RGB 224×224, batch 32, learning rate 0.0001, 5 Epoch, seed 42이다. 최고 검증 정확도는 4 Epoch에서 71.41%였고 5 Epoch에서 71.36%로 정체했다. 최적 체크포인트를 ONNX로 내보내어 구조 검증, CPU Runtime 로딩, 더미 배치 추론을 통과했다."},
+      {"id": "limitations", "type": "markdown", "body": "## 성능 한계와 아직 확인해야 할 위험\n\n- **라벨 불균형:** 세부부위 171개와 공종 57개의 소수 클래스 성능이 확인되지 않았다. 클래스별 support·recall·혼동행렬이 필요하다.\n- **원인 추론의 한계:** 원인은 시각 정보만으로 판정하기 어려워 위치·공종·이력 데이터와의 결합이 필요하다.\n- **이미지 오염:** 색상 기반 화살표·스티커 제거는 실제 하자 색상까지 손상할 수 있다.\n- **현장 외부 검증 부재:** 현재 지표는 DB 내부 split 성능이며 신규 현장·신규 기기·조명 변화에 대한 외부 검증은 아니다.\n- **신뢰도 미보정:** 정확도가 높아도 softmax 점수가 실제 정답 확률과 일치한다는 보장은 없다."},
+      {"id": "recommendations", "type": "markdown", "body": "## 다음 단계는 계층 분류·신뢰도 검수·현장 피드백이다\n\n1. **클래스별 평가를 먼저 완성한다.** support, precision, recall, F1, 혼동행렬과 현장별 성능을 산출해 자동확정 가능 클래스를 구분한다.\n2. **세부부위를 계층적으로 분류한다.** `하자부위 → 공종 → 세부부위`의 유효한 조합만 허용하면 171개 후보 공간을 줄일 수 있다.\n3. **신뢰도를 보정하고 업무 임계값을 분리한다.** 하자부위는 고신뢰도 자동확정, 위치·공종은 자동분류+검수, 세부부위·원인은 Top-3 추천+사용자 확정으로 시작한다.\n4. **원인 분류을 멀티모달로 확장한다.** 이미지에 동·호·공간·공종·점검 이력·문자 설명을 결합한다.\n5. **스테이징 API에서 shadow mode로 검증한다.** 모델 예측을 바로 DB 확정값으로 쓰지 않고, 사용자 확정값과 비교하여 임계값과 재학습 데이터를 축적한다.\n6. **오염 정제는 전용 탐지기 후 재실험한다.** 화살표 탐지, OCR 스티커 영역, 수동 마스크 검수를 구축한 뒤 오염 유형별 성능으로 채택 여부를 결정한다."},
+      {"id": "questions", "type": "markdown", "body": "## 후속 의사결정에 필요한 질문\n\n- 자동확정으로 허용할 클래스별 최소 precision과 신뢰도는 얼마인가?\n- 세부부위 171개 중 통합·폐기·재라벨링할 항목은 무엇인가?\n- 신규 현장 테스트에서 조명·기기·현장별 성능 하락이 얼마나 발생하는가?\n- 원인 분류에 이미지 외 어떤 메타데이터가 가장 큰 추가 가치를 제공하는가?"
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-21T10:00:00+09:00",
+    "status": "ready",
+    "datasets": {
+      "summary": [
+        {"best_validation_accuracy": 0.7140564232, "best_epoch": 4, "part_accuracy": 0.9059026920, "part_f1": 0.8732231408, "work_accuracy": 0.7244381329, "work_top3": 0.9163373673, "cause_accuracy": 0.5853297110, "cause_top3": 0.8847863670}
+      ],
+      "task_metrics": [
+        {"task": "위치", "class_count": 17, "test_samples": 16196, "baseline_accuracy": 0.361, "full_accuracy": 0.7345640899, "full_macro_f1": 0.6735060659, "full_top3": 0.9262780934, "accuracy_delta": 0.3735640899},
+        {"task": "하자부위", "class_count": 3, "test_samples": 16196, "baseline_accuracy": 0.822, "full_accuracy": 0.9059026920, "full_macro_f1": 0.8732231408, "full_top3": 1.0, "accuracy_delta": 0.0839026920},
+        {"task": "세부부위", "class_count": 171, "test_samples": 16196, "baseline_accuracy": 0.455, "full_accuracy": 0.6258952828, "full_macro_f1": 0.2898960439, "full_top3": 0.8653371203, "accuracy_delta": 0.1708952828},
+        {"task": "공종", "class_count": 57, "test_samples": 16196, "baseline_accuracy": 0.553, "full_accuracy": 0.7244381329, "full_macro_f1": 0.4129613164, "full_top3": 0.9163373673, "accuracy_delta": 0.1714381329},
+        {"task": "하자원인", "class_count": 9, "test_samples": 16196, "baseline_accuracy": 0.557, "full_accuracy": 0.5853297110, "full_macro_f1": 0.3092751176, "full_top3": 0.8847863670, "accuracy_delta": 0.0283297110}
+      ],
+      "accuracy_comparison": [
+        {"task": "위치", "model": "3,000장 기준", "value": 0.361, "class_count": 17, "test_samples": 1000},
+        {"task": "위치", "model": "108,092장 전체", "value": 0.7345640899, "class_count": 17, "test_samples": 16196},
+        {"task": "하자부위", "model": "3,000장 기준", "value": 0.822, "class_count": 3, "test_samples": 1000},
+        {"task": "하자부위", "model": "108,092장 전체", "value": 0.9059026920, "class_count": 3, "test_samples": 16196},
+        {"task": "세부부위", "model": "3,000장 기준", "value": 0.455, "class_count": 171, "test_samples": 1000},
+        {"task": "세부부위", "model": "108,092장 전체", "value": 0.6258952828, "class_count": 171, "test_samples": 16196},
+        {"task": "공종", "model": "3,000장 기준", "value": 0.553, "class_count": 57, "test_samples": 1000},
+        {"task": "공종", "model": "108,092장 전체", "value": 0.7244381329, "class_count": 57, "test_samples": 16196},
+        {"task": "하자원인", "model": "3,000장 기준", "value": 0.557, "class_count": 9, "test_samples": 1000},
+        {"task": "하자원인", "model": "108,092장 전체", "value": 0.5853297110, "class_count": 9, "test_samples": 16196}
+      ],
+      "full_metric_comparison": [
+        {"task": "위치", "metric": "정확도", "value": 0.7345640899, "class_count": 17, "test_samples": 16196},
+        {"task": "위치", "metric": "Macro F1", "value": 0.6735060659, "class_count": 17, "test_samples": 16196},
+        {"task": "위치", "metric": "Top-3", "value": 0.9262780934, "class_count": 17, "test_samples": 16196},
+        {"task": "하자부위", "metric": "정확도", "value": 0.9059026920, "class_count": 3, "test_samples": 16196},
+        {"task": "하자부위", "metric": "Macro F1", "value": 0.8732231408, "class_count": 3, "test_samples": 16196},
+        {"task": "하자부위", "metric": "Top-3", "value": 1.0, "class_count": 3, "test_samples": 16196},
+        {"task": "세부부위", "metric": "정확도", "value": 0.6258952828, "class_count": 171, "test_samples": 16196},
+        {"task": "세부부위", "metric": "Macro F1", "value": 0.2898960439, "class_count": 171, "test_samples": 16196},
+        {"task": "세부부위", "metric": "Top-3", "value": 0.8653371203, "class_count": 171, "test_samples": 16196},
+        {"task": "공종", "metric": "정확도", "value": 0.7244381329, "class_count": 57, "test_samples": 16196},
+        {"task": "공종", "metric": "Macro F1", "value": 0.4129613164, "class_count": 57, "test_samples": 16196},
+        {"task": "공종", "metric": "Top-3", "value": 0.9163373673, "class_count": 57, "test_samples": 16196},
+        {"task": "하자원인", "metric": "정확도", "value": 0.5853297110, "class_count": 9, "test_samples": 16196},
+        {"task": "하자원인", "metric": "Macro F1", "value": 0.3092751176, "class_count": 9, "test_samples": 16196},
+        {"task": "하자원인", "metric": "Top-3", "value": 0.8847863670, "class_count": 9, "test_samples": 16196}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "full-run", "label": "ConvNeXt-Tiny 전체 학습 final_metrics.json", "path": "defect-convnext-full-run/final_metrics.json", "query": {"engine": "duckdb", "sql": "SELECT * FROM read_json_auto('defect-convnext-full-run/final_metrics.json')", "description": "전체 학습 모델의 최종 시험 지표", "tables_used": ["defect-convnext-full-run/final_metrics.json"], "filters": ["최고 검증 정확도 checkpoint"], "metric_definitions": ["정확도=정답 예측 수/전체 시험 표본", "Macro F1=클래스별 F1의 동일 가중 평균", "Top-3=상위 3개 예측에 정답이 포함된 비율"]}},
+    {"id": "baseline-run", "label": "ConvNeXt-Tiny 3,000장 기준 학습 final_metrics.json", "path": "defect-convnext-original-tuned-run-3000/final_metrics.json", "query": {"engine": "duckdb", "sql": "SELECT * FROM read_json_auto('defect-convnext-original-tuned-run-3000/final_metrics.json')", "description": "3,000장 기준 모델의 최종 시험 지표", "tables_used": ["defect-convnext-original-tuned-run-3000/final_metrics.json"]}},
+    {"id": "training-spec", "label": "ConvNeXt-Tiny 전체 학습 training_spec.json", "path": "defect-convnext-full-run/training_spec.json", "query": {"engine": "duckdb", "sql": "SELECT * FROM read_json_auto('defect-convnext-full-run/training_spec.json')", "description": "ConvNeXt-Tiny 전체 학습 하이퍼파라미터", "tables_used": ["defect-convnext-full-run/training_spec.json"]}},
+    {"id": "dataset-manifest", "label": "DB 하자이미지 데이터셋 명세", "path": "defect-convnext-full-training/dataset_manifest.json", "query": {"engine": "duckdb", "sql": "SELECT * FROM read_json_auto('defect-convnext-full-training/dataset_manifest.json')", "description": "학습·검증·시험 데이터셋 명세", "tables_used": ["defect-convnext-full-training/dataset_manifest.json"]}}
+  ]
+}

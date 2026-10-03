@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI하자점검 다수 동시입력 DB·서버 부하 확장설계서 v1.0</title><style>body{font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;max-width:1120px;margin:30px auto;padding:0 22px;color:#17212b;line-height:1.7}h1{color:#173f67;border-bottom:3px solid #2d719f;padding-bottom:10px}h2{color:#1c5a81;border-left:5px solid #6199bb;padding-left:10px;margin-top:32px}h3{color:#234f6c;margin-top:20px}.lead{background:#edf6fb;border-radius:10px;padding:16px}.flow{background:#132c3c;color:#f8fbff;border-radius:9px;padding:16px;white-space:pre-wrap;font-family:Consolas,monospace;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.card{border:1px solid #c7d7e4;border-radius:9px;padding:13px;background:#fbfdff}table{border-collapse:collapse;width:100%;margin:10px 0 18px}th,td{border:1px solid #bdccd7;padding:9px;text-align:left;vertical-align:top}th{background:#eaf2f8}.p1{color:#b42318;font-weight:700}.p2{color:#9a6700;font-weight:700}code{background:#edf1f4;padding:2px 4px;border-radius:3px}</style></head><body>
+<h1>다수 동시입력 DB·서버 부하 확장설계서 v1.0</h1>
+<p>작성일: 2026-08-03 · 적용 대상: 품질점검 매니저 20명, 입주자 사전점검 최대 2,000명</p>
+<div class="lead"><b>핵심 결론</b> — 앱이 사진을 API 서버와 PostgreSQL에 직접 동시에 밀어 넣는 구조는 2,000명에서 병목이 됩니다. <b>사진 업로드, 메타데이터 확정, AI 분석, 알림을 분리</b>하고, 서버는 빠르게 접수만 완료한 뒤 큐 기반 비동기 처리로 넘겨야 안정적입니다. PostgreSQL은 업무 데이터의 권위 저장소로 유지하되, 대용량 이미지 파일 자체는 객체 스토리지에 둡니다.</div>
+<h2>1. 규모별 운영 시나리오</h2>
+<table><tr><th>구분</th><th>품질점검 매니저</th><th>입주자 사전점검</th><th>설계 판단</th></tr>
+<tr><td>사용자</td><td>약 20명, 장시간 집중 점검</td><td>최대 2,000명, 특정 시간대 급증</td><td>2,000명 기준으로 접수 계층을 설계하고 20명은 경량 모드로 운영</td></tr>
+<tr><td>입력 패턴</td><td>1건당 근경·원경·스티커 사진, 메타데이터 풍부</td><td>의견·사진 1~2장 중심, 동시 제출 급증 가능</td><td>사진 업로드와 DB 기록을 분리</td></tr>
+<tr><td>가정 예시</td><td>20명 × 분당 1건 = 분당 20건</td><td>2,000명 중 10%가 10분 안에 제출 = 분당 20건 이상; 재시도 집중 시 훨씬 증가</td><td>평균이 아니라 순간 피크와 재전송 폭주를 기준으로 큐·제한을 둠</td></tr>
+<tr><td>위험</td><td>현장 망 단절 후 동시 재전송</td><td>특정 접수 시작 시간, 푸시 알림 후 동시 접속</td><td>백오프·지터·업로드 슬롯 제한 필수</td></tr></table>
+<p>정확한 서버 수는 사진 용량, 피크 동시 업로드 수, AI 호출 시간, 서비스 목표(SLA)를 측정한 뒤 산정해야 합니다. 아래 구성은 해당 값을 측정·확장할 수 있는 안전한 기본 구조입니다.</p>
+<h2>2. 권장 전체 구조</h2>
+<div class="flow">[S25/노트10/입주자 앱]
+  └ 로컬 DB·사진 저장 → API Gateway / Load Balancer
+                              ├ 인증·권한·요청제한
+                              ├ 접수 API (메타데이터, operationId)
+                              └ 사전서명 업로드 URL 발급
+                                          ↓
+                         [객체 스토리지: 원본 사진/썸네일]
+                                          ↓ 이벤트
+                         [메시지 큐 / 작업 대기열]
+                          ├ 미디어 검증·해시·썸네일 Worker
+                          ├ AI 이미지/LLM 분석 Worker
+                          ├ PostgreSQL 메타데이터 확정 Worker
+                          └ 알림·집계 Worker
+                                          ↓
+                           [PostgreSQL: 사용자·세대·하자·분류·상태]
+                                          ↓
+                         [조회 API / 관리자·입주자 화면]</div>
+<div class="grid"><div class="card"><b>API Gateway</b><br>인증, API 키/JWT, 속도 제한, 요청 크기 제한을 담당합니다. 앱 요청을 즉시 DB에 과도하게 연결하지 않습니다.</div><div class="card"><b>객체 스토리지</b><br>사진은 S3 호환 스토리지에 직접 업로드합니다. API 서버는 큰 파일 전송의 중계자가 되지 않습니다.</div><div class="card"><b>메시지 큐</b><br>AI 분석·썸네일·집계 같은 느린 작업을 분리합니다. 서버가 잠시 밀려도 접수는 유지됩니다.</div><div class="card"><b>PostgreSQL</b><br>트랜잭션 업무 데이터·상태·분류·감사기록을 담당합니다. 이미지 binary를 DB에 직접 저장하지 않습니다.</div></div>
+<h2>3. 단계별 부하 제어</h2>
+<table><tr><th>단계</th><th>서버 동작</th><th>부하 안정화 규칙</th></tr>
+<tr><td>① 로그인·권한</td><td>짧은 토큰 발급, 등급별 권한 확인</td><td>서버관리자/총괄/점검/소유주 권한을 토큰 claim으로 부여. 로그인 요청에도 IP·기기별 제한 적용.</td></tr>
+<tr><td>② 하자 접수</td><td>메타데이터와 <code>operationId</code>를 먼저 접수</td><td>수 밀리초 수준의 짧은 DB 트랜잭션만 사용. 동일 operationId는 기존 결과를 반환해 중복을 막음.</td></tr>
+<tr><td>③ 사진 업로드</td><td>사전서명 URL로 앱→객체 스토리지 직접 업로드</td><td>기기당 동시 업로드 1~2개, 재개 업로드·청크 업로드, 파일 크기·MIME·해시 검증.</td></tr>
+<tr><td>④ 서버 확정</td><td>사진 업로드 확인 후 상태를 <code>MEDIA_READY</code>로 전환</td><td>사진 업로드 완료 전에는 하자를 <code>PENDING_MEDIA</code>로 보관. DB 잠금 시간 최소화.</td></tr>
+<tr><td>⑤ AI 분석</td><td>큐 Worker가 사진·텍스트를 비동기 처리</td><td>사용자 저장 흐름을 AI 응답에 묶지 않음. AI 지연·실패 시 <code>AI_PENDING</code>으로 두고 재시도.</td></tr>
+<tr><td>⑥ 조회·보고서</td><td>읽기 API와 집계 조회</td><td>캐시·읽기 전용 복제본·사전집계 테이블을 사용. 무거운 통계가 운영 쓰기 DB를 막지 않게 함.</td></tr></table>
+<h2>4. PostgreSQL 설계 원칙</h2>
+<ul><li><b>연결 풀</b>: API 인스턴스별 DB 연결 수를 제한하고 PgBouncer 또는 관리형 연결 풀을 사용합니다. 2,000명이 곧 2,000 DB 연결이 되면 안 됩니다.</li><li><b>핵심 인덱스</b>: <code>operation_id</code> unique, <code>household_id + created_at</code>, <code>inspection_session_id + status</code>, <code>media_upload_id</code>를 인덱싱합니다.</li><li><b>상태 모델</b>: <code>LOCAL_ONLY → PENDING_UPLOAD → UPLOADING → MEDIA_READY → AI_PENDING → COMPLETED / RETRY / FAILED</code>로 분리합니다.</li><li><b>파티셔닝</b>: 대규모 운영 시 하자·감사 로그는 프로젝트/단지 및 월 단위 파티셔닝을 검토합니다. 초기에는 과도한 파티셔닝보다 인덱스와 수명 정책이 우선입니다.</li><li><b>감사성</b>: 점검자 원문 의견, AI 결과, 최종 확정 분류와 변경 이력을 별도로 보존합니다.</li></ul>
+<h2>5. 입주자 2,000명 피크 방어</h2>
+<table><tr><th>문제</th><th>대응</th></tr>
+<tr><td>접수 시작 시 동시 로그인</td><td>짧은 캐시 가능한 인증, 대기열 페이지 또는 시간대 분산 안내, 로그인·조회 API 분리</td></tr>
+<tr><td>사진 동시 업로드</td><td>객체 스토리지 직접 업로드, 앱의 업로드 슬롯 1~2개, 서버·스토리지에 크기 제한 및 업로드 URL 만료</td></tr>
+<tr><td>망 복구 후 재전송 폭주</td><td>기기별 지수 백오프+무작위 지연, 서버는 429/Retry-After를 명확히 반환, 큐 소비량 자동 확장</td></tr>
+<tr><td>AI 호출 폭주·비용 증가</td><td>접수 후 비동기 분석, 중복 사진 해시 캐시, 낮은 우선순위 배치 분석, 사용자 화면에는 분석 대기 상태 표시</td></tr>
+<tr><td>보고서 조회로 DB 부하</td><td>집계 결과 캐시·사전 집계, 페이지네이션, 원본 사진은 썸네일부터 제공</td></tr></table>
+<h2>6. 가용성·보안·복구</h2>
+<table><tr><th>영역</th><th>최소 운영 기준</th></tr>
+<tr><td>API</td><td>무상태 API 2개 이상, 로드밸런서 health check, 무중단 배포, 5xx·지연 시간 알람</td></tr>
+<tr><td>DB</td><td>관리형 PostgreSQL 다중 AZ 또는 검증된 백업·복구 절차, point-in-time recovery, 매일 복구 리허설</td></tr>
+<tr><td>사진</td><td>버전관리 객체 스토리지, 암호화, 수명 정책, 백업 지역/버킷 분리</td></tr>
+<tr><td>큐</td><td>재시도 횟수·dead-letter queue, 독성 메시지 관찰, 작업별 소비량 모니터링</td></tr>
+<tr><td>보안</td><td>HTTPS, JWT 짧은 만료, 역할 기반 권한, 사진 URL 단기 서명, 개인정보·세대 정보 접근 로그</td></tr></table>
+<h2>7. 모니터링 지표와 경보</h2>
+<div class="grid"><div class="card"><b>접수</b><br>초당 요청, p95 응답시간, 4xx/5xx 비율, 중복 operationId 비율</div><div class="card"><b>전송</b><br>미전송 대기열 길이, 재시도 횟수, 사진 업로드 성공률·평균 크기</div><div class="card"><b>AI</b><br>큐 적체, 처리 지연, 모델 오류율, 건당 비용</div><div class="card"><b>DB</b><br>연결 풀 사용률, 느린 쿼리, CPU/IOPS, 복제 지연, 저장 공간</div></div>
+<h2>8. 단계별 도입 로드맵</h2>
+<ol><li><span class="p1">1단계</span> 현재 FastAPI·PostgreSQL·로컬 대기열에 operationId, 상태 전이, 서버 429/Retry-After, 재시도 지터를 강화합니다.</li><li><span class="p1">2단계</span> 사진을 객체 스토리지 직접 업로드로 전환하고 서버 파일 시스템 저장은 개발용으로만 유지합니다.</li><li><span class="p2">3단계</span> 메시지 큐와 Worker를 도입해 AI·썸네일·통계를 비동기로 분리합니다.</li><li><span class="p2">4단계</span> 부하 시험: 20명 지속 입력, 200명·2,000명 접수 버스트, VPN 복구 재전송을 자동 시험합니다.</li><li><span class="p2">5단계</span> 운영 관제, 백업 복구 훈련, 역할 기반 관리 화면과 비용 관리를 정착합니다.</li></ol>
+<h2>9. 권장 의사결정</h2>
+<p>20명 현장 점검 파일럿은 현재 로컬 우선 저장+PostgreSQL API를 안정화해 시작할 수 있습니다. 그러나 2,000명 입주자 동시 접수 전에 반드시 <b>객체 스토리지 직접 업로드, 큐 기반 AI 처리, 연결 풀, 속도 제한, 재개 업로드, 부하 시험</b>을 도입해야 합니다. 이 전환이 완료되면 통신 불량·피크 접속·AI 지연이 서로 영향을 주지 않는 운영 구조가 됩니다.</p>
+</body></html>

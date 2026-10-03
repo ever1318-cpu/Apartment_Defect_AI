@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>품질/하자 점검(AI) 통합 UI·UX 설계서 v4.2</title>
+  <style>
+    :root{--bg:#f4f7fb;--card:#fff;--ink:#182334;--sub:#627087;--line:#d7e1ee;--navy:#173b70;--blue:#28558a;--soft:#eaf1fb;--orange:#f28c28;--orange2:#f4511e;--teal:#00897b;--green:#2e7d32;--red:#d32f2f}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.72 system-ui,"Noto Sans KR",sans-serif}
+    a{color:var(--blue)}.wrap{width:min(1180px,calc(100% - 30px));margin:auto}.hero{padding:54px 0 38px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff}
+    .hero h1{margin:6px 0;font-size:clamp(30px,5vw,50px);line-height:1.2}.hero p{max-width:850px;opacity:.9}.pill{display:inline-block;margin:8px 6px 0 0;padding:5px 10px;border:1px solid #ffffff66;border-radius:99px}
+    .layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:25px;padding:30px 0 70px}.toc{position:sticky;top:14px;align-self:start;padding:17px;background:#fff;border:1px solid var(--line);border-radius:16px}
+    .toc strong{display:block;margin-bottom:7px}.toc a{display:block;padding:4px 0;color:var(--sub);text-decoration:none;font-size:13px}.content section{margin-bottom:24px;padding:23px;background:#fff;border:1px solid var(--line);border-radius:18px}
+    h2{margin:0 0 10px;font-size:23px}h3{margin:18px 0 7px}.lede{color:var(--sub)}.ok{color:#087a55;font-weight:800}.warn{color:#a44e00;font-weight:800}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.box{padding:15px;border:1px solid var(--line);border-radius:13px;background:#fbfcfe}
+    .flow{padding:16px;border-radius:12px;background:var(--soft);font-weight:800;overflow-wrap:anywhere}.palette{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.swatch{min-height:92px;padding:9px;border-radius:11px;color:#fff;font-size:12px;font-weight:800}.swatch.light{color:var(--ink)}
+    table{width:100%;border-collapse:collapse;margin-top:9px}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f8fafc;color:#344258}code{color:#174ea6;overflow-wrap:anywhere}
+    .shot-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.shot{margin:0;padding:10px;border:1px solid var(--line);border-radius:14px;background:#f8fafc}.shot img{display:block;width:100%;max-height:690px;object-fit:contain;border-radius:10px;background:#e9edf3}.shot figcaption{padding:8px 2px 2px;color:var(--sub);font-size:12px}
+    .phone{max-width:390px;margin:auto;border:8px solid #243044;border-radius:34px;overflow:hidden;background:#fff;box-shadow:0 14px 30px #17203325}.appbar{padding:18px;color:#fff;background:var(--navy)}.appbar b{display:block;font-size:23px}.appbar small{color:#cfd8ff}
+    .screen{padding:13px;background:var(--bg)}.house{padding:14px;border-radius:15px;background:var(--soft)}.house b,.house span{display:block}.fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.field{padding:13px;border:1px solid var(--line);border-radius:10px;background:#fff}.role{padding:10px;border-radius:11px;background:#fff4e2}.role b{display:inline-block;margin:3px;padding:6px 10px;border-radius:15px;background:#e8ddff}
+    .map{height:130px;margin-top:10px;border-radius:12px;background:linear-gradient(135deg,#d9e9d6,#a9c9a5);display:grid;place-items:center;color:#36543a;font-weight:800}.dual{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:#fff}.btn{padding:13px;border-radius:12px;text-align:center;font-weight:900}.btn.out{border:2px solid var(--blue);color:var(--blue)}.btn.main{color:#fff;background:linear-gradient(90deg,#ff8a00,var(--orange2))}
+    .cta{padding:17px;border:2px solid #ffc46b;border-radius:16px;background:linear-gradient(90deg,#ff8a00,var(--orange2));box-shadow:0 8px 20px #f4511e38;color:#fff;font-size:18px;font-weight:900}
+    .tag{display:inline-block;padding:2px 8px;border-radius:99px;background:var(--soft);color:var(--blue);font-size:12px;font-weight:800}.tag.orange{background:#fff0dd;color:#a54b00}.tag.red{background:#ffebee;color:#b71c1c}
+    ul{padding-left:20px}.footer{padding:24px 0 50px;color:var(--sub);text-align:center}@media(max-width:850px){.layout{grid-template-columns:1fr}.toc{position:static}.grid,.grid3,.shot-grid{grid-template-columns:1fr}.palette{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <small>Apartment Defect AI · Product Design Baseline</small>
+  <h1>품질/하자 점검(AI)<br>통합 UI·UX 설계서</h1>
+  <p>인트로부터 세대 선택, 앵커·하자 촬영, 위치 확인, 음성 의견, AI 분류, 상세 저장, 세대 마감 및 오프라인 동기화까지 현재 확정된 모바일 경험의 단일 기준 문서이다.</p>
+  <span class="pill">UI·UX v4.2</span><span class="pill">Android · Galaxy S25 Ultra</span><span class="pill">2026-07-25</span>
+</div></header>
+<div class="wrap layout">
+  <nav class="toc"><strong>목차</strong>
+    <a href="#summary">1. 설계 결론</a><a href="#principles">2. UX 원칙</a><a href="#system">3. 디자인 시스템</a><a href="#architecture">4. 정보 구조</a>
+    <a href="#intro">5. 인트로</a><a href="#login">6. 로그인·DEMO</a><a href="#entry">7. 이중 진입·앵커</a><a href="#camera">8. 촬영 경험</a>
+    <a href="#review">9. 판별·위치 확인</a><a href="#opinion">10. 의견·STT·AI</a><a href="#home">11. 품질하자점검 홈</a><a href="#detail">12. 상세·마감</a>
+    <a href="#offline">13. 오프라인·동기화</a><a href="#states">14. 상태·예외</a><a href="#evidence">15. 실기 화면</a><a href="#acceptance">16. 검수 기준</a>
+  </nav>
+  <main class="content">
+    <section id="summary"><h2>1. 설계 결론</h2>
+      <p class="ok">입력자의 손을 최소화하면서도 이미지·위치·입주민 의견·AI 추천을 한 건의 검증 가능한 하자 데이터로 완성하는 현장 중심 UX로 확정한다.</p>
+      <div class="flow">동·호수 확인 → 공간/도면 확인 → 앵커 촬영 또는 하자 직행 → 이미지 판별 → 위치 확인 → 의견·STT → AI 추천 → 점검자 최종확인 → 로컬 저장 → 서버 동기화</div>
+      <div class="grid3" style="margin-top:12px"><div class="box"><b>사진 우선</b><br><span class="lede">모든 신규 하자는 촬영에서 시작</span></div><div class="box"><b>사람이 최종 결정</b><br><span class="lede">AI는 추천하며 점검자가 확정</span></div><div class="box"><b>오프라인 우선</b><br><span class="lede">통신 불량에서도 작업 지속</span></div></div>
+    </section>
+
+    <section id="principles"><h2>2. UX 원칙</h2>
+      <div class="grid"><div class="box"><b>최소 입력</b><p>동·호수, 평형, 도면과 공간은 DB·최근값·GPS 추천으로 먼저 채운다.</p></div><div class="box"><b>한 화면 한 판단</b><p>촬영, 판별, 위치, 의견, 분류, 저장의 책임을 화면별로 구분한다.</p></div><div class="box"><b>일관된 언어</b><p>앵커, 하자 입력, 최종확인 &amp; 저장 등 확정 용어를 모든 화면에서 동일하게 사용한다.</p></div><div class="box"><b>원본 보존</b><p>입주민 원문·촬영 원본·AI 추천·점검자 수정본을 서로 덮어쓰지 않는다.</p></div></div>
+    </section>
+
+    <section id="system"><h2>3. 디자인 시스템</h2>
+      <div class="palette"><div class="swatch" style="background:#173b70">Deep Navy<br>#173B70<br>상단·정보</div><div class="swatch" style="background:#28558a">Primary Blue<br>#28558A<br>선택·기능</div><div class="swatch light" style="background:#eaf1fb">Soft Blue<br>#EAF1FB<br>카드·입력</div><div class="swatch" style="background:#f28c28">Action Orange<br>#F28C28<br>핵심 실행</div><div class="swatch light" style="background:#f4f7fb">App BG<br>#F4F7FB<br>전체 배경</div></div>
+      <h3>사용 규칙</h3><ul><li>네이비: 앱 제목, 페이지 상단, 현황·정보 카드</li><li>오렌지: <strong>새 하자 입력</strong> 등 현장 핵심 실행에만 사용</li><li>청록: 앵커, 빨강: 하자 핀, 초록: 완료, 황색: 확인 대기</li><li>최소 터치 높이 48dp, 주요 CTA 54~76dp, 모바일 본문 14sp 이상</li></ul>
+    </section>
+
+    <section id="architecture"><h2>4. 정보 구조 및 상단 단계 표시</h2>
+      <div class="flow">인트로 → 앵커 → 하자사진 → 하자의견 → AI분류 → 하자상세 → 세대 현황/마감</div>
+      <table><thead><tr><th>단계</th><th>사용자 판단</th><th>저장 결과</th></tr></thead><tbody>
+        <tr><td>인트로</td><td>누가, 어느 세대, 어느 공간을 점검하는가</td><td>세대·평형·도면·역할·공간 컨텍스트</td></tr>
+        <tr><td>촬영</td><td>이미지가 하자를 식별할 수 있는가</td><td>원본 이미지·방향·거리·센서값</td></tr>
+        <tr><td>위치</td><td>평면도의 어느 지점인가</td><td>정규화 좌표·앵커 기준</td></tr>
+        <tr><td>의견·AI</td><td>어떤 하자이며 표현이 적절한가</td><td>원문·정제문·분류 후보·확신도</td></tr>
+        <tr><td>최종</td><td>저장 가능한 하자 기록인가</td><td>점검자 확정 데이터·동기화 큐</td></tr>
+      </tbody></table>
+    </section>
+
+    <section id="intro"><h2>5. 인트로 화면</h2>
+      <div class="grid">
+        <div class="phone"><div class="appbar"><b>품질/하자 점검(AI) V1.0</b><small>⌖ 동·호수 자동 부르기</small></div><div class="screen">
+          <div class="house"><b>울산다운지구</b><span>104동 202호　(평형:84A-1)</span></div>
+          <div class="fields"><div class="field">104 동 ▼</div><div class="field">202 호 ▼</div></div>
+          <div class="role">아이디: <b>점검매니저</b><b>소유주</b></div><div class="map">단지 안내도 · 현재 동 핀</div>
+          <div class="map" style="background:#edf0f4">84A-1평형 · 평면도/공간</div>
+        </div><div class="dual"><div class="btn out">앵커 촬영</div><div class="btn main">✨ 하자 입력</div></div></div>
+        <div>
+          <h3>구성 순서</h3><ol><li>브랜드 헤더와 동·호수 자동 부르기</li><li>단지·평형·동호수 2단 정보 블록</li><li>직접 입력+풀다운 동·호수</li><li>점검매니저/소유주 인증</li><li>84A-1·84B-1 선택</li><li>단지안내도와 평면도</li><li>최초 공간 선택과 하단 이중 CTA</li></ol>
+          <p>도면을 탭하면 전체 화면으로 열리며 하단의 <strong>화면 맞춤 / 축소 / 배율 / 확대 / 닫기</strong> 가로 메뉴와 1~5배 핀치 줌을 제공한다.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="login"><h2>6. 로그인·DEMO 접근제어</h2>
+      <div class="flow">점검매니저/소유주 선택 → 아이디·비밀번호 팝업 → 인증 또는 DEMO</div>
+      <table><tr><th>인증</th><td>DEBUG 테스트 계정과 당일 YYYYMMDD 규칙 확인 후 정상 점검</td></tr><tr><th>DEMO</th><td>화면·촬영 체험은 허용하되 서버 저장·전송 차단</td></tr><tr><th>운영 전환</th><td>서버 로그인, 만료 토큰, 역할 권한과 감사 로그 방식으로 교체</td></tr></table>
+    </section>
+
+    <section id="entry"><h2>7. 이중 진입과 앵커 전략</h2>
+      <div class="grid"><div class="box"><span class="tag">경로 A</span><h3>앵커 촬영</h3><p>선택한 공간에서 최초 기준 사진을 촬영하고 이후 하자를 입력한다. 위치 추적의 신뢰도가 가장 높은 표준 경로다.</p></div><div class="box"><span class="tag orange">경로 B</span><h3>하자 입력 직행</h3><p>앵커 사진 없이 LIVE DETECTION으로 이동한다. 앵커는 거실 중앙 또는 최초 하자 위치를 사용한다.</p></div></div>
+      <table><tr><th>거실 중앙</th><td>평면도 거실 메타데이터의 중앙 좌표를 세션 시작점으로 즉시 저장</td></tr><tr><th>최초 하자 입력 위치</th><td>첫 하자 핀을 최종 저장할 때 그 좌표와 촬영 방향을 세션 시작점으로 저장</td></tr></table>
+    </section>
+
+    <section id="camera"><h2>8. 촬영 경험</h2>
+      <div class="grid"><div class="box"><h3>앵커 촬영</h3><ul><li>센터 포커스 원과 중심점</li><li>인트로 공간을 기본 촬영 위치로 유지</li><li>필요 시 공간 재지정</li><li>사진앵커 방향·각도·거리 기록</li></ul></div><div class="box"><h3>LIVE DETECTION</h3><ul><li>사진 촬영이 신규 하자의 기본 입력</li><li>자동/수동 플래시</li><li>기본 무음, 촬영음 토글</li><li>하자 판별 불가 시 재촬영</li><li>프리뷰 아래 기울기·방향·거리 문구 제거</li></ul></div></div>
+      <p>라이브 평면도는 화면 폭의 약 68%로 표시하며 현재 위치 방사형 표시, 앵커, 누적 하자 핀을 유지한다. 카메라 프리뷰가 중단되면 자동 복구와 수동 재연결 수단을 제공한다.</p>
+    </section>
+
+    <section id="review"><h2>9. 촬영 이미지 판별·위치 확인</h2>
+      <ul><li>촬영 이미지가 화면의 주 콘텐츠가 되며 큰 별도 나침반은 제거</li><li>요약: <strong>사진앵커: 남동향 SE120도 / 0.5m</strong></li><li>이미지 품질이 낮거나 하자 식별이 불가능하면 AI 또는 점검자가 재촬영 요청</li><li>평면도 핀의 초기값은 자동 위치이며, 수동 탭 시 반드시 ‘위치 수정?’ 확인</li><li>평면도 비율 유지, 과도한 세로 확장 방지, 도면 아래 공간·AI 분석 추천 배치</li></ul>
+    </section>
+
+    <section id="opinion"><h2>10. 의견·STT·AI 분류</h2>
+      <div class="flow">입주민 원문 → STT 추가 기록 → 점검자 의견 ↔ AI 분석 의견 → 이미지 AI 추천 → 하자분류 최종</div>
+      <div class="grid"><div class="box"><h3>원본 영역</h3><p>입주민 의견과 STT 원문을 수정본과 분리하여 끝까지 보존한다.</p></div><div class="box"><h3>정제 영역</h3><p>LLM이 문구를 표준화하되 점검자가 양방향 변환·수정·추가한다.</p></div><div class="box"><h3>이미지 영역</h3><p>CNN/비전 모델이 하자 유형·부위 후보와 신뢰도를 제공한다.</p></div><div class="box"><h3>최종 영역</h3><p>위치 &gt; 하자부위 &gt; 상세부위 &gt; 공종 후보 순서로 점검자가 확정한다.</p></div></div>
+      <p>버튼 명칭은 모든 최종 화면에서 <strong>최종확인 &amp; 저장</strong>으로 통일한다.</p>
+    </section>
+
+    <section id="home"><h2>11. 품질하자점검 홈</h2>
+      <div class="cta">⚡ 새 하자 입력 (사진, 의견)　 <small>주요 작업</small></div>
+      <ul><li>세대 현황 카드는 네이비 계열, 새 하자 입력만 오렌지 핵심 CTA</li><li>AI 하자분류 어시스턴트는 새 하자 입력 바로 아래에 최초 1회 표시</li><li>최근 하자 목록·전체 건수·상태를 압축 표시</li><li>세대 점검 마감 버튼은 통계·목록 최종 확인 후 활성 흐름 제공</li><li>다음 호수 진입 시 이전 세대 화면 상태와 임시 누적값 초기화</li></ul>
+    </section>
+
+    <section id="detail"><h2>12. 하자 상세·세대 마감</h2>
+      <table><tr><th>하자 상세</th><td>축소 평면도, 사진, 위치·분류·의견을 한 페이지에 정돈</td></tr><tr><th>편집</th><td>수정 / 추가 사진 / 삭제의 버튼 폭과 문구가 잘리지 않도록 구성</td></tr><tr><th>최종 저장</th><td>점검자 추가 의견을 포함하여 ‘최종확인 &amp; 저장’ 처리</td></tr><tr><th>세대 마감</th><td>전체 하자 목록·집계·평면도 누적 핀 검토 후 마감</td></tr><tr><th>다음 세대</th><td>직전 동·호수를 추천 초기값으로 사용하되 하자 목록·임시 상태는 초기화</td></tr></table>
+    </section>
+
+    <section id="offline"><h2>13. 오프라인 우선 저장·동기화</h2>
+      <div class="flow">촬영·의견·분류 → 휴대폰 로컬 DB/파일 저장 → 동기화 큐 → 통신 회복 감지 → 서버·PostgreSQL 전송 → 성공/재시도/충돌 상태</div>
+      <ul><li>사진 원본과 하자 메타데이터는 서버 응답 전에도 로컬에서 완결</li><li>전송 작업은 멱등 키와 재시도 정책 사용</li><li>DEMO 모드에서는 동기화 트리거 차단</li><li>사용자에게 대기·전송중·완료·충돌 상태를 숨기지 않는다.</li></ul>
+    </section>
+
+    <section id="states"><h2>14. 상태·예외 설계</h2>
+      <table><thead><tr><th>상태</th><th>화면 처리</th></tr></thead><tbody>
+        <tr><td>도면 없음</td><td>기본 84A-1 도면과 기본 공간 메타데이터 사용, 대체 상태 표시</td></tr>
+        <tr><td>카메라 블랙아웃</td><td>프리뷰 자동 재연결, 복구 중 오버레이, 수동 재시작</td></tr>
+        <tr><td>하자 이미지 불명확</td><td>AI/점검자 재촬영 판단, 기존 사진 임의 폐기 금지</td></tr>
+        <tr><td>네트워크 없음</td><td>로컬 저장 성공을 우선 알리고 동기화 대기 표시</td></tr>
+        <tr><td>인증 실패</td><td><span class="tag red">DEMO</span> 배지와 서버 전송 차단 안내</td></tr>
+        <tr><td>키보드 표시</td><td>IME 패딩과 스크롤로 최종 입력·저장 버튼 가림 방지</td></tr>
+      </tbody></table>
+    </section>
+
+    <section id="evidence"><h2>15. S25 Ultra 실기 화면 참고</h2>
+      <p class="lede">아래 이미지는 실제 기기 실행 검증 캡처다. 이후 확정된 통합 컬러·하단 이중 버튼은 본 문서의 화면 명세를 최신 기준으로 한다.</p>
+      <div class="shot-grid">
+        <figure class="shot"><img src="assets/uiux-v3.3-review/08-login-build-run.png" alt="S25 Ultra 인트로 실제 화면"><figcaption>제품 헤더, 세대 정보, 동·호수, 역할, 안내도 실기 화면</figcaption></figure>
+        <figure class="shot"><img src="assets/uiux-v3.3-review/02-intro-lower.png" alt="단지 안내도와 세대 평면도 실제 화면"><figcaption>단지 안내도·평면도·공간 선택의 실제 렌더링 참고</figcaption></figure>
+        <figure class="shot"><img src="assets/uiux-v3.3-review/05-room-chips.png" alt="공간 선택 칩 실제 화면"><figcaption>두 줄 공간 선택 칩과 평면도 비율 참고</figcaption></figure>
+        <figure class="shot"><img src="assets/uiux-v3.3-review/01-current.png" alt="기존 인트로 실기 화면"><figcaption>실기 기기 기준 터치 영역·텍스트 크기 검증 자료</figcaption></figure>
+      </div>
+    </section>
+
+    <section id="acceptance"><h2>16. 구현 검수 기준</h2>
+      <div class="grid"><div class="box"><h3>P0 · 필수</h3><ul><li>카메라 장시간·화면 전환 후 블랙아웃 없음</li><li>모든 하자 로컬 저장 및 재시도 가능</li><li>입주민 원문과 AI/점검자 수정 분리</li><li>세대 전환 시 이전 상태 혼입 없음</li></ul></div><div class="box"><h3>P1 · 사용성</h3><ul><li>핵심 CTA가 첫 시선에 식별</li><li>도면 탭 확대와 핀 위치 확인 가능</li><li>키보드가 입력·저장 버튼을 가리지 않음</li><li>주요 문구가 S25 Ultra에서 잘리지 않음</li></ul></div></div>
+      <h3>검증 명령</h3><p><code>.\gradlew.bat -p android :app:testDebugUnitTest :app:assembleDebug --no-daemon</code></p>
+      <p class="ok">현재 기준: 단위 테스트 및 디버그 APK 빌드 성공</p>
+    </section>
+
+    <section><h2>17. 버전 기준</h2>
+      <table><tr><th>v3.0</th><td>전체 화면 흐름과 사진·의견·AI 분류 기본 구조</td></tr><tr><th>v3.3~3.9</th><td>실기 검토, 인트로·로그인, 도면 확대, 촬영음, 라이브 평면도 개선</td></tr><tr><th>v4.0</th><td>통합 컬러시스템과 새 하자 입력 강조</td></tr><tr><th>v4.1</th><td>인트로 앵커 촬영/하자 입력 이중 진입과 자동 앵커 전략</td></tr><tr><th>v4.2</th><td><strong>현재 통합 UI·UX 구현·검수 기준</strong></td></tr></table>
+    </section>
+  </main>
+</div>
+<footer class="footer"><div class="wrap">품질/하자 점검(AI) · 통합 UI·UX 설계서 v4.2</div></footer>
+</body>
+</html>

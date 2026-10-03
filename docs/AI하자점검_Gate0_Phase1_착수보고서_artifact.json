@@ -1,0 +1,125 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "AI하자점검 Gate 0·Phase 1 착수보고서",
+    "description": "통합제품설계서 v2.0 승인 후 모델 계약 정합성 수정, 실제 ConvNeXt 패키징, API v2 기준선과 fake AI 대화 흐름 구현 결과",
+    "generatedAt": "2026-07-24T12:00:00+09:00",
+    "sources": [
+      {
+        "id": "training-run",
+        "label": "ConvNeXt-Tiny 전체학습 결과",
+        "path": "workspace/datasets/defect-convnext-full-colab-run/defect-convnext-full-run",
+        "query": {
+          "engine": "duckdb",
+          "description": "학습 클래스 맵에서 과업별 클래스 수 집계",
+          "sql": "SELECT * FROM (VALUES ('area',17),('part',3),('part_detail',171),('work_kind',57),('cause',9)) AS t(task,class_count)",
+          "tables_used": ["label_mapping.json", "training_spec.json", "final_metrics.json", "model_metadata.json"]
+        }
+      },
+      {
+        "id": "model-package",
+        "label": "ConvNeXt-Tiny 2.0.0 배포 패키지",
+        "path": "models/convnext-tiny-2.0.0",
+        "query": {
+          "engine": "filesystem",
+          "description": "모델 출력 계약, SHA-256 체크섬, 전처리와 CPU/GPU 배포 프로필 검증",
+          "tables_used": ["model_manifest.json", "checksums.json", "compatibility_manifest.json", "preprocessing.json", "label_mapping.json"]
+        }
+      },
+      {
+        "id": "implementation",
+        "label": "Gate 0 코드 및 계약 변경",
+        "path": "python/vision_ai/model_package.py",
+        "query": {
+          "engine": "filesystem",
+          "description": "동적 모델 계약과 fake inspection·assistant 상태 머신, API v2 route 및 회귀 테스트 수행",
+          "tables_used": ["python/vision_ai/model_package.py", "python/vision_ai/inspection_v2.py", "python/vision_ai/serving_app.py", "python/tests/test_inspection_v2.py", "python/tests/test_vision_model_package.py", "contracts/v2/openapi.yaml"]
+        }
+      }
+    ],
+    "charts": [
+      {
+        "id": "class-chart",
+        "title": "ConvNeXt-Tiny 과업별 클래스 수",
+        "subtitle": "상세부위 171개와 공종 57개는 세분화 수준이 높아 Top-3와 사용자 확인이 필요합니다.",
+        "type": "bar",
+        "dataset": "task_classes",
+        "sourceId": "training-run",
+        "encodings": {
+          "x": {"field": "task", "type": "nominal", "label": "과업"},
+          "y": {"field": "class_count", "type": "quantitative", "label": "클래스 수"},
+          "tooltip": [{"field": "product_role", "type": "nominal", "label": "제품 역할"}]
+        },
+        "layout": "full",
+        "maxRows": 10
+      }
+    ],
+    "blocks": [
+      {
+        "id": "title",
+        "type": "markdown",
+        "body": "# AI하자점검 Gate 0·Phase 1 착수보고서\n\n**통합제품설계서 v2.0 승인 후 첫 구현 결과 · 2026-07-24**"
+      },
+      {
+        "id": "summary",
+        "type": "markdown",
+        "body": "## 1. 결론\n\nGate 0의 핵심 장애였던 **학습 모델 출력과 배포 패키지 계약의 불일치**를 수정했습니다. 기존 패키지 코드는 `space/trade/component` 3개 과업만 허용했지만 실제 ConvNeXt 모델은 `area/cause/part/part_detail/work_kind` 5개 과업을 출력합니다. 패키지 계약을 클래스 맵 기반 동적 구조로 변경하고 기존 3과업 패키지와의 하위 호환성을 유지했습니다.\n\n실제 Colab ONNX를 `apartment-defect-convnext 2.0.0` 패키지로 만들었으며 모든 파일의 SHA-256, 입력·출력 계약, 전처리, Windows/CPU 호환성 검사를 통과했습니다. 실제 이미지로 ONNX Runtime 추론도 실행했습니다.\n\nAPI v2 OpenAPI 기준선과 **fake inspection·assistant 서비스**를 구현했습니다. Android는 실제 AI와 DB가 없어도 점검 생성→Top-3→최대 3회 질문→사용자 확정 흐름을 연동할 수 있습니다. 아직 운영 URL·인증 서버·RDS 마이그레이션은 확정하거나 실행하지 않았으며, 접속 비밀정보도 기록하지 않았습니다."
+      },
+      {
+        "id": "model",
+        "type": "markdown",
+        "sourceId": "model-package",
+        "body": "## 2. 실제 모델 패키지\n\n- 모델명/버전: `apartment-defect-convnext` / `2.0.0`\n- 모델 파일: ONNX 약 112MB\n- 입력: RGB, 224×224, NCHW float32, 0~1 정규화\n- 출력: quality와 5개 분류 점수, 비활성 검출 출력\n- 실행 프로필: CPU 기본, CUDA 우선+CPU fallback 선택\n- 무결성: 모델·분류표·전처리·매니페스트 SHA-256 일치\n- 런타임 확인: ONNX Runtime 1.27.0, CPUExecutionProvider 사용 가능\n\n한 이미지 smoke 결과는 모델 로딩·계산까지 성공했으나 현재 quality 게이트에서 거부됐습니다. quality head의 학습 근거가 충분히 확인되기 전에는 이 출력을 제품의 단독 재촬영 판정으로 사용하지 않습니다."
+      },
+      {
+        "id": "chart",
+        "type": "chart",
+        "chartId": "class-chart"
+      },
+      {
+        "id": "taxonomy",
+        "type": "markdown",
+        "sourceId": "training-run",
+        "body": "## 3. 분류체계 확정 상태\n\n모델이 실제로 학습한 클래스는 공간 17, 대분류 부위 3, 상세부위 171, 공종 57, 원인 9개입니다. 이는 기존 앱 문서의 부재 39/약 55, 현상 26/약 30과 다른 체계입니다.\n\n특히 모델 `cause`의 9개 값에는 `결로·누수·시공불량` 같은 원인과 `오염·흠집·파손(균열)` 같은 현상, `민원` 같은 업무 상태가 혼재합니다. 따라서 이를 제품의 단일 원인 코드로 저장하면 안 됩니다. v2 계약은 `symptom_code`와 `suspected_cause_code`를 분리했으며, 현장 코드북 검토 전에는 모델 cause를 **원인 가설 후보**로만 취급합니다."
+      },
+      {
+        "id": "api",
+        "type": "markdown",
+        "sourceId": "implementation",
+        "body": "## 4. API v2와 fake 대화 서비스\n\n`contracts/v2/openapi.yaml`에 taxonomy 조회, 서명 업로드 세션, 점검 초안, 분석 시작·조회, 어시스턴트 세션·답변, 사용자 확정, 오프라인 batch sync 계약을 정의했습니다.\n\n`inspection_v2.py`와 `serving_app.py`에는 점검 생성, 결정론적 후보 생성, 저신뢰 질문, 최대 3턴, 사용자 확정, P1 검수, 멱등 처리와 revision 충돌 방지를 구현했습니다. 입주자 원문은 AI 표준 문구와 분리하여 보존합니다. fake 결과는 개발 계약용이며 실제 LLM 판정이나 운영 DB 저장으로 취급하지 않습니다.\n\n변경 요청은 `Idempotency-Key`를 사용하고 확정 요청은 `If-Match` revision을 요구합니다. 서버와 OIDC URL은 동작하지 않는 placeholder이며 실제 주소와 비밀정보는 소스에 넣지 않습니다."
+      },
+      {
+        "id": "tests",
+        "type": "markdown",
+        "sourceId": "implementation",
+        "body": "## 5. 검증 결과\n\n- 모델 패키지·ONNX backend·PyTorch export 관련 테스트: **27 passed, 1 skipped**\n- fake inspection·모델 패키지·registry/serving 회귀 묶음: **34 passed, 3 skipped**\n- fake 대화 상태 머신 핵심 시험: **6 passed**, 선택적 FastAPI 시험 1건은 의존성 미설치로 skip\n- 동적 5과업 패키지 계약과 불일치 거부 테스트: 통과\n- 멱등 생성, 원문 보존, 3턴 제한, revision 충돌, P1 검수 시험: 통과\n- 실제 2.0.0 패키지 strict validation: 통과, 오류 0\n- Python compileall: 별도 pycache 경로에서 통과\n- 실제 ONNX Runtime smoke: 모델 로드·실행 성공, 품질 정책에 의해 결과 보류\n\nskip은 Windows 심볼릭 링크 권한 또는 선택적 FastAPI/httpx 설치 조건입니다. PyTorch ONNX export의 향후 `dynamic_shapes` 전환 경고가 남아 있습니다."
+      },
+      {
+        "id": "next",
+        "type": "markdown",
+        "body": "## 6. 다음 구현 순서\n\n1. quality 출력을 제품 화질 정책에서 분리하고 blur·노출·해상도·오염 검사를 독립 모듈로 고정\n2. Android DTO·Repository·Room outbox를 fake 서버와 연결\n3. 앱 홈에 AI 하자점검 진입점과 분석·질문·확정 화면을 연결\n4. 모델 5개 과업을 제품 위치·부위·현상·공종·원인 가설로 변환하는 버전형 adapter 작성\n5. RDS는 기존 스키마 대조 후 migration 제안서만 작성하고 별도 승인 전 실행하지 않음\n\n다음 단계의 핵심 결정은 현장 분류 코드북입니다. 코드북이 확정되기 전에도 Android fake API 흐름 구현은 진행할 수 있지만, 운영 DB 최종 코드 저장과 자동 공종·우선순위 규칙은 활성화하지 않습니다."
+      }
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-24T12:00:00+09:00",
+    "status": "ready",
+    "datasets": {
+      "task_classes": [
+        {"task": "area", "class_count": 17, "product_role": "위치 후보"},
+        {"task": "part", "class_count": 3, "product_role": "대분류 부위"},
+        {"task": "part_detail", "class_count": 171, "product_role": "상세부위 Top-3"},
+        {"task": "work_kind", "class_count": 57, "product_role": "공종 후보"},
+        {"task": "cause", "class_count": 9, "product_role": "원인 가설"}
+      ]
+    }
+  },
+  "sources": [
+    {"id": "training-run", "label": "ConvNeXt-Tiny 전체학습 결과", "path": "workspace/datasets/defect-convnext-full-colab-run/defect-convnext-full-run"},
+    {"id": "model-package", "label": "ConvNeXt-Tiny 2.0.0 배포 패키지", "path": "models/convnext-tiny-2.0.0"},
+    {"id": "implementation", "label": "Gate 0 코드 및 계약 변경", "path": "python/vision_ai/model_package.py"}
+  ]
+}

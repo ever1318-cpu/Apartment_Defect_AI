@@ -1,0 +1,43 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 로컬 PostgreSQL 통합환경 구축보고서 v2.3</title><style>
+body{margin:0;font-family:"Malgun Gothic",sans-serif;color:#172033;line-height:1.65}header{padding:42px 24px;background:linear-gradient(135deg,#10233f,#1769aa);color:#fff}
+main{max-width:1050px;margin:auto;padding:30px 22px 60px}h1{margin:0 0 8px}h2{color:#10233f;border-bottom:2px solid #d8e0ea;padding-bottom:8px}
+.card{background:#f4f7fb;border:1px solid #d8e0ea;border-radius:14px;padding:18px;margin:14px 0}.ok{color:#08783e;font-weight:700}.wait{color:#a15c00;font-weight:700}
+code,pre{background:#e8edf3;border-radius:5px}code{padding:2px 5px}pre{padding:14px;overflow:auto}table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #d8e0ea;padding:10px;text-align:left}th{background:#eaf1f8}</style></head><body>
+<header><h1>로컬 PostgreSQL 통합환경 구축보고서</h1><div>AI하자점검 개발가이드 · Backend Gate v2.3 · 2026-07-24</div></header>
+<main><h2>1. 환경 확인</h2><table><tr><th>항목</th><th>상태</th></tr>
+<tr><td>PostgreSQL</td><td>18 서비스 실행 중, 127.0.0.1:5432 연결 수신 확인</td></tr>
+<tr><td>psql</td><td><code>C:\Program Files\PostgreSQL\18\bin\psql.exe</code></td></tr>
+<tr><td>Docker</td><td>불필요 — 로컬 PostgreSQL 서비스 사용</td></tr>
+<tr><td>인증</td><td><span class="ok">로컬 postgres 암호 재설정 및 SCRAM 인증 복구 완료</span></td></tr>
+<tr><td>DB 적용</td><td><span class="ok">apartment_defect_local 마이그레이션·seed 완료</span></td></tr></table>
+<h2>2. 구현 산출물</h2><ul>
+<li>로컬 전용 환경변수: <code>LOCAL_APARTMENT_DB_*</code></li>
+<li>localhost 외 주소 차단 setup 스크립트</li>
+<li>핵심 스키마 마이그레이션 자동 적용</li>
+<li>울산다운 101~120동·1~25층·1~4라인, 총 2,000세대 seed</li>
+<li>84A-1·84B-1 평면도와 공간 앵커 메타데이터</li>
+<li>PostgreSQL 기반 FastAPI 실행 팩토리와 서버 스크립트</li>
+</ul>
+<h2>3. 보안 원칙</h2><div class="card">운영 <code>APARTMENT_DB_*</code>와 로컬
+<code>LOCAL_APARTMENT_DB_*</code>를 분리했다. setup 스크립트는 host가 localhost가 아니면 중단하며,
+비밀번호를 파일·로그·보고서에 저장하지 않는다.</div>
+<h2>4. 실제 적용 명령</h2><pre>cd D:\AI_projects\Apartment_Defect_AI
+$env:LOCAL_APARTMENT_DB_PASSWORD = Read-Host "Local PostgreSQL password" -MaskInput
+.\scripts\setup_local_field_db.ps1
+.\scripts\run_field_postgres_server.ps1</pre>
+<p>PowerShell 5에서 <code>-MaskInput</code>이 지원되지 않으면 다음을 사용한다.</p>
+<pre>$secure = Read-Host "Local PostgreSQL password" -AsSecureString
+$env:LOCAL_APARTMENT_DB_PASSWORD = [Net.NetworkCredential]::new("", $secure).Password</pre>
+<h2>5. 검증</h2><div class="card"><span class="ok">147 passed, 6 skipped</span><br>
+PowerShell 스크립트 구문검사, 로컬 설정 분리, seed 멱등성 및 전체 Python 회귀 테스트 통과.</div>
+<h2>6. 실제 적용 결과</h2><div class="card"><span class="ok">buildings=20 · households=2000</span><br>
+핵심 스키마, 20개 동, 84A-1·84B-1 평면도 및 2,000세대 seed가 트랜잭션으로 커밋됐다.</div>
+<h2>7. PostgreSQL HTTP 통합시험</h2><div class="card"><span class="ok">HTTP_FIELD_FLOW=PASS</span><br>
+<code>PERSISTENCE=postgresql</code> · <code>SUMMARY_TOTAL=1</code> ·
+<code>SUMMARY_CONFIRMED=1</code>. 세션→앵커→하자→최종확인→집계→마감 전체 흐름을 실제 로컬 DB로 검증했고
+테스트 데이터와 임시 서버를 정리했다.</div>
+<h2>8. 남은 Gate</h2><div class="card"><span class="wait">Android /v2/field 연결과 오프라인 동기화 단말 시험</span><br>
+단말 통합시험이 통과되기 전에는 스테이징 또는 운영 RDS에 적용하지 않는다.</div>
+</main></body></html>

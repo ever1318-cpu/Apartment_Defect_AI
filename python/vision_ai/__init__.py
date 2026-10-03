@@ -54,6 +54,17 @@ from .models import (
     PolygonMask,
     VisionPrediction,
 )
+from .defect_dataset import DefectDatasetItem, defect_rows_to_dataset
+from .defect_metadata import (
+    DEFECT_TASKS,
+    ConfidencePolicy,
+    DefectMetadata,
+    DefectTaxonomy,
+    build_defect_metadata,
+)
+from .remote_images import materialize_remote_images, select_training_pilot
+from .training_report import write_comparison_report, write_training_report
+from .overlay_cleaning import OverlayCleaningResult, clean_overlay_images
 from .model_package import (
     build_model_package,
     generate_checksums,
@@ -173,6 +184,19 @@ __all__ = [
     "VisionBackend",
     "VisionPipeline",
     "VisionPrediction",
+    "DEFECT_TASKS",
+    "ConfidencePolicy",
+    "DefectDatasetItem",
+    "DefectMetadata",
+    "DefectTaxonomy",
+    "build_defect_metadata",
+    "defect_rows_to_dataset",
+    "materialize_remote_images",
+    "select_training_pilot",
+    "write_training_report",
+    "write_comparison_report",
+    "OverlayCleaningResult",
+    "clean_overlay_images",
     "ONNX_OUTPUT_NAMES",
     "build_default_registry",
     "build_model_package",

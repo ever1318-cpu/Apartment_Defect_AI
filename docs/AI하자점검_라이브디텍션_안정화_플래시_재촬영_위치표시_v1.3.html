@@ -1,0 +1,16 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI하자점검 라이브 디텍션 안정화 v1.3</title>
+<style>body{margin:0;background:#f5f7fb;color:#172033;font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}.wrap{width:min(980px,calc(100% - 32px));margin:auto}.hero{padding:46px 0 30px;background:linear-gradient(135deg,#102a56,#155eef);color:#fff}.hero h1{margin:4px 0}main{padding:28px 0 56px}section{margin-bottom:20px;padding:20px;background:#fff;border:1px solid #dbe3ef;border-radius:16px}h2{margin-top:0}.ok{color:#067647;font-weight:800}.pending{color:#a15c00;font-weight:800}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.card{padding:15px;border:1px solid #dbe3ef;border-radius:12px}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #dbe3ef;text-align:left;vertical-align:top}code{overflow-wrap:anywhere}@media(max-width:700px){.grid{grid-template-columns:1fr}}</style></head>
+<body><header class="hero"><div class="wrap"><small>Apartment Defect AI · Camera v1.3</small><h1>라이브 디텍션 안정화·플래시·재촬영·위치표시</h1><p>카메라 블랙아웃과 현장 촬영 품질 피드백 반영 · 2026-07-24</p></div></header><main class="wrap">
+<section><h2>1. 진단 결론</h2><p>카메라 화면의 <code>SurfaceView</code>가 화면 상호작용이나 수명주기 전환으로 파괴된 뒤에도 ViewModel의 열림 상태가 유지되어, 새 Surface에 카메라 세션을 재연결하지 못하는 구조를 확인했습니다.</p></section>
+<section><h2>2. 구현 내용</h2><div class="grid">
+<div class="card"><strong>블랙아웃 자동 복구</strong><p>Surface 파괴를 감지해 세션을 닫고 새 Surface 생성 시 다시 엽니다. 프레임 heartbeat가 5초 이상 중단되면 watchdog이 세션을 재시작합니다.</p></div>
+<div class="card"><strong>장시간 화면 유지</strong><p>카메라 화면에서 <code>FLAG_KEEP_SCREEN_ON</code>을 사용하고 앱 pause/resume에 맞춰 카메라를 정리·재개합니다.</p></div>
+<div class="card"><strong>플래시 3단계</strong><p>상단 버튼으로 자동 → 켜짐 → 꺼짐을 순환합니다. 촬영 요청에는 AUTO_FLASH, ALWAYS_FLASH, FLASH_OFF를 구분 적용합니다.</p></div>
+<div class="card"><strong>촬영 직후 재촬영</strong><p>촬영 즉시 다음 화면으로 넘기지 않고 이미지를 크게 확인합니다. 점검자 또는 AI가 분간하기 어려우면 재촬영, 양호하면 이미지 사용을 선택합니다.</p></div>
+<div class="card"><strong>AI 저확신 재촬영</strong><p>AI 결과가 비어 있거나 오류 또는 55% 미만이면 재촬영 권장 문구를 표시하고 고정 하단에 재촬영 버튼을 제공합니다.</p></div>
+<div class="card"><strong>평면도 현장 표시</strong><p>세션에 저장된 모든 하자를 위험도 색상 핀으로 누적 표시합니다. 현재 위치는 3중 방사형 경광등이며 앵커가 없으면 인트로 선택 공간을 초기 위치로 사용합니다.</p></div>
+</div></section>
+<section><h2>3. 상태·표시 규칙</h2><table><tr><th>표시</th><th>의미</th></tr><tr><td>빨강·주황·회색 핀</td><td>중대·보통·경미 누적 하자 위치</td></tr><tr><td>초록 점</td><td>현관 기준 앵커</td></tr><tr><td>노랑 3중 방사 링</td><td>현재 점검자 위치(PDR), 앵커 전에는 선택 공간 중심</td></tr><tr><td>카메라 복구 중</td><td>프레임 중단 감지 후 자동 재연결; 사용자가 눌러 즉시 재시도 가능</td></tr></table></section>
+<section><h2>4. 검증 현황</h2><table><tr><th>컴파일·단위 테스트</th><td class="ok">성공</td></tr><tr><th>플래시 상태 순환 테스트</th><td class="ok">AUTO → ON → OFF → AUTO 성공</td></tr><tr><th>APK</th><td><code>D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</code></td></tr><tr><th>SHA-256</th><td><code>C3C287E27E46153BD931E2EF5FED22487389E8B4367619077A158759C46116F8</code></td></tr><tr><th>S25 실기기</th><td class="pending">ADB 연결 해제로 설치·장시간·발광 검증 대기</td></tr></table></section>
+<section><h2>5. 실기기 검수 항목</h2><ol><li>카메라를 10분 이상 유지해 프리뷰가 계속 갱신되는지 확인</li><li>평면도 영역 상호작용 및 앱 백그라운드 왕복 후 자동 복구 확인</li><li>어두운 공간에서 자동·켜짐·꺼짐 각각 실제 촬영 확인</li><li>촬영 직후 재촬영과 이미지 사용 분기 확인</li><li>기존 하자 핀과 현재 위치 방사형 표시가 동시에 보이는지 확인</li></ol></section>
+</main></body></html>

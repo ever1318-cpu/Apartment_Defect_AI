@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI하자점검 UI·UX 최적화 제안서 v4.5</title>
+  <style>
+    :root{--navy:#173b70;--blue:#28558a;--soft:#eaf1fb;--orange:#f28c28;--ink:#182334;--sub:#627087;--line:#d7e1ee;--bg:#f4f7fb;--good:#087a55;--warn:#a44e00;--bad:#c1272d}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.68 system-ui,"Noto Sans KR",sans-serif}
+    a{color:var(--blue)}.wrap{width:min(1240px,calc(100% - 28px));margin:auto}
+    header{padding:48px 0 36px;color:#fff;background:linear-gradient(135deg,var(--navy),var(--blue))}
+    header h1{margin:6px 0;font-size:clamp(29px,5vw,48px);line-height:1.22}header p{max-width:900px;margin:10px 0;color:#e5eefb}
+    .pill{display:inline-block;margin:8px 6px 0 0;padding:5px 10px;border:1px solid #ffffff66;border-radius:99px;font-size:13px}
+    .layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;padding:28px 0 64px}
+    nav{position:sticky;top:12px;align-self:start;padding:16px;background:#fff;border:1px solid var(--line);border-radius:16px}
+    nav b{display:block;margin-bottom:8px}nav a{display:block;padding:4px 0;color:var(--sub);text-decoration:none;font-size:13px}
+    section{margin-bottom:22px;padding:22px;background:#fff;border:1px solid var(--line);border-radius:18px}
+    h2{margin:0 0 8px;font-size:23px}h3{margin:3px 0 7px;font-size:17px}.lede{color:var(--sub)}
+    .flow{padding:15px;border-radius:12px;background:var(--soft);font-weight:800}
+    .summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:13px}
+    .box{padding:14px;border:1px solid var(--line);border-radius:13px;background:#fbfcfe}
+    .good{color:var(--good);font-weight:800}.warn{color:var(--warn);font-weight:800}.bad{color:var(--bad);font-weight:800}
+    .shots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px}
+    .shots3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}
+    figure{margin:0;padding:11px;border:1px solid var(--line);border-radius:15px;background:#f8fafc}
+    figure img{display:block;width:100%;max-height:640px;object-fit:contain;object-position:top;border-radius:11px;background:#e7ebf1}
+    figcaption{padding:9px 2px 1px;color:var(--sub);font-size:13px}.single{grid-template-columns:minmax(0,420px)}
+    table{width:100%;border-collapse:collapse;margin-top:12px}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f7f9fc}
+    ul{padding-left:20px}.meta{font-size:13px;color:var(--sub)}
+    .sev{display:inline-block;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:800;color:#fff}
+    .sev.crit{background:var(--bad)}.sev.mod{background:var(--warn)}.sev.min{background:var(--good)}
+    .before-after{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+    .ba-box{padding:14px;border-radius:13px;border:1px solid var(--line)}
+    .ba-box.before{background:#fdf3f2}.ba-box.after{background:#f0f9f4}
+    @media(max-width:850px){.layout{grid-template-columns:1fr}nav{position:static}.summary,.shots,.shots3,.before-after{grid-template-columns:1fr}.single{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header><div class="wrap">
+  <small>Apartment Defect AI · v4.4 실기기 검토서 기반 역설계</small>
+  <h1>AI하자점검 UI·UX<br>최적화 제안서 v4.5</h1>
+  <p>v4.4 검토서에 담긴 15장의 실기기 캡처를 다시 분석해, AI 분류 결과가 화면마다 다르게 표기되는 지점과 정보구조 최적화 지점을 짚고 구체적 개선안을 제안한다. v4.4와 나란히 비교하는 용도의 문서다.</p>
+  <span class="pill">기준 문서: v4.4</span><span class="pill">분석 화면: 15장</span><span class="pill">작성일: 2026-07-25</span>
+</div></header>
+<div class="wrap layout">
+  <nav><b>화면 목차</b>
+    <a href="#result">1. 검토 결론</a><a href="#ai-consistency">2. AI 추천 표기 일관성</a>
+    <a href="#usability">3. Usability 이슈</a><a href="#redesign-opinion">4. 역설계: 의견·AI 화면</a>
+    <a href="#redesign-home">5. 역설계: 점검 홈</a><a href="#redesign-login">6. 역설계: 로그인·DEMO</a>
+    <a href="#priority">7. 우선순위 정리</a>
+  </nav>
+  <main>
+    <section id="result"><h2>1. 검토 결론</h2>
+      <p class="good">현장 흐름 자체는 완결되어 있다. 가장 큰 개선 기회는 AI 추천 정보의 표기 일관성과, DEMO 모드 진입이 화면에 드러나지 않는 문제다.</p>
+      <div class="summary">
+        <div class="box"><h3>핵심 발견</h3>동일한 AI 추천이 화면마다 나열형/계층형, 서로 다른 신뢰도 숫자로 표기됨</div>
+        <div class="box"><h3>가장 시급한 위험</h3>인증 실패 시 DEMO 모드 무저장 상태가 세대 마감까지 화면에 드러나지 않음</div>
+        <div class="box"><h3>문서 성격</h3>v4.4 실기기 캡처 기반 역설계 제안 — 목업이 아닌 실제 화면 근거</div>
+      </div>
+    </section>
+
+    <section id="ai-consistency"><h2>2. AI 추천 표기 일관성 (핵심 발견)</h2>
+      <p class="lede">동일한 "AI가 추천한 값"이 점검 흐름의 세 지점에서 서로 다르게 표기된다. 점검자가 무엇에 대한 몇 %인지 헷갈릴 수 있고, 결국 최종 확정 라벨의 정확도 — 즉 다음 모델 재학습 데이터의 품질 — 에 영향을 준다.</p>
+      <div class="shots3">
+        <figure><img src="assets/uiux-v4.4-device/11-pin-review.png" alt="11 위치확인 75%"><figcaption><strong>11-pin-review</strong>: "거실 — 75%" — 핀+화살표, 위치 추정 신뢰도</figcaption></figure>
+        <figure><img src="assets/uiux-v4.4-device/13-opinion-bottom.png" alt="13 opinion 55%"><figcaption><strong>13-opinion-bottom</strong>: "거실, 천장, 마감" 쉼표 나열 + "55%" — 하자유형 신뢰도</figcaption></figure>
+        <figure><img src="assets/uiux-v4.4-device/15-detail-top.png" alt="15 detail 계층형"><figcaption><strong>15-detail-top</strong>: "거실 &gt; 천장 &gt; 마감 &gt; 확인 필요" — 계층형 + 플래그 문구</figcaption></figure>
+      </div>
+      <table><thead><tr><th>화면</th><th>표기 방식</th><th>신뢰도</th><th>문제</th></tr></thead><tbody>
+        <tr><td>11-pin-review</td><td>단일 지명 + 화살표</td><td>75%</td><td>이게 "위치" 신뢰도라는 라벨이 없음</td></tr>
+        <tr><td>12/13-opinion</td><td>쉼표 나열 (거실, 천장, 마감)</td><td>55%</td><td>계층 관계가 안 보임, 신뢰도 대상 불명확</td></tr>
+        <tr><td>15-detail-top</td><td>계층형 (거실 &gt; 천장 &gt; 마감)</td><td>표기 없음</td><td>"확인 필요" 플래그가 왜 붙었는지(임계값) 기준 불명확</td></tr>
+      </tbody></table>
+      <h3 style="margin-top:18px">제안</h3>
+      <ul>
+        <li>신뢰도 숫자는 항상 <strong>대상을 함께 명시</strong>: "위치 추정 75%" / "하자유형 추천 55%"</li>
+        <li>후보 표기는 <strong>계층형(&gt;)으로 전 화면 통일</strong> — 나열형(쉼표) 제거</li>
+        <li>"확인 필요" 플래그는 <strong>신뢰도 임계값(예: 60% 미만)</strong> 기준으로 시스템이 자동 부착 — 지금은 왜 붙었는지 규칙이 화면에 없음</li>
+      </ul>
+    </section>
+
+    <section id="usability"><h2>3. Usability 이슈</h2>
+      <table><thead><tr><th>심각도</th><th>발견</th><th>근거 화면</th><th>권장 조치</th></tr></thead><tbody>
+        <tr><td><span class="sev crit">Critical</span></td><td>로그인 실패 시 안내 없이 DEMO 모드로 전환. 이후 어떤 화면에도 DEMO 표시 없음</td><td>02-login → 14/15/18/19/20 전체</td><td>인증 실패는 명확한 오류로 재시도 유도. DEMO 진입 시 전 화면 지속 배지 필요</td></tr>
+        <tr><td><span class="sev mod">Moderate</span></td><td>동/호수가 요약카드+드롭다운+평형탭 3중 반복</td><td>01-intro</td><td>요약카드 탭 시 드롭다운 펼침 구조로 통합</td></tr>
+        <tr><td><span class="sev mod">Moderate</span></td><td>공간선택 칩 "침실"이 라벨 없이 2개 — 평면도는 침실1/침실2로 구분</td><td>05-room-selected</td><td>칩 라벨을 평면도와 1:1 매칭</td></tr>
+        <tr><td><span class="sev mod">Moderate</span></td><td>정렬 옵션 "최신순"이 세로 한 글자씩 쪼개짐</td><td>19-list</td><td>가로 스크롤 또는 드롭다운으로 전환</td></tr>
+        <tr><td><span class="sev mod">Moderate</span></td><td>"새 하자 입력" 카드 하단 텍스트가 다음 섹션에 잘려 보임</td><td>14-after-save</td><td>카드 높이/margin 재검토, 실기기 재현 확인</td></tr>
+        <tr><td><span class="sev min">Minor</span></td><td>필터 칩 "중대"가 리포트의 빨강 배지와 달리 무채색</td><td>19-list vs 21-report-bottom</td><td>필터 칩도 심각도 배지 색상 매핑 적용</td></tr>
+        <tr><td><span class="sev min">Minor</span></td><td>화면 하단 40% 가량 빈 여백</td><td>18-floorplan, 19-list</td><td>여백에 콘텐츠 배치 또는 뷰 영역 재조정</td></tr>
+      </tbody></table>
+    </section>
+
+    <section id="redesign-opinion"><h2>4. 역설계 제안 — 의견·AI 분류 화면</h2>
+      <div class="shots"><figure><img src="assets/uiux-v4.4-device/12-opinion-top.png" alt="12 opinion top"><figcaption>현재: STT·점검자의견·AI분석·이미지추천·최종확정 4단계가 전부 펼쳐진 채 세로로 나열</figcaption></figure>
+      <figure><img src="assets/uiux-v4.4-device/13-opinion-bottom.png" alt="13 opinion bottom"><figcaption>스크롤 후: 3단계(최종분류)와 4단계(현장메모)가 이어짐 — 한 화면에서 계속 위아래로 왕복 필요</figcaption></figure></div>
+      <div class="before-after">
+        <div class="ba-box before"><h3 class="bad">Before</h3><ul>
+          <li>1 점검자의견·AI분석 → 2 이미지AI추천 → 3 최종분류 → 4 현장메모, 4단계 모두 항상 펼쳐짐</li>
+          <li>완료한 단계도 계속 화면을 차지해 스크롤이 길어짐</li>
+          <li>AI 추천 신뢰도(55%)와 후보 목록이 나열형으로만 표기</li>
+        </ul></div>
+        <div class="ba-box after"><h3 class="good">After (제안)</h3><ul>
+          <li>완료된 단계는 <strong>한 줄 요약 + "수정" 링크</strong>로 접힘 (아코디언), 현재 진행 단계만 펼침</li>
+          <li>단계 진입 시 이전 단계 요약이 상단에 고정 노출되어 맥락 유지</li>
+          <li>AI 추천은 "하자유형 추천 55% · 거실 &gt; 천장 &gt; 마감" 계층형 한 줄로 통일 표기 (2번 섹션 기준 적용)</li>
+          <li>최종 확정 문장은 3개 이상 후보 태그가 있어도 항상 완결된 문장으로 생성되도록 템플릿 점검 (현재 "AI 이미지 분석 후보: 거실, 천장," 에서 문장이 끊겨 보이는 현상 확인 필요)</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section id="redesign-home"><h2>5. 역설계 제안 — 점검 홈</h2>
+      <div class="shots single"><figure><img src="assets/uiux-v4.4-device/14-after-save.png" alt="14 home"><figcaption>현재: "세대 점검 마감"(초록)이 "새 하자 입력"(주황)보다 위에 배치 — 완료율 0%인 진행 중 상태에서도 마감 CTA가 시각적으로 앞섬</figcaption></figure></div>
+      <div class="before-after">
+        <div class="ba-box before"><h3 class="bad">Before</h3><ul>
+          <li>완료율 0%인데도 "마감" 버튼이 "새 하자 입력"보다 상단에 위치</li>
+          <li>"새 하자 입력" 카드 하단 텍스트가 다음 섹션에 잘려 보임</li>
+        </ul></div>
+        <div class="ba-box after"><h3 class="good">After (제안)</h3><ul>
+          <li>완료율에 따라 두 CTA의 시각적 우선순위를 동적으로 전환: 진행 중(완료율&lt;100%)엔 "새 하자 입력"을 최상단 주 CTA로, 마감 버튼은 보조 위치로 이동</li>
+          <li>모든 항목이 완료(또는 사용자가 목록을 확인)된 뒤에만 마감 버튼이 주 CTA 색상으로 강조되도록 상태 기반 스타일링</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section id="redesign-login"><h2>6. 역설계 제안 — 로그인 실패 · DEMO 모드</h2>
+      <div class="shots single"><figure><img src="assets/uiux-v4.4-device/02-login.png" alt="02 login"><figcaption>현재: "인증이 일치하지 않으면 DEMO 모드로 실행되며 서버 저장·전송은 차단됩니다" 안내만 로그인 시점에 1회 노출, 이후 화면엔 표시 없음</figcaption></figure></div>
+      <div class="before-after">
+        <div class="ba-box before"><h3 class="bad">Before</h3><ul>
+          <li>인증 실패 → 안내 문구 없이 DEMO 모드로 조용히 진행</li>
+          <li>홈(14)·상세(15)·평면도(18)·목록(19)·리포트(20/21) 어디에도 DEMO 표시 없음</li>
+          <li>세대 마감 시점에야 무저장 상태를 알게 될 위험</li>
+        </ul></div>
+        <div class="ba-box after"><h3 class="good">After (제안)</h3><ul>
+          <li>인증 실패는 즉시 재시도를 유도하는 명확한 오류로 우선 처리 (DEMO 자동 전환보다 재입력 유도가 먼저)</li>
+          <li>그럼에도 DEMO로 진입했다면 <strong>헤더 배경색을 경고색으로 바꾸고 "DEMO 모드 · 저장 안 됨" 텍스트를 모든 화면 상단에 고정</strong></li>
+          <li>마감 시도 시 DEMO 상태라면 마감을 막고 재로그인을 요구하는 확인 다이얼로그 추가</li>
+        </ul></div>
+      </div>
+    </section>
+
+    <section id="priority"><h2>7. 우선순위 정리</h2>
+      <table><thead><tr><th>순위</th><th>항목</th><th>이유</th></tr></thead><tbody>
+        <tr><td>1</td><td>DEMO 모드 지속 배지</td><td>데이터 유실 리스크가 가장 큼 — 세대 전체 작업이 저장 안 될 수 있음</td></tr>
+        <tr><td>2</td><td>AI 신뢰도·추천 표기 통일</td><td>UX 문제이자, 다음 모델 재학습용 라벨 품질 문제</td></tr>
+        <tr><td>3</td><td>의견·AI 화면 아코디언화</td><td>스크롤·인지 부담 축소</td></tr>
+        <tr><td>4</td><td>목록 정렬칩·홈 카드 클리핑 등 레이아웃 버그</td><td>다음 APK 회귀검수 항목에 추가 권장 (v4.4 13장 표 연동)</td></tr>
+      </tbody></table>
+      <p class="meta">17-detail-actions.png는 캡션(수정/추가사진/삭제 버튼 영역)과 실제 이미지(12/13과 동일한 opinion 편집 화면)가 일치하지 않아 이번 분석에서 제외했다 — v4.4 문서의 스크린샷 배치 오류로 보이며, 재캡처 후 교체를 권장한다.</p>
+    </section>
+  </main>
+</div>
+</body>
+</html>

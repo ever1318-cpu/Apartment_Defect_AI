@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import threading
+import uuid
 from pathlib import Path
 
 import pytest
@@ -656,3 +657,83 @@ def test_fastapi_endpoints_when_optional_dependencies_are_installed(tmp_path) ->
             "error",
         ]
         assert client.get("/v1/metrics").json()["request_count"] >= 1
+
+
+@pytest.mark.integration
+@pytest.mark.serving
+def test_v2_fake_inspection_api_contract_flow(tmp_path) -> None:
+    pytest.importorskip("fastapi")
+    pytest.importorskip("httpx")
+    from fastapi.testclient import TestClient
+
+    service, _ = _service(tmp_path, cache=True)
+    app = create_serving_app(service.config, service=service)
+    headers = {"Idempotency-Key": "api-contract-create-0001"}
+    draft = {
+        "client_uuid": str(uuid.uuid4()),
+        "taxonomy_version": "2.0.0",
+        "site": {"site_id": "site-1"},
+        "location": {
+            "building": "101",
+            "unit": "1001",
+            "area": "거실",
+        },
+        "capture_pair": {
+            "wide_media_id": str(uuid.uuid4()),
+            "close_media_id": str(uuid.uuid4()),
+        },
+        "raw_opinion": "벽면이 젖어 있습니다",
+    }
+    with TestClient(app) as client:
+        assert client.get("/v2/taxonomies/2.0.0").status_code == 200
+        created = client.post("/v2/inspections", json=draft, headers=headers)
+        assert created.status_code == 201
+        inspection = created.json()
+
+        analysis = client.post(
+            f"/v2/inspections/{inspection['id']}/analysis",
+            json={
+                "model_name": "apartment-defect-convnext",
+                "model_version": "2.0.0",
+                "top_k": 3,
+            },
+            headers={"Idempotency-Key": "api-contract-analysis-0001"},
+        )
+        assert analysis.status_code == 202
+        analysis_value = analysis.json()
+
+        session = client.post(
+            "/v2/assistant/sessions",
+            json={
+                "inspection_id": inspection["id"],
+                "analysis_id": analysis_value["id"],
+            },
+            headers={"Idempotency-Key": "api-contract-session-0001"},
+        )
+        assert session.status_code == 201
+        session_value = session.json()
+        proposed = client.post(
+            f"/v2/assistant/sessions/{session_value['id']}/messages",
+            json={
+                "question_id": session_value["question"]["id"],
+                "option_id": "wet",
+            },
+            headers={"Idempotency-Key": "api-contract-answer-0001"},
+        )
+        assert proposed.status_code == 200
+        proposal = proposed.json()["proposal"]
+        current = client.get(f"/v2/inspections/{inspection['id']}").json()
+
+        confirmed = client.post(
+            f"/v2/inspections/{inspection['id']}/confirmation",
+            json={
+                "classification": proposal,
+                "confirmation_source": "accepted",
+            },
+            headers={
+                "Idempotency-Key": "api-contract-confirm-0001",
+                "If-Match": str(current["revision"]),
+            },
+        )
+        assert confirmed.status_code == 200
+        assert confirmed.json()["state"] == "USER_CONFIRMED"

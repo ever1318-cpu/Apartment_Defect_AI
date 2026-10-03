@@ -1,0 +1,18 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 STT·AI 종합의견 UI 재구성 v4.6</title><style>
+body{margin:0;background:#f4f7fb;color:#182334;font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}.wrap{width:min(1050px,calc(100% - 28px));margin:auto}
+header{padding:44px 0 32px;background:linear-gradient(135deg,#173b70,#28558a);color:#fff}h1{margin:5px 0;font-size:clamp(28px,5vw,44px)}
+main{padding:26px 0 60px}section{margin-bottom:18px;padding:21px;background:#fff;border:1px solid #d7e1ee;border-radius:17px}h2{margin:0 0 9px}
+.flow{padding:15px;border-radius:12px;background:#eaf1fb;font-weight:800}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid #d7e1ee;text-align:left;vertical-align:top}th{background:#f7f9fc}.ok{color:#087a55;font-weight:800}code{color:#174ea6}
+</style></head><body><header><div class="wrap"><small>Apartment Defect AI · Android UI implementation</small><h1>STT·AI 종합의견 UI 재구성 v4.6</h1><p>홈 새 하자 입력 카드 정돈과 하자정보 의견 상세의 단계 재설계</p></div></header>
+<main class="wrap"><section><h2>1. 결과</h2><p class="ok">홈 카드의 하단 침범을 제거하고 의견 입력을 STT 중심의 3단 흐름으로 재구성했다.</p>
+<div class="flow">1. STT 음성의견·문자 추가 → 2. 촬영이미지/텍스트 AI 추천 → 3. 종합의견 확정 → 수정 저장 또는 의견 확정 &amp; 저장</div></section>
+<section><h2>2. 적용 내용</h2><table><tr><th>영역</th><th>변경</th></tr>
+<tr><td>새 하자 입력 카드</td><td>최소 높이, 내부 수직 여백, 모서리 클리핑과 한 줄 제한을 적용해 아래 글자가 비치는 현상 제거</td></tr>
+<tr><td>STT</td><td>음성의견 블록 탭 시작, 별도 마감 버튼, 인식 결과의 점검자 원문 반영</td></tr>
+<tr><td>문자 추가</td><td>STT 마감 후 현장 추가 의견을 별도 입력</td></tr>
+<tr><td>AI 추천</td><td>촬영 이미지와 STT·문자 점검자 의견을 함께 참조하는 추천 영역으로 통합</td></tr>
+<tr><td>종합의견</td><td>점검자·텍스트 AI·이미지 AI·추가 의견을 통합하여 최종 편집</td></tr>
+<tr><td>저장</td><td><strong>수정 저장</strong>과 <strong>의견 확정 &amp; 저장</strong>으로 작업 분리</td></tr></table></section>
+<section><h2>3. 검증</h2><ul><li>Android <code>:app:assembleDebug</code> 성공</li><li><code>:app:testDebugUnitTest</code> 20개 전체 성공</li><li>APK 생성: 2026-07-25 21:10:25</li></ul></section>
+</main></body></html>

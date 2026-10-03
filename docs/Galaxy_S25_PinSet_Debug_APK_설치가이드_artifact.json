@@ -1,0 +1,53 @@
+{
+  "surface": "report",
+  "manifest": {
+    "version": 1,
+    "surface": "report",
+    "title": "Galaxy S25 PinSet Debug APK 설치 가이드",
+    "description": "Galaxy S25에서 출처를 알 수 없는 앱 또는 자동 차단 기능으로 PinSet Debug APK가 거부될 때의 안전한 설치 절차",
+    "generatedAt": "2026-07-21T15:00:00+09:00",
+    "sources": [
+      {"id":"samsung-unknown","label":"Samsung — 알 수 없는 출처 앱 설치 허용","url":"https://www.samsung.com/us/support/troubleshoot/TSG10001913/","query":{"engine":"web","description":"설치 파일을 연 앱에만 알 수 없는 앱 설치 권한을 부여하는 공식 절차","tables_used":["Samsung Galaxy unknown-source installation guidance"]}},
+      {"id":"samsung-blocker","label":"Samsung — 자동 차단 기능","url":"https://www.samsung.com/us/support/answer/ANS10003636/","query":{"engine":"web","description":"자동 차단 기능이 비공식 출처 APK와 USB 명령을 차단하는 동작","tables_used":["Samsung Galaxy Auto Blocker guidance"]}},
+      {"id":"google-protect","label":"Google — Play Protect","url":"https://support.google.com/android/answer/2812853?hl=ko","query":{"engine":"web","description":"외부 APK 검사·경고·차단에 관한 Play Protect 공식 안내","tables_used":["Google Play Protect guidance"]}},
+      {"id":"android-adb","label":"Android Developers — adb 설치","url":"https://developer.android.com/tools/adb","query":{"engine":"web","description":"개발 PC에서 adb install로 APK를 설치하는 공식 명령","tables_used":["Android Debug Bridge documentation"]}},
+      {"id":"local-apk","label":"PinSet Debug APK 로컬 검증","path":"PinSet-App/android/app/build/outputs/apk/debug/app-debug.apk 10.1.apk","query":{"engine":"duckdb","sql":"SELECT * FROM (VALUES ('APK 파일',1,'SHA-256 확인'),('APK v2 서명',1,'Android Debug 인증서'),('S25 출처 권한',0,'사용자 허용 필요'),('S25 설치 완료',0,'설치 후 확인 필요')) AS t(item, ready, status)","description":"생성된 APK의 SHA-256과 Android APK Signature Scheme v2 서명을 로컬 도구로 검증","tables_used":["app-debug.apk 10.1.apk"]}}
+    ],
+    "charts": [
+      {"id":"chart-install-state","title":"Galaxy S25 설치 준비 상태","subtitle":"2026년 7월 21일 기준, 1=확인 완료·0=휴대폰에서 조치 필요","type":"bar","dataset":"install_state","sourceId":"local-apk","encodings":{"x":{"field":"item","type":"nominal","label":"점검 항목"},"y":{"field":"ready","type":"quantitative","label":"확인 상태"},"tooltip":[{"field":"status","type":"nominal","label":"상태"}]},"valueFormat":"number","layout":"full","maxRows":10}
+    ],
+    "blocks": [
+      {"id":"title","type":"markdown","body":"# Galaxy S25 PinSet Debug APK 설치 가이드"},
+      {"id":"summary","type":"markdown","body":"## 결론 — APK 이상이 아니라 Galaxy의 정상 보안 차단입니다\n\n현재 파일은 Play Store 배포본이 아닌 **개발용 Debug APK**이므로 Galaxy S25가 기본적으로 외부 출처 설치를 차단합니다. APK는 SHA-256과 v2 서명이 정상 확인됐습니다. 먼저 `자동 차단 기능`을 잠시 끄고, APK를 연 앱 하나에만 `이 출처 허용`을 부여한 뒤 설치하십시오. 설치가 끝나면 두 설정을 즉시 원상복구합니다. Play Protect는 끄지 말고 검사를 실행합니다."},
+      {"id":"state","type":"chart","chartId":"chart-install-state"},
+      {"id":"apk-proof","type":"markdown","sourceId":"local-apk","body":"## 설치할 파일을 먼저 식별합니다\n\n- 파일명: `app-debug.apk 10.1.apk`\n- 애플리케이션 ID: `com.axlife.pinset.debug`\n- 크기: 70,598,717 bytes(약 67.33 MB)\n- SHA-256: `2D0A9E39D61681CEC23B9D57B4307D9618EE88FA96880684456708E47F811361`\n- 서명: APK Signature Scheme v2 검증 성공, Android Debug 인증서, RSA 2048-bit\n\n휴대폰으로 복사된 파일의 이름이 달라도 될 수 있지만, 안전 확인이 필요하면 PC 원본의 해시와 동일한지 확인하십시오. Debug 서명은 개발 테스트에는 유효하지만 Play Store가 신뢰하는 운영 배포용 서명은 아닙니다."},
+      {"id":"primary","type":"markdown","sourceId":"samsung-unknown","body":"## 1순위 — APK를 연 앱에만 설치 권한을 줍니다\n\n1. S25의 `설정`을 엽니다.\n2. 설정 검색창에서 `출처를 알 수 없는 앱 설치`를 검색합니다.\n3. APK를 실제로 연 앱을 선택합니다. 다운로드 폴더에서 눌렀다면 보통 `내 파일`, 웹에서 눌렀다면 `Chrome`, Drive에서 눌렀다면 `Drive`입니다.\n4. `이 출처 허용`을 켭니다.\n5. 같은 앱으로 돌아가 APK를 다시 누르고 설치합니다.\n6. 설치 완료 후 같은 메뉴에서 `이 출처 허용`을 다시 끕니다.\n\n권한을 Chrome에 주고 APK는 내 파일에서 열면 계속 거부됩니다. **설치 창을 실행한 정확한 앱**을 허용해야 합니다."},
+      {"id":"blocker","type":"markdown","sourceId":"samsung-blocker","body":"## 계속 거부되면 자동 차단 기능을 잠시 끕니다\n\nGalaxy S25의 One UI에서는 `자동 차단 기능`이 켜져 있으면 위의 출처별 허용보다 먼저 APK 설치를 막을 수 있습니다.\n\n1. `설정 → 보안 및 개인정보 보호 → 자동 차단 기능`으로 이동합니다.\n2. APK가 이 프로젝트에서 만든 파일이고 위 SHA-256과 일치하는지 확인합니다.\n3. `자동 차단 기능`을 **일시적으로 끕니다**.\n4. 앞 절의 `이 출처 허용`을 설정하고 APK를 설치합니다.\n5. 설치가 끝나면 `자동 차단 기능`을 다시 켭니다.\n\n자동 차단 기능은 USB 케이블 명령도 차단하므로 adb 설치를 사용할 때도 개발 시간에만 일시 해제가 필요할 수 있습니다."},
+      {"id":"protect","type":"markdown","sourceId":"google-protect","body":"## Play Protect 경고는 검사 후 판단합니다\n\n설치 중 `Play Protect에서 이 앱을 검사`가 나오면 검사를 진행하십시오. **Play Protect 전체 기능을 끄는 것은 권장하지 않습니다.** 단순히 Play Store 외부 앱이라는 안내와 악성 앱 판정은 다릅니다. 검사 결과가 유해 앱 또는 위험 앱으로 표시되면 설치를 중단하고 화면 문구를 기록해 원인을 분석해야 합니다."},
+      {"id":"adb","type":"markdown","sourceId":"android-adb","body":"## 개발 중에는 Android Studio 또는 adb 설치가 더 효율적입니다\n\n반복 테스트는 Android Studio의 Run 버튼이 가장 간단합니다. PowerShell에서는 S25의 개발자 옵션과 USB 디버깅을 켜고 RSA 연결을 승인한 뒤 다음처럼 설치할 수 있습니다.\n\n```powershell\n& 'C:\\Users\\ghals\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe' devices\n& 'C:\\Users\\ghals\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe' install -r 'D:\\AI_projects\\PinSet-App\\android\\app\\build\\outputs\\apk\\debug\\app-debug.apk 10.1.apk'\n```\n\n첫 명령에서 기기가 `device`로 보여야 합니다. `unauthorized`이면 S25 화면의 USB 디버깅 허용 대화상자를 승인합니다. 자동 차단 기능은 USB 명령도 막을 수 있으므로 설치 후 다시 켭니다."},
+      {"id":"diagnosis","type":"markdown","body":"## 표시 문구에 따라 다음 조치가 달라집니다\n\n- `이 출처에서 알 수 없는 앱을 설치할 수 없습니다` → APK를 연 앱의 `이 출처 허용`을 켭니다.\n- `자동 차단 기능으로 차단됨` → 자동 차단 기능을 잠시 끄고 설치 후 다시 켭니다.\n- `Play Protect에서 차단` → 검사를 수행하고 유해 판정이면 설치하지 않습니다.\n- `앱이 설치되지 않았습니다` → 기존 앱과 서명 충돌, 저장공간, APK 손상 여부를 별도로 확인합니다.\n- 회사 관리 기기 또는 업무 프로필 정책 → 관리자 정책을 우회하지 말고 관리자의 설치 승인을 받습니다."},
+      {"id":"next","type":"markdown","body":"## 설치 직후 최소 스모크 테스트\n\n1. PinSet 앱 실행과 초기 화면 진입\n2. 카메라 권한 요청과 촬영\n3. 사진 저장 및 핀 등록\n4. 앱 재실행 후 저장 데이터 유지\n5. 네트워크 없이 기본 입력 동작 확인\n6. 오류 발생 시 화면 문구와 Android 로그를 함께 보존\n\n설치 성공은 빌드 검증의 끝이 아니라 실제 S25 권한·카메라·저장소 동작 검증의 시작입니다."},
+      {"id":"limits","type":"markdown","body":"## 범위와 주의사항\n\n메뉴 명칭은 S25의 One UI 버전과 언어 설정에 따라 조금 다를 수 있으므로 설정 검색을 우선 사용합니다. 본 절차는 확인된 PinSet Debug APK 한 건의 개발 테스트를 위한 것입니다. 출처 허용이나 자동 차단 해제를 상시 유지하거나 출처가 불명확한 APK에 적용해서는 안 됩니다. 운영 배포 단계에서는 고유 Release 키, 서명 관리, 내부 테스트 트랙 또는 관리형 배포 채널을 사용해야 합니다."}
+    ]
+  },
+  "snapshot": {
+    "version": 1,
+    "generatedAt": "2026-07-21T15:00:00+09:00",
+    "status": "ready",
+    "datasets": {
+      "install_state": [
+        {"item":"APK 파일","ready":1,"status":"SHA-256 확인"},
+        {"item":"APK v2 서명","ready":1,"status":"검증 성공"},
+        {"item":"S25 출처 권한","ready":0,"status":"사용자 허용 필요"},
+        {"item":"S25 설치 완료","ready":0,"status":"설치 후 확인 필요"}
+      ]
+    }
+  },
+  "sources": [
+    {"id":"samsung-unknown","label":"Samsung — 알 수 없는 출처 앱 설치 허용","url":"https://www.samsung.com/us/support/troubleshoot/TSG10001913/","query":{"engine":"web","description":"설치 파일을 연 앱에만 알 수 없는 앱 설치 권한을 부여하는 공식 절차","tables_used":["Samsung Galaxy unknown-source installation guidance"]}},
+    {"id":"samsung-blocker","label":"Samsung — 자동 차단 기능","url":"https://www.samsung.com/us/support/answer/ANS10003636/","query":{"engine":"web","description":"자동 차단 기능이 비공식 출처 APK와 USB 명령을 차단하는 동작","tables_used":["Samsung Galaxy Auto Blocker guidance"]}},
+    {"id":"google-protect","label":"Google — Play Protect","url":"https://support.google.com/android/answer/2812853?hl=ko","query":{"engine":"web","description":"외부 APK 검사·경고·차단에 관한 Play Protect 공식 안내","tables_used":["Google Play Protect guidance"]}},
+    {"id":"android-adb","label":"Android Developers — adb 설치","url":"https://developer.android.com/tools/adb","query":{"engine":"web","description":"개발 PC에서 adb install로 APK를 설치하는 공식 명령","tables_used":["Android Debug Bridge documentation"]}},
+    {"id":"local-apk","label":"PinSet Debug APK 로컬 검증","path":"PinSet-App/android/app/build/outputs/apk/debug/app-debug.apk 10.1.apk","query":{"engine":"duckdb","sql":"SELECT * FROM (VALUES ('APK 파일',1,'SHA-256 확인'),('APK v2 서명',1,'Android Debug 인증서'),('S25 출처 권한',0,'사용자 허용 필요'),('S25 설치 완료',0,'설치 후 확인 필요')) AS t(item, ready, status)","description":"생성된 APK의 SHA-256과 Android APK Signature Scheme v2 서명을 로컬 도구로 검증","tables_used":["app-debug.apk 10.1.apk"]}}
+  ]
+}

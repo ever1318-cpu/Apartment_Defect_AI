@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI하자점검 UI/UX 운영연동 변경보고서 v5.1</title>
+  <style>
+    :root{--navy:#173b5c;--blue:#2878ad;--green:#207767;--amber:#a26a1d;--red:#a54848;--ink:#18232d;--muted:#607080;--line:#d7e0e6;--bg:#f3f6f8}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif;color:var(--ink);line-height:1.65}main{max-width:1100px;margin:auto;padding:26px 18px 52px}.hero{padding:30px;border-radius:18px;background:linear-gradient(135deg,#143552,#247691);color:#fff;box-shadow:0 10px 26px #173b5c2b}.hero h1{margin:6px 0;font-size:clamp(25px,4vw,37px);line-height:1.25}.hero p{margin:0;opacity:.92}.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}.chip{padding:3px 10px;border:1px solid #fff7;border-radius:99px;background:#fff2;font-size:13px}section{margin-top:17px;padding:22px 24px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 3px 11px #2030400b}h2{margin:0 0 11px;color:var(--navy);font-size:22px}h3{margin:0 0 5px;color:#225a7d;font-size:16px}p{margin:7px 0}ul,ol{margin:8px 0;padding-left:22px}li{margin:3px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.card{padding:15px;border:1px solid var(--line);border-radius:10px;background:#fbfdfe}.ok{border-left:5px solid var(--green);background:#effaf6}.warn{border-left:5px solid var(--amber);background:#fff8ea}.info{border-left:5px solid var(--blue);background:#f2f8fc}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border:1px solid var(--line);padding:10px;vertical-align:top;text-align:left}th{background:#315d7a;color:#fff}tr:nth-child(even) td{background:#f8fafb}.done{font-weight:bold;color:var(--green)}.deploy{font-weight:bold;color:var(--amber)}code{padding:1px 5px;border-radius:4px;background:#eaf1f5;color:#173b5c;word-break:break-all}.flow{overflow:auto;white-space:pre;background:#102e43;color:#edf7fa;border-radius:10px;padding:15px;font:14px/1.55 Consolas,"D2Coding",monospace}.foot{text-align:center;color:var(--muted);font-size:13px;padding-top:16px}@media(max-width:640px){main{padding:15px 11px 35px}.hero{padding:23px 19px}section{padding:18px 14px}th,td{padding:8px;font-size:13px}}
+  </style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <div>AI하자점검 · 최신 변경 이력</div>
+    <h1>UI/UX·운영연동 변경보고서 v5.1</h1>
+    <p>현장 앱의 촬영 설정, 점검자 ID, 서버 하자DB 조회 기준을 최신 운영 규칙으로 정리한 보고서</p>
+    <div class="chips"><span class="chip">2026-07-27</span><span class="chip">Android S25 Ultra</span><span class="chip">FastAPI · PostgreSQL</span><span class="chip">UTF-8</span></div>
+  </header>
+
+  <section class="ok">
+    <h2>1. 이번 수정의 결론</h2>
+    <p>하자DB는 더 이상 임시 동·호 목록을 보여주지 않는다. <strong>서버 DB에서 전송 및 마감이 완료된 세대만</strong> 동·호 풀다운에 나타난다. 또한 기본 점검자 ID를 <strong>Master</strong>로 통일하고, 라이브 디텍션의 사진 구성 선택은 촬영 화면이 아닌 <strong>촬영 설정</strong> 안으로 이동했다.</p>
+  </section>
+
+  <section>
+    <h2>2. UI/UX 수정 목록</h2>
+    <table>
+      <thead><tr><th>영역</th><th>변경 내용</th><th>상태</th></tr></thead>
+      <tbody>
+        <tr><td>라이브 디텍션</td><td>본문 상단에 있던 <b>근경 1장 / 근경 + 원경</b> 선택 버튼을 제거했다. 우측 상단 톱니바퀴의 <b>촬영 설정 → 하자 촬영 방식</b>에서만 변경한다. 기본값은 근경 1장이다.</td><td class="done">APK 반영</td></tr>
+        <tr><td>점검자 ID</td><td>화면 기본 아이디를 <b>Dev_Manager1</b>에서 <b>Master</b>로 변경했다. 새 동기화 세션의 <code>inspector_id</code>와 점검 누적 통계 조회 기준도 Master로 통일했다. “점검매니저”는 접근 역할명으로 유지한다.</td><td class="done">APK 반영</td></tr>
+        <tr><td>하자DB 풀다운</td><td>101~120동과 기본 호수의 임시 선택지를 삭제했다. API가 반환한 실제 세대만 동 목록에, 선택 동에 속한 실제 세대만 호 목록에 표시한다.</td><td class="done">앱·서버 반영</td></tr>
+        <tr><td>조회 기준</td><td>PostgreSQL 갤러리 조회는 <code>inspection_sessions.state = 'COMPLETED'</code> 조건을 적용한다. 점검 중, 전송 중, 미마감 세대는 하자DB 조회 대상이 아니다.</td><td class="done">서버 코드 반영</td></tr>
+        <tr><td>빈 데이터 안내</td><td>통신이 정상인데 조회 세대가 없으면 <b>“서버 통신은 정상입니다. 전송 및 마감이 완료된 세대 점검 데이터가 아직 없습니다.”</b>를 표시한다. 특정 세대를 정상 조회했으나 자료가 없을 때도 별도 안내를 표시한다.</td><td class="done">APK 반영</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>3. 하자DB 표시 규칙</h2>
+    <div class="flow">서버 DB
+  inspection_sessions.state = COMPLETED
+          │
+          ├─ 삭제되지 않은 하자(defects) 존재
+          │       │
+          │       ▼
+          │  GET /v2/field/gallery/households
+          │       │
+          │       ▼
+          │  하자DB: 동 목록 → 해당 동의 호 목록 → 사진·메타데이터
+          │
+          └─ 미마감 / 점검중 / 전송중
+                  └─ 하자DB 풀다운에 표시하지 않음</div>
+    <div class="grid" style="margin-top:13px">
+      <div class="card"><h3>정상·데이터 있음</h3><p>마감 완료 세대가 풀다운에 표시되고, 선택 시 하자 이미지·분류·의견·메타데이터를 갤러리로 보여준다.</p></div>
+      <div class="card"><h3>정상·데이터 없음</h3><p>서버 연결은 유지하되 마감 완료 세대가 없다는 안내를 표시한다. 네트워크 오류로 잘못 안내하지 않는다.</p></div>
+      <div class="card"><h3>통신·서버 오류</h3><p>VPN/주소 오류, 권한 오류, 404 구버전 API, 5xx 서버 오류를 각각 별도 메시지로 구분한다.</p></div>
+    </div>
+  </section>
+
+  <section class="info">
+    <h2>4. 검증 결과</h2>
+    <ul>
+      <li>백엔드 <code>python/tests/test_field_inspection_api.py</code>: <strong>12건 성공</strong></li>
+      <li>Android Debug APK: <strong>빌드 성공</strong></li>
+      <li>S25 Ultra: 최신 Debug APK 설치 성공</li>
+      <li>기존 서버 API 확인: <code>/health</code> 200 및 <code>/v2/field/gallery/households</code> 목록 응답 확인</li>
+    </ul>
+  </section>
+
+  <section class="warn">
+    <h2>5. 적용을 위한 서버 재시작</h2>
+    <p>이번 변경에는 PostgreSQL 갤러리 조회 SQL 조건이 포함되어 있다. 현재 실행 중인 Field API가 이전 프로세스라면 코드 변경이 즉시 반영되지 않으므로, 다음 순서로 한 번 재시작한다.</p>
+    <ol>
+      <li>기존 Field API PowerShell 창에서 <code>Ctrl+C</code>로 종료한다.</li>
+      <li><code>D:\AI_projects\Apartment_Defect_AI</code>에서 다음을 실행한다.</li>
+    </ol>
+    <p><code>.\scripts\run_field_postgres_server.ps1 -Port 8001</code></p>
+    <p>재시작 후 PC에서 <code>Invoke-RestMethod http://127.0.0.1:8001/v2/field/gallery/households</code>로 목록을 확인하고, 휴대폰 하자DB를 다시 열어 확인한다.</p>
+  </section>
+
+  <section>
+    <h2>6. 현장 확인 절차</h2>
+    <ol>
+      <li>휴대폰 앱에서 한 세대의 하자를 저장하고 <b>전송 및 마감</b>까지 완료한다.</li>
+      <li>하자DB를 열고 해당 동·호가 풀다운에 나타나는지 확인한다.</li>
+      <li>동·호를 선택해 사진, 가상 참고 이미지 표기, 분류·의견 메타데이터를 확인한다.</li>
+      <li>마감하지 않은 다른 세대가 하자DB 풀다운에 나타나지 않는지 확인한다.</li>
+    </ol>
+  </section>
+  <p class="foot">AI하자점검 UI/UX·운영연동 변경보고서 v5.1 · 2026-07-27</p>
+</main>
+</body>
+</html>

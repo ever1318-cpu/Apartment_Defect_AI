@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI하자점검 인트로 동·호수 복합입력 UI 개선보고서 v1.8</title>
+  <style>
+    :root{--navy:#10233f;--blue:#1769aa;--line:#d8e0ea;--soft:#f4f7fb}
+    *{box-sizing:border-box} body{margin:0;font-family:"Malgun Gothic",sans-serif;color:#172033;line-height:1.65}
+    header{padding:42px 24px;background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff}
+    main{max-width:980px;margin:auto;padding:30px 22px 60px} h1{margin:0 0 8px;font-size:30px}
+    h2{margin-top:32px;color:var(--navy);border-bottom:2px solid var(--line);padding-bottom:8px}
+    .meta{opacity:.85}.card{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:18px;margin:14px 0}
+    table{width:100%;border-collapse:collapse} th,td{padding:11px;border:1px solid var(--line);text-align:left}
+    th{background:#eaf1f8}.ok{color:#08783e;font-weight:700} code{background:#e8edf3;padding:2px 5px;border-radius:4px}
+  </style>
+</head>
+<body>
+<header>
+  <h1>인트로 동·호수 복합입력 UI 개선보고서</h1>
+  <div class="meta">AI하자점검 개발가이드 · 구현 v1.8 · 2026-07-24</div>
+</header>
+<main>
+  <section>
+    <h2>1. 변경 결과</h2>
+    <div class="card">
+      인트로의 동 번호와 호수를 <strong>풀다운 선택과 직접 키보드 입력을 병행</strong>하는 방식으로 개선했다.
+      이전 점검에서 저장한 동·호수는 계속 초기값으로 복원되며, 목록에 없는 값도 직접 입력할 수 있다.
+    </div>
+    <table>
+      <thead><tr><th>항목</th><th>적용 내용</th></tr></thead>
+      <tbody>
+        <tr><td>동 번호</td><td>101~120동 풀다운 제공, 숫자 직접입력 병행</td></tr>
+        <tr><td>호수</td><td>1~25층·1~4라인 조합 풀다운 제공, 숫자 직접입력 병행</td></tr>
+        <tr><td>최근값</td><td>마지막 점검 동·호수 저장 및 다음 점검 초기값 복원 유지</td></tr>
+        <tr><td>세대소유주</td><td>‘점검매니저’를 검정색·굵은 글씨로 구분</td></tr>
+        <tr><td>자동조회</td><td>동·호수 값이 모두 입력되면 기존 세대·평면도 자동조회 수행</td></tr>
+      </tbody>
+    </table>
+  </section>
+  <section>
+    <h2>2. 검증</h2>
+    <div class="card">
+      <p class="ok">BUILD SUCCESSFUL</p>
+      <p><code>:app:testDebugUnitTest</code>와 <code>:app:assembleDebug</code>를 함께 실행해 Kotlin 컴파일,
+      단위 테스트, APK 패키징을 확인했다.</p>
+    </div>
+  </section>
+  <section>
+    <h2>3. 산출물</h2>
+    <ul>
+      <li>인트로 UI: <code>HouseholdIntroScreen.kt</code></li>
+      <li>선택 목록 및 상태: <code>HouseholdIntroViewModel.kt</code></li>
+      <li>APK: <code>android/app/build/outputs/apk/debug/app-debug.apk</code></li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

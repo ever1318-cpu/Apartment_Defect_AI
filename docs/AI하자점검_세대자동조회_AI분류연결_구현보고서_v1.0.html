@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 세대 자동조회·AI 분류 연결 구현보고서 v1.0</title>
+<style>
+:root{--ink:#172033;--muted:#64748b;--line:#dbe3ef;--blue:#155eef;--soft:#eef4ff;--ok:#067647;--warn:#a15c00}*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:var(--ink);font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}.wrap{width:min(1040px,calc(100% - 32px));margin:auto}.hero{padding:52px 0 34px;background:linear-gradient(135deg,#102a56,#155eef);color:#fff}.hero h1{margin:6px 0}.pill{display:inline-block;margin:8px 6px 0 0;padding:4px 10px;border:1px solid #ffffff55;border-radius:99px}main{padding:30px 0 60px}section{margin:0 0 24px;padding:22px;background:#fff;border:1px solid var(--line);border-radius:16px}h2{margin-top:0}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.card{padding:16px;border:1px solid var(--line);border-radius:12px}.ok{color:var(--ok);font-weight:800}.warn{color:var(--warn);font-weight:800}code{overflow-wrap:anywhere}.flow{padding:15px;border-radius:12px;background:var(--soft);font-weight:700}table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f8fafc}@media(max-width:700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap"><small>Apartment Defect AI · Android 구현</small><h1>세대 자동조회·공간 선택·AI 분류 연결</h1><p>확정된 인트로 UI/UX 수정안을 PinSet Android 앱에 반영한 구현 및 검증 결과</p><span class="pill">v1.0</span><span class="pill">2026-07-24</span><span class="pill">BUILD SUCCESSFUL</span></div></header>
+<main class="wrap">
+<section><h2>1. 구현 결론</h2><p class="ok">점검 ID·동호수·소유주 단일 입력에서 시작해 세대 도면과 공간을 선택하고 AI 하자분류 어시스턴트로 진입하는 1차 전체 흐름을 구현했습니다.</p><div class="flow">단일 입력 → 300ms 자동조회 → 세대·마스킹 소유주 확인 → 평면도·나침반 → 공간 선택 → 세션 활성화 → AI 하자분류</div></section>
+<section><h2>2. 반영 내용</h2><div class="grid">
+<div class="card"><strong>새 시작 화면</strong><p>앱 시작 목적지를 세대 자동조회 인트로로 변경했습니다. 별도 조회 버튼 없이 입력 정지 300ms 후 검색합니다.</p></div>
+<div class="card"><strong>도면·공간 문맥</strong><p>내장 카탈로그에서 평면도와 공간 앵커를 읽고, 공간 선택 후 세대 세션을 자동 활성화합니다.</p></div>
+<div class="card"><strong>개인정보 최소화</strong><p>검색 결과의 소유주명은 마스킹 표시하며, 조회 실패 시에만 기본도면 계속 진행을 제공합니다.</p></div>
+<div class="card"><strong>AI 화면 연결</strong><p>선택한 세대·공간·도면 출처를 로컬 점검 문맥으로 보존하고 AI 어시스턴트 상단에 표시합니다.</p></div>
+<div class="card"><strong>홈 진입 보완</strong><p>기존에 함수만 있고 노출되지 않았던 AI 하자분류 어시스턴트 진입 카드를 홈에 배치했습니다.</p></div>
+<div class="card"><strong>접근성·실패 경로</strong><p>북쪽 방향 설명, 숫자 기반 상태, 기본도면 표식, 도면 실패 문구를 추가했습니다.</p></div>
+</div></section>
+<section><h2>3. 운영 DB 연동 경계</h2><p class="warn">현재 운영 세대조회 API의 URL·인증·응답 계약이 확정되지 않아 실제 개인정보 DB 호출은 하지 않습니다.</p><p><code>HouseholdLookup</code> 인터페이스와 내장 <code>CatalogHouseholdLookup</code> 구현을 분리했습니다. 다음 단계에서는 인증된 API 구현체를 추가하고 DI에서 교체하면 화면과 상태 흐름을 유지할 수 있습니다. 내장 별칭과 샘플 도면은 UI 검증용이며 운영 데이터로 간주하지 않습니다.</p></section>
+<section><h2>4. 변경 파일</h2><table><thead><tr><th>파일</th><th>역할</th></tr></thead><tbody>
+<tr><td><code>intro/HouseholdLookup.kt</code></td><td>세대조회 계약, 카탈로그 검색, 명시적 fallback</td></tr>
+<tr><td><code>intro/InspectionContextStore.kt</code></td><td>선택 세대·공간 문맥 보존</td></tr>
+<tr><td><code>ui/intro/HouseholdIntroViewModel.kt</code></td><td>300ms debounce, 도면 로딩, 세션 활성화</td></tr>
+<tr><td><code>ui/intro/HouseholdIntroScreen.kt</code></td><td>인트로·검색·평면도·공간 선택 UI</td></tr>
+<tr><td><code>ui/PinSetApp.kt</code></td><td>INTRO 경로와 시작 목적지 추가</td></tr>
+<tr><td><code>ui/home/HomeScreen.kt</code></td><td>AI 어시스턴트 진입 카드 노출</td></tr>
+<tr><td><code>ui/ai/AiInspectionScreen.kt</code></td><td>세대·공간 문맥 카드 표시</td></tr>
+<tr><td><code>CatalogHouseholdLookupTest.kt</code></td><td>검색, 개인정보 마스킹, 미추정, fallback 테스트</td></tr>
+</tbody></table></section>
+<section><h2>5. 검증 결과</h2><table><tbody>
+<tr><th>명령</th><td><code>.\gradlew.bat -p android :app:testDebugUnitTest :app:assembleDebug --no-daemon</code></td></tr>
+<tr><th>결과</th><td class="ok">BUILD SUCCESSFUL · 단위 테스트 및 Debug APK 생성 완료</td></tr>
+<tr><th>APK</th><td><code>D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</code></td></tr>
+<tr><th>크기</th><td>71,197,108 bytes</td></tr>
+<tr><th>SHA-256</th><td><code>DC4030800003FAEF3B8012D9E52964F83BF5AF2053AEDBD7E9916A7662512D01</code></td></tr>
+</tbody></table></section>
+<section><h2>6. 다음 구현</h2><ol><li>운영 세대조회 API의 인증, URL, 요청·응답 스키마를 확정합니다.</li><li><code>HouseholdLookup</code>의 Real API 구현과 동명이인 선택·오프라인 최근 세대를 연결합니다.</li><li>선택한 <code>roomCode</code>를 이미지 업로드 및 분류 API 요청 계약에 직접 포함합니다.</li><li>실기기에서 큰 글꼴, 키보드, 회전, 네트워크 실패와 S25 Ultra 화면을 검수합니다.</li><li>Live Detection·Grad-CAM·유사사례는 데이터 제공 여부를 확인한 뒤 기능 플래그로 2차 연결합니다.</li></ol></section>
+</main>
+</body></html>

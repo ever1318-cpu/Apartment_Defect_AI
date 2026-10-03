@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI하자점검 인트로 자동호출·정보블록 UI 개선보고서 v3.4</title>
+  <style>
+    :root{--bg:#f4f7fb;--card:#fff;--ink:#172033;--muted:#64748b;--line:#dbe3ef;--blue:#155eef;--green:#087a55}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 system-ui,"Noto Sans KR",sans-serif}
+    .wrap{width:min(980px,calc(100% - 28px));margin:auto}.hero{padding:46px 0 34px;background:linear-gradient(135deg,#173b70,#155eef);color:#fff}
+    h1{margin:4px 0;font-size:clamp(26px,5vw,42px)}main{padding:26px 0 58px}.card{margin:14px 0;padding:20px;background:var(--card);border:1px solid var(--line);border-radius:16px}
+    h2{margin:0 0 10px}.ok{color:var(--green);font-weight:800}.flow{padding:14px;border-radius:12px;background:#eef4ff;font-weight:700}
+    table{width:100%;border-collapse:collapse}th,td{padding:11px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f8fafc}
+    code{color:#174ea6;overflow-wrap:anywhere}.muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header class="hero"><div class="wrap"><small>Apartment Defect AI · Android UI 변경 이력</small><h1>인트로 자동호출·정보블록 UI 개선보고서</h1><p>버전 3.4 · 2026-07-25</p></div></header>
+  <main class="wrap">
+    <section class="card">
+      <h2>1. 반영 결과</h2>
+      <p class="ok">세대공간 자동 부르기와 동·호수 자동 부르기를 하나의 기능으로 통합하고, 인트로 정보 계층을 간결하게 정리했다.</p>
+      <div class="flow">AI 하자점검 → 동·호수 자동 부르기 → 동·호수 확인 → 단지·평형 확인 → 공간 선택</div>
+    </section>
+    <section class="card">
+      <h2>2. UI 변경 사항</h2>
+      <table>
+        <thead><tr><th>항목</th><th>변경 전</th><th>변경 후</th></tr></thead>
+        <tbody>
+          <tr><td>자동 호출 메뉴</td><td>상단 ‘세대 공간 자동 불러오기’와 본문 ‘동·호수 자동 부르기’ 중복</td><td>상단 제목 바로 아래의 <strong>동·호수 자동 부르기</strong> 하나로 통합</td></tr>
+          <tr><td>단지 정보</td><td>단지명과 동·호수가 한 줄에 혼재</td><td>첫 줄에 단지명과 평형, 둘째 줄에 현재 동·호수 표시</td></tr>
+          <tr><td>평형 정보</td><td>정보 블록과 아래 ‘평형 · 84A-1’ 제목이 중복</td><td>정보 블록의 평형만 유지하고 아래 중복 제목 삭제</td></tr>
+          <tr><td>평형 선택</td><td>별도 제목 아래 선택 칩</td><td>중복 제목 없이 84A-1·84B-1 선택 칩 유지</td></tr>
+        </tbody>
+      </table>
+    </section>
+    <section class="card">
+      <h2>3. 표시 예시</h2>
+      <p><strong>울산다운지구</strong> <span class="muted">(평형:84A-1)</span><br><strong>104동 204호</strong></p>
+      <p class="muted">동·호수와 평형은 선택·자동 추천 결과에 따라 동적으로 변경된다.</p>
+    </section>
+    <section class="card">
+      <h2>4. 구현 및 검증</h2>
+      <p>수정 파일: <code>D:\AI_projects\PinSet-App\android\app\src\main\kotlin\com\axlife\pinset\ui\intro\HouseholdIntroScreen.kt</code></p>
+      <p>검증 명령: <code>.\gradlew.bat -p android :app:assembleDebug --no-daemon</code></p>
+      <p class="ok">결과: BUILD SUCCESSFUL</p>
+    </section>
+  </main>
+</body>
+</html>

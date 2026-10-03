@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI하자점검 위치확인·멀티모달 의견·상세화면 개선보고서 v1.5</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#172033;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65}
+    .wrap{max-width:1060px;margin:auto;padding:28px 22px 60px}header{padding:30px;border-radius:18px;color:#fff;background:linear-gradient(135deg,#10264a,#6a1b9a)}
+    h1{margin:0 0 8px;font-size:29px}h2{margin:30px 0 10px;font-size:21px}.sub{margin:0;color:#e8def1}.pill{display:inline-block;margin:15px 6px 0 0;padding:4px 9px;border:1px solid #ffffff55;border-radius:20px;font-size:12px}
+    .panel{margin-top:14px;padding:20px;border:1px solid #d2d9e2;border-radius:14px;background:#fff}.flow{padding:15px;border-left:5px solid #7b1fa2;background:#f3e5f5;border-radius:8px;font-weight:700}
+    table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid #b4becb;text-align:left;vertical-align:top}th{background:#e9edf2}code{color:#5b157b}ul{padding-left:22px}.ok{color:#067647;font-weight:700}.pending{color:#a15c00;font-weight:700}
+    footer{margin-top:28px;text-align:center;color:#6b7481;font-size:12px}@media(max-width:700px){.wrap{padding:12px 9px 36px}header{padding:22px 17px}h1{font-size:23px}.panel{overflow-x:auto;padding:13px}table{min-width:700px}}
+  </style>
+</head>
+<body><div class="wrap">
+  <header><h1>위치확인·멀티모달 의견·상세화면 개선보고서</h1><p class="sub">현장 스크롤 최소화, 평면도 원본 비율, 이미지·의견 결합 분류 및 RAW 의견 보존</p><span class="pill">Android UI v1.5</span><span class="pill">2026-07-24</span><span class="pill">Galaxy S25 Ultra 검증</span></header>
+
+  <h2>1. 적용 흐름</h2><div class="panel"><div class="flow">촬영 이미지 → 위치·평면도 확인 → 이미지 AI 추천 → 초기·추가 의견 → LLM 정리 → 위치 ＞ 하자부위 ＞ 상세부위 ＞ 공종 후보 → 로컬 저장 → 하자 상세정보</div></div>
+
+  <h2>2. 구현 내용</h2><div class="panel"><table><thead><tr><th>영역</th><th>적용 내용</th><th>상태</th></tr></thead><tbody>
+    <tr><td>촬영사진</td><td>세 장의 전체 폭 세로 배열을 4:3 가로 썸네일 스트립으로 변경하여 스크롤 축소</td><td class="ok">구현</td></tr>
+    <tr><td>평면도</td><td>84A·84B를 포함한 모든 평면도를 원본 bitmap 비율로 렌더링. 인위적 크롭·세로 확대 제거</td><td class="ok">구현</td></tr>
+    <tr><td>위치 확인</td><td>평면도 바로 아래에 추천 부위, 이미지 분석 의견, 신뢰도를 배치</td><td class="ok">구현</td></tr>
+    <tr><td>화면 명칭</td><td>‘하자 정보·의견 입력’을 ‘하자정보의견 상세’로 변경</td><td class="ok">구현</td></tr>
+    <tr><td>초기 의견</td><td>앞 화면의 위치·이미지 AI 추천을 편집 가능한 초기 의견으로 전달</td><td class="ok">구현</td></tr>
+    <tr><td>의견 분석</td><td>추가 의견 입력 후 ‘의견 완성·LLM 분석’으로 이미지와 텍스트 결과를 함께 검토</td><td class="ok">연결 유지</td></tr>
+    <tr><td>RAW 보존</td><td>입력 원문은 <code>Defect.residentOpinion</code>, AI 의견은 <code>aiPathText</code>, 최종 확정은 <code>finalPathText</code>로 분리 저장</td><td class="ok">구현</td></tr>
+    <tr><td>분류 순서</td><td>최종 입력 계약을 ‘위치 ＞ 하자부위 ＞ 상세부위 ＞ 공종 후보’로 변경</td><td class="ok">구현</td></tr>
+    <tr><td>상세 화면</td><td>평면도 폭을 68%로 축소하고 사진을 112×84dp로 정리. RAW·AI·최종·현장메모를 한 카드에 표시</td><td class="ok">구현</td></tr>
+    <tr><td>추가 촬영</td><td>하자 상세정보의 ‘추가 촬영’에서 카메라로 이동하고 새 사진을 현재 하자 ID에 귀속한 뒤 동기화 대기열을 갱신</td><td class="ok">구현</td></tr>
+  </tbody></table></div>
+
+  <h2>3. 멀티모달 데이터 원칙</h2><div class="panel"><ul>
+    <li>이미지 전용 모델의 결과와 LLM 의견 분석은 별도 출처 및 신뢰도로 유지한다.</li>
+    <li>LLM이 문구를 교정하더라도 입주민이 입력한 원문은 수정하거나 덮어쓰지 않는다.</li>
+    <li>최종 분류는 두 분석 결과와 현장 점검자의 확정을 결합한 별도 필드로 저장한다.</li>
+    <li>오프라인에서는 전체 자료를 단말에 먼저 저장하고 연결 회복 후 동일 묶음으로 동기화한다.</li>
+  </ul></div>
+
+  <h2>4. 검증 결과</h2><div class="panel"><ul>
+    <li class="ok"><code>:app:testDebugUnitTest</code> 성공</li><li class="ok"><code>:app:assembleDebug</code> 성공</li>
+    <li class="ok">Galaxy S25 Ultra(SM-S936N) 업데이트 설치 성공</li><li class="ok"><code>MainActivity</code> 실행 및 프로세스 유지, 치명적 오류 없음</li>
+  </ul></div>
+  <footer>AI하자점검 개발가이드 · Android UI 개선보고서 v1.5</footer>
+</div></body></html>

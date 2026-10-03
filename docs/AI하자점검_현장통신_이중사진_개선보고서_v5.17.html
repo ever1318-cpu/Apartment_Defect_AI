@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI하자점검 현장 통신·이중사진 개선보고서 v5.17</title>
+  <style>body{font-family:"Malgun Gothic",sans-serif;max-width:960px;margin:32px auto;padding:0 18px;line-height:1.7;color:#15202b}h1{color:#075985}h2{border-left:5px solid #0ea5e9;padding-left:10px;margin-top:30px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:10px;text-align:left}th{background:#e0f2fe}.ok{color:#047857;font-weight:bold}.note{background:#fff7ed;padding:12px;border-radius:8px}</style>
+</head>
+<body>
+  <h1>AI하자점검 현장 통신·이중사진 개선보고서 v5.17</h1>
+  <p>작성일: 2026-07-30 · 대상: PinSet-App 현장 점검 앱 및 PostgreSQL Field API</p>
+  <h2>적용 완료</h2>
+  <table><tr><th>항목</th><th>변경 내용</th></tr>
+  <tr><td>근경+원경 보존</td><td>원경(Slot B)을 포함한 촬영 쌍이 모두 도착해야 다음 화면으로 진행합니다. 누락·8초 시간초과 시 부분 저장 없이 재촬영을 요구합니다.</td></tr>
+  <tr><td>의견 화면 미리보기</td><td>하자의견 입력 상단에 근경과 원경을 나란히 표시합니다. 원경은 로컬 DB·전송 메타데이터에도 기존대로 유지됩니다.</td></tr>
+  <tr><td>오프라인 안전성</td><td>촬영 이미지와 메타데이터는 먼저 Room 로컬 DB와 앱 내부 파일에 영속 저장됩니다. 재시작 시 UPLOADING 항목을 PENDING으로 복구하고, 네트워크 복구·앱 시작·수동 마감에서 다시 전송합니다.</td></tr>
+  <tr><td>평면도 우선</td><td>카메라/점검 흐름은 세대 평면도 미니맵을 우선 표시하며, 단지안내도는 인트로에서만 사용합니다.</td></tr>
+  <tr><td>동선·핀</td><td>현 구조는 앵커, 누적 하자 핀 및 PDR 기반 현재 위치를 평면도에 표시합니다. 실내 위치는 센서 기반 추정치이며 정밀 측위 보장은 하지 않습니다.</td></tr></table>
+  <h2>현장 통신 동작 원칙</h2>
+  <ol><li>입력 완료 즉시 로컬 파일과 로컬 DB에 기록한다.</li><li>전송 대기열은 결함별 idempotency key를 유지하여 중복 전송을 방지한다.</li><li>인터넷 검증 연결이 생기면 자동 재시도하고, 실패 시 지수 백오프와 앱 재시작 복구를 사용한다.</li><li>마감 시에는 대기열을 즉시 다시 시도한다. 미전송이 남으면 로컬 기록을 보존한다.</li></ol>
+  <p class="note"><strong>추가 권고:</strong> 현재는 이미지 단위 재시도(완료된 파일은 idempotency key로 재사용)입니다. 대용량 파일의 바이트 구간 단위 재개는 서버의 multipart/resumable-upload API가 추가되어야 하므로 다음 단계로 분리합니다.</p>
+  <h2>검증</h2><p class="ok">Android debug APK 빌드 완료: 2026-07-30 10:44:54</p>
+  <p>APK: D:\AI_projects\PinSet-App\android\app\build\outputs\apk\debug\app-debug.apk</p>
+</body></html>

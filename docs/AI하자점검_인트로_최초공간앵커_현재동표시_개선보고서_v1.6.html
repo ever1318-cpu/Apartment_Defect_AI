@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 인트로 최초공간 앵커·현재 동 표시 개선보고서 v1.6</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#172033;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65}.wrap{max-width:1040px;margin:auto;padding:28px 22px 60px}header{padding:30px;border-radius:18px;color:#fff;background:linear-gradient(135deg,#10264a,#b51224)}h1{margin:0 0 8px;font-size:29px}h2{margin:30px 0 10px;font-size:21px}.sub{margin:0;color:#f7dde0}.pill{display:inline-block;margin:15px 6px 0 0;padding:4px 9px;border:1px solid #ffffff55;border-radius:20px;font-size:12px}.panel{margin-top:14px;padding:20px;border:1px solid #d2d9e2;border-radius:14px;background:#fff}.flow{padding:15px;border-left:5px solid #d50000;background:#fff1f1;border-radius:8px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid #b4becb;text-align:left;vertical-align:top}th{background:#e9edf2}.ok{color:#067647;font-weight:700}.wait{color:#a15c00;font-weight:700}code{color:#7b1f2b}ul{padding-left:22px}footer{margin-top:28px;text-align:center;color:#6b7481;font-size:12px}@media(max-width:700px){.wrap{padding:12px 9px 36px}header{padding:22px 17px}h1{font-size:23px}.panel{overflow-x:auto;padding:13px}table{min-width:680px}}</style></head>
+<body><div class="wrap"><header><h1>인트로 최초공간 앵커·현재 동 표시 개선</h1><p class="sub">북향 오인 방지, 최초 촬영공간 기준 위치 추적 및 단지 내 현재 동 강조</p><span class="pill">Android UI v1.6</span><span class="pill">2026-07-24</span></header>
+<h2>1. 변경된 시작 흐름</h2><div class="panel"><div class="flow">세대 조회 → 단지 내 현재 동 확인 → 평형 확인 → 최초 사진 공간 선택 → 공간 좌표를 세션 앵커로 저장 → 촬영·후속 위치 표시</div></div>
+<h2>2. 구현 내용</h2><div class="panel"><table><thead><tr><th>항목</th><th>구현</th><th>상태</th></tr></thead><tbody>
+<tr><td>방위 표시</td><td>세대 평면도의 N 표식을 삭제했다. 설계도 이미지가 정북 기준이라는 잘못된 인상을 주지 않는다.</td><td class="ok">완료</td></tr>
+<tr><td>인트로 안내문</td><td>‘테스트 기본 ID 점검매니저…’를 포함한 상단 안내 블록 전체를 삭제했다.</td><td class="ok">완료</td></tr>
+<tr><td>최초 공간</td><td>자동 선택을 없애고 사용자가 ‘1. 최초 사진 위치(앵커) 선택’에서 직접 공간을 선택하도록 변경했다.</td><td class="ok">완료</td></tr>
+<tr><td>세션 앵커</td><td>선택 공간의 정규화 좌표와 공간명을 <code>Session.startXNorm/startYNorm/anchorLocationLabel</code>에 카메라 실행 전 저장한다.</td><td class="ok">완료</td></tr>
+<tr><td>평면도 표시</td><td>선택 공간 좌표에 빨간 앵커를 즉시 표시하며 후속 위치 확인 화면에서도 기준점과 현재 위치 연결에 사용한다.</td><td class="ok">완료</td></tr>
+<tr><td>현재 동</td><td>세대 동 번호를 추출해 101~120동 좌표표와 대조하고 단지안내도 위에 빨간 현재 동 마커를 표시한다.</td><td class="ok">완료</td></tr>
+<tr><td>스크롤 축소</td><td>안내 블록 제거, 단지안내도 높이 176dp, 최초 공간 칩을 단일 가로 목록으로 구성했다.</td><td class="ok">완료</td></tr>
+<tr><td>이미지 재사용</td><td>세션의 평면도 ID가 단지안내도 자산을 계속 참조하므로 이후 상세·보고 화면에서 동일 이미지를 재표시할 수 있다.</td><td class="ok">저장 연결</td></tr>
+</tbody></table></div>
+<h2>3. 데이터 원칙</h2><div class="panel"><ul><li>평면도에는 절대 방위를 임의로 부여하지 않는다.</li><li>최초 선택 공간은 측위 기준점이며 이후 촬영 위치와 구분해 저장한다.</li><li>현재 동 마커는 세대 DB의 동 번호 기반이며 향후 GPS·GIS 좌표가 제공되면 좌표표를 서버 데이터로 대체한다.</li><li>단지안내도와 평면도 원본은 변경하지 않고 UI 오버레이만 표시한다.</li></ul></div>
+<h2>4. 검증</h2><div class="panel"><ul><li class="ok">Android 단위 테스트 성공</li><li class="ok">Debug APK 빌드 성공</li><li class="ok">Galaxy S25 Ultra 업데이트 설치 성공</li><li class="ok">MainActivity 실행·프로세스 유지, 치명적 오류 0건</li><li class="ok">실기기 인트로에서 현재 101동 빨간 마커와 최초 공간 미선택 시 촬영 버튼 비활성화 확인</li></ul></div>
+<footer>AI하자점검 개발가이드 · 인트로 위치 앵커 개선보고서 v1.6</footer></div></body></html>

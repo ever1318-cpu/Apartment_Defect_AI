@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>하자 AI 학습 평가 리포트</title>
+<style>
+body{margin:0;background:#f4f7fb;color:#172033;font:15px/1.65 "Malgun Gothic",sans-serif}
+main{max-width:1000px;margin:28px auto;padding:0 18px}header,section{background:white;border:1px solid #dce4ee;border-radius:16px;padding:32px;margin-bottom:16px}
+header{background:linear-gradient(135deg,#102a56,#175cd3);color:white}h1{margin:0 0 8px}table{width:100%;border-collapse:collapse}th,td{padding:12px;border-bottom:1px solid #dce4ee;text-align:left}th{background:#f8fafc}
+.warn{padding:16px;background:#fffaeb;border-left:5px solid #b54708}code{background:#eef4ff;padding:2px 6px;border-radius:4px}
+</style></head><body><main>
+<header><h1>하자 AI 학습 평가 리포트</h1>
+<p>Run run-20260720164211-e697044e</p></header>
+<section><h2>실행 결과</h2><p>상태: <strong>completed</strong><br>
+데이터셋: <code>2026.07.21</code><br>
+최적 epoch: 2<br>
+Validation accuracy: 26.0%</p></section>
+<section><h2>Test 지표</h2><table><thead><tr><th>태스크</th><th>Accuracy</th>
+<th>Macro F1</th><th>Top-3</th><th>판정</th></tr></thead><tbody>
+<tr><td>area</td><td>10.0%</td><td>1.7%</td><td>30.0%</td><td>개선 필요</td></tr><tr><td>part</td><td>70.0%</td><td>41.2%</td><td>100.0%</td><td>개선 필요</td></tr><tr><td>part_detail</td><td>25.0%</td><td>3.3%</td><td>40.0%</td><td>개선 필요</td></tr><tr><td>work_kind</td><td>15.0%</td><td>2.6%</td><td>50.0%</td><td>개선 필요</td></tr><tr><td>cause</td><td>10.0%</td><td>4.5%</td><td>90.0%</td><td>개선 필요</td></tr></tbody></table></section>
+<section><h2>해석 주의사항</h2><div class="warn">파일럿 데이터는 파이프라인 검증용이다.
+최종 효용성은 충분한 클래스별 표본, 중복 제거, 미학습 현장 test 세트를 사용해 다시 판단해야 한다.</div></section>
+</main></body></html>

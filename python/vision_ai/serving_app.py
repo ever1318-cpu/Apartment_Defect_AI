@@ -8,6 +8,8 @@ import time
 import uuid
 from typing import Any, Mapping
 
+from .defect_metadata import build_defect_metadata
+from .inspection_v2 import FakeInspectionService, InspectionContractError
 from .serving import APIError, ServiceError, ServingConfig, ServingService
 
 LOGGER = logging.getLogger("apartment_defect_ai.serving")
@@ -17,6 +19,7 @@ def create_serving_app(
     config: ServingConfig,
     *,
     service: ServingService | None = None,
+    inspection_service: FakeInspectionService | None = None,
 ) -> Any:
     try:
         from fastapi import FastAPI, Request
@@ -30,6 +33,7 @@ def create_serving_app(
     runtime = service or ServingService(config)
     app = FastAPI(title="Apartment Defect AI", version="1.0")
     app.state.service = runtime
+    app.state.inspection_v2 = inspection_service or FakeInspectionService()
     app.state.ready = False
 
     @app.on_event("startup")
@@ -91,6 +95,17 @@ def create_serving_app(
             ).to_dict(),
         )
 
+    @app.exception_handler(InspectionContractError)
+    async def inspection_contract_error(request: Request, exc: InspectionContractError):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=APIError(
+                exc.code,
+                str(exc),
+                request_id=request.state.request_id,
+            ).to_dict(),
+        )
+
     @app.get("/health")
     async def health():
         return {"status": "healthy"}
@@ -135,6 +150,21 @@ def create_serving_app(
         item = _prediction_item(payload, config)
         prediction = runtime.predict(**item)
         return prediction.to_dict()
+
+    @app.post("/v1/predict/metadata")
+    async def predict_metadata(request: Request):
+        """Predict and apply hierarchical review policy without mutating the DB."""
+        payload = await _json_payload(request)
+        item = _prediction_item(payload, config)
+        prediction = runtime.predict(**item)
+        context = payload.get("context", {})
+        if not isinstance(context, Mapping):
+            raise ServiceError("INVALID_REQUEST", "context must be an object")
+        return build_defect_metadata(
+            prediction,
+            context=context,
+            top_k=int(payload.get("top_k", 3)),
+        ).to_dict()
 
     @app.post("/v1/predict/batch")
     async def predict_batch(request: Request):
@@ -189,6 +219,83 @@ def create_serving_app(
     @app.get("/v1/metrics")
     async def metrics():
         return runtime.metrics.snapshot()
+
+    @app.get("/v2/taxonomies/{version}")
+    async def get_taxonomy(version: str):
+          return app.state.inspection_v2.taxonomy(version)
+
+    @app.post("/v2/media/upload-sessions", status_code=201)
+    async def create_upload_session(request: Request):
+        payload = await _json_payload(request)
+        return app.state.inspection_v2.create_upload_session(
+            payload,
+            idempotency_key=_idempotency_header(request),
+        )
+
+    @app.put("/v2/media/uploads/{media_id}")
+    async def upload_media(media_id: str, request: Request):
+        return app.state.inspection_v2.accept_upload(
+            media_id,
+            await request.body(),
+            content_type=request.headers.get("content-type", ""),
+        )
+
+    @app.post("/v2/inspections", status_code=201)
+    async def create_inspection(request: Request):
+        payload = await _json_payload(request)
+        return app.state.inspection_v2.create_inspection(
+            payload,
+            idempotency_key=_idempotency_header(request),
+        )
+
+    @app.get("/v2/inspections/{inspection_id}")
+    async def get_inspection(inspection_id: str):
+        return app.state.inspection_v2.get_inspection(inspection_id)
+
+    @app.post("/v2/inspections/{inspection_id}/analysis", status_code=202)
+    async def start_analysis(inspection_id: str, request: Request):
+        payload = await _json_payload(request)
+        return app.state.inspection_v2.analyze(
+            inspection_id,
+            payload,
+            idempotency_key=_idempotency_header(request),
+        )
+
+    @app.get("/v2/analyses/{analysis_id}")
+    async def get_analysis(analysis_id: str):
+        return app.state.inspection_v2.get_analysis(analysis_id)
+
+    @app.post("/v2/assistant/sessions", status_code=201)
+    async def create_assistant_session(request: Request):
+        payload = await _json_payload(request)
+        return app.state.inspection_v2.create_assistant_session(
+            payload,
+            idempotency_key=_idempotency_header(request),
+        )
+
+    @app.post("/v2/assistant/sessions/{session_id}/messages")
+    async def answer_assistant(session_id: str, request: Request):
+        payload = await _json_payload(request)
+        return app.state.inspection_v2.answer(
+            session_id,
+            payload,
+            idempotency_key=_idempotency_header(request),
+        )
+
+    @app.post("/v2/inspections/{inspection_id}/confirmation")
+    async def confirm_inspection(inspection_id: str, request: Request):
+        payload = await _json_payload(request)
+        revision = request.headers.get("if-match", "").strip().strip('"')
+        if not revision.isdigit():
+            raise InspectionContractError(
+                "INVALID_REVISION", "If-Match must contain the numeric revision"
+            )
+        return app.state.inspection_v2.confirm(
+            inspection_id,
+            payload,
+            idempotency_key=_idempotency_header(request),
+            expected_revision=int(revision),
+        )
 
     return app
 
@@ -252,3 +359,12 @@ def _json_depth(value: Any) -> int:
     if isinstance(value, list):
         return 1 + max((_json_depth(item) for item in value), default=0)
     return 1
+
+
+def _idempotency_header(request: Any) -> str:
+    value = request.headers.get("idempotency-key", "")
+    if not value:
+        raise InspectionContractError(
+            "IDEMPOTENCY_KEY_REQUIRED", "Idempotency-Key header is required"
+        )
+    return value

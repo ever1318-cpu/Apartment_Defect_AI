@@ -1,0 +1,34 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI하자점검 서버·PostgreSQL 핵심설계 구현착수보고서 v2.1</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#172033;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;line-height:1.65}.wrap{max-width:1080px;margin:auto;padding:28px 22px 60px}header{padding:30px;border-radius:18px;color:#fff;background:linear-gradient(135deg,#10264a,#245f9e)}h1{margin:0 0 8px;font-size:28px}h2{margin:30px 0 10px;font-size:21px}.sub{margin:0;color:#dcecff}.pill{display:inline-block;margin:14px 6px 0 0;padding:4px 9px;border:1px solid #ffffff55;border-radius:20px;font-size:12px}.panel{margin-top:14px;padding:20px;border:1px solid #d2d9e2;border-radius:14px;background:#fff}.flow{padding:15px;border-left:5px solid #245f9e;background:#edf5ff;border-radius:8px;font-weight:700}table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid #b4becb;text-align:left;vertical-align:top}th{background:#e9edf2}.ok{color:#067647;font-weight:700}.next{color:#a15c00;font-weight:700}code{color:#174d80}ul,ol{padding-left:22px}footer{margin-top:28px;text-align:center;color:#6b7481;font-size:12px}@media(max-width:700px){.wrap{padding:12px 9px 36px}header{padding:22px 17px}h1{font-size:23px}.panel{overflow-x:auto;padding:13px}table{min-width:720px}}</style></head>
+<body><div class="wrap"><header><h1>서버·PostgreSQL 핵심설계 및 구현 착수</h1><p class="sub">Android 오프라인 우선 점검 흐름을 API v2와 PostgreSQL 영속 저장으로 연결하는 기반</p><span class="pill">Server/DB v2.1</span><span class="pill">2026-07-24</span><span class="pill">운영 RDS 미변경</span></header>
+<h2>1. 목표 아키텍처</h2><div class="panel"><div class="flow">Android Room → 재시도·멱등 동기화 → FastAPI v2 → PostgreSQL 트랜잭션 → 객체 스토리지 이미지 → ConvNeXt 이미지 분석 + LLM 의견 분석 → 융합 분류 → 사용자 확정 → 학습 데이터 환류</div></div>
+<h2>2. PostgreSQL 핵심 테이블</h2><div class="panel"><table><thead><tr><th>테이블</th><th>역할</th><th>주요 보장</th></tr></thead><tbody>
+<tr><td>complexes / buildings / households</td><td>단지·동·세대 마스터</td><td>동·호수 유일성, 단지안내도 좌표</td></tr>
+<tr><td>floorplans</td><td>평형 이미지와 공간 앵커</td><td>버전 관리, JSON 공간좌표</td></tr>
+<tr><td>inspection_sessions</td><td>세대별 점검과 최초 앵커</td><td>client UUID, 상태, revision, 마감시간</td></tr>
+<tr><td>defects</td><td>하자 위치·RAW 의견·최종 분류</td><td>RAW 원문 보존, 세션 내 순번, 낙관적 잠금</td></tr>
+<tr><td>media</td><td>앵커·하자 이미지 메타데이터</td><td>SHA-256, 역할, 업로드 상태, 객체키</td></tr>
+<tr><td>ai_predictions</td><td>이미지·LLM·융합 모델 결과</td><td>모델·전처리·분류체계 버전과 후보 JSON</td></tr>
+<tr><td>opinion_events</td><td>입주민·점검자·AI 대화 이력</td><td>원문 불변 이벤트 순서</td></tr>
+<tr><td>idempotency_records</td><td>중복 요청 방지</td><td>요청 해시·응답 재사용·24시간 만료</td></tr>
+<tr><td>sync_operations</td><td>모바일 배치 동기화 감사</td><td>operation UUID, base/server revision, 충돌 기록</td></tr>
+</tbody></table></div>
+<h2>3. 이번 구현</h2><div class="panel"><ul>
+<li class="ok"><code>database/migrations/001_apartment_ai_core.sql</code>: 전용 <code>apartment_ai</code> 스키마, 12개 테이블·제약·인덱스</li>
+<li class="ok"><code>postgres_inspection_store.py</code>: 세션 생성과 하자 upsert 트랜잭션</li>
+<li class="ok">파라미터 SQL만 사용하고 DSN·비밀번호를 SQL·오류에 포함하지 않음</li>
+<li class="ok">Idempotency-Key 재사용, 동일 client UUID, revision 충돌 처리</li>
+<li class="ok">입주민 RAW 의견과 표준화 의견 및 최종 분류를 별도 컬럼으로 분리</li>
+<li class="ok">운영 AWS RDS에는 DDL·INSERT·UPDATE를 실행하지 않음</li>
+</ul></div>
+<h2>4. 검증</h2><div class="panel"><ul><li class="ok">신규 저장소·API 계약 집중 테스트: 10 passed</li><li class="ok">전체 Python 테스트: 140 passed, 6 skipped</li><li class="ok">신규 모듈 py_compile 성공</li><li>초기 전체 테스트의 임시폴더 권한 오류는 프로젝트 내부 <code>--basetemp</code> 사용으로 재검증했다.</li></ul></div>
+<h2>5. 다음 구현 게이트</h2><div class="panel"><ol>
+<li class="next">로컬 PostgreSQL에 마이그레이션 적용 및 울산다운지구 101~120동·84A/84B seed</li>
+<li>FastAPI의 메모리 FakeInspectionService를 repository interface로 분리하고 PostgreSQL 구현 주입</li>
+<li>이미지 presigned upload 또는 개발용 로컬 객체 저장 API 연결</li>
+<li>Android <code>/v2/sync/batches</code>와 서버 revision 충돌 응답 E2E 검증</li>
+<li>ConvNeXt·LLM·융합 prediction 저장과 세대 마감 API 구현</li>
+<li>스테이징 DB 검증 후 별도 승인으로 운영 RDS 마이그레이션</li>
+</ol></div>
+<h2>6. 운영 적용 원칙</h2><div class="panel"><ul><li>운영 RDS 적용 전 전용 DB 사용자와 최소 권한을 만든다.</li><li>마이그레이션은 자동 실행하지 않고 버전·백업·승인 후 수행한다.</li><li>이미지 바이너리는 PostgreSQL이 아니라 객체 스토리지에 저장하고 DB에는 검증된 키와 해시만 보관한다.</li><li>개인정보와 입주민 의견은 전송·저장 암호화, 접근 감사, 보존기간 정책을 적용한다.</li></ul></div>
+<footer>AI하자점검 개발가이드 · 서버·PostgreSQL 구현착수보고서 v2.1</footer></div></body></html>

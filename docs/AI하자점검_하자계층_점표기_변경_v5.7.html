@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AI하자점검 하자 계층 점 표기 변경 v5.7</title>
+<style>body{margin:0;background:#f4f7fb;color:#172033;font:15px/1.65 system-ui,"Noto Sans KR",sans-serif}main{width:min(880px,calc(100% - 28px));margin:28px auto}.hero,.card{background:#fff;border:1px solid #dbe4ec;border-radius:18px;padding:24px;margin-bottom:16px}.hero{background:linear-gradient(135deg,#17324d,#27658a);color:#fff}h1{margin:4px 0}h2{color:#17324d}.sample{font-size:22px;font-weight:800;color:#27658a}.ok{color:#2e7d32;font-weight:700}code{background:#edf2f7;padding:2px 6px;border-radius:5px}</style></head>
+<body><main><section class="hero"><small>IMPLEMENTATION REPORT · v5.7 · 2026-07-26</small><h1>하자 계층 구분자 점 표기</h1><p>하자 위치·부위·상세·유형의 계층 표현을 간결한 마침표 형식으로 통일했다.</p></section>
+<section class="card"><h2>표시 규칙</h2><p><del>거실 &gt; 천장 &gt; 균열</del></p><p class="sample">거실.천장.균열</p><ul><li><code>&gt;</code>, <code>→</code>, <code>/</code>, <code>|</code>, 기존 <code>.</code> 입력을 모두 인식</li><li>화면과 신규 저장값은 점 형식으로 정규화</li><li>홈 하자목록, 하자 상세, AI 추천, 종합의견에 동일 적용</li><li>계층 사이 불필요한 공백 제거</li></ul></section>
+<section class="card"><h2>검증</h2><p class="ok">APK 빌드 및 단위 테스트 22개 성공</p><p>APK 생성: 2026-07-26 00:17:05</p></section></main></body></html>

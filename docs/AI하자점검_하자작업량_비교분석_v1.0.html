@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI하자점검 하자 작업량 비교분석 v1.0</title>
+  <style>
+    :root { --ink:#172033; --muted:#5d6879; --line:#cfd6df; --navy:#17345f; --blue:#eaf2ff; --amber:#fff4d7; --green:#e8f7ef; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#f4f6f9; font-family:"Malgun Gothic","Noto Sans KR",Arial,sans-serif; line-height:1.6; }
+    .wrap { max-width:1120px; margin:0 auto; padding:28px 24px 60px; }
+    header { padding:30px; color:#fff; border-radius:18px; background:linear-gradient(135deg,#10264a,#23619a); box-shadow:0 12px 32px #14284a26; }
+    h1 { margin:0 0 8px; font-size:30px; }
+    h2 { margin:34px 0 12px; font-size:21px; }
+    .sub { margin:0; color:#dbe9fb; font-size:14px; }
+    .meta { display:flex; gap:8px; flex-wrap:wrap; margin-top:16px; }
+    .pill { padding:5px 10px; border:1px solid #ffffff55; border-radius:999px; font-size:12px; }
+    .panel { margin-top:20px; padding:20px; border:1px solid var(--line); border-radius:14px; background:#fff; }
+    .summary { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .metric { padding:16px; border-radius:12px; background:var(--blue); }
+    .metric strong { display:block; font-size:24px; color:var(--navy); }
+    table { width:100%; border-collapse:collapse; margin-top:12px; background:#fff; }
+    th,td { padding:11px 9px; border:1px solid #9da8b6; text-align:center; font-size:14px; vertical-align:middle; }
+    th { background:#e9edf2; font-weight:700; }
+    td.left { text-align:left; }
+    .em { font-weight:700; }
+    .highlight { background:var(--amber); }
+    .ok { background:var(--green); }
+    .note { margin:14px 0 0; color:var(--muted); font-size:13px; }
+    .callout { padding:16px 18px; border-left:5px solid #e0a326; border-radius:8px; background:var(--amber); }
+    ul { margin:8px 0; padding-left:22px; }
+    footer { margin-top:30px; color:var(--muted); font-size:12px; text-align:center; }
+    @media (max-width:760px) {
+      .wrap { padding:14px 10px 36px; } header { padding:22px 18px; } h1 { font-size:24px; }
+      .summary { grid-template-columns:1fr; }
+      .panel { overflow-x:auto; padding:14px; }
+      table { min-width:800px; }
+    }
+    @media print { body{background:#fff}.wrap{max-width:none;padding:0}header{box-shadow:none}.panel{break-inside:avoid} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>하자 작업량 비교분석</h1>
+      <p class="sub">1,412세대의 하자 점검을 11명·14일과 15명·7일 조건으로 비교한 운영 검토표</p>
+      <div class="meta"><span class="pill">AI하자점검 개발가이드</span><span class="pill">v1.0</span><span class="pill">2026-07-24</span></div>
+    </header>
+
+    <section class="panel">
+      <h2 style="margin-top:0">1. 산정 기준</h2>
+      <p><strong>총 1,412세대 × 세대당 평균 하자 30개 = 총 42,360개</strong></p>
+      <p>하루 8시간(480분)을 실작업 시간으로 보고, 각 세대 방문마다 이동시간 5분을 제외했다. 휴게시간, 공용부 점검, 재촬영, 통신 장애, 민원 응대 및 검수시간은 별도 반영하지 않았다.</p>
+    </section>
+
+    <h2>2. 작업량 비교표</h2>
+    <div class="panel">
+      <table>
+        <thead><tr><th>구분</th><th>작업인원</th><th>점검기간</th><th>총 인원-일수</th><th>하루 1인당 세대수</th><th>세대당 체류시간</th><th>하자 1개당 시간</th></tr></thead>
+        <tbody>
+          <tr><td class="em">기준안</td><td>11명</td><td>14일</td><td>154</td><td>9.17세대</td><td>47.4분</td><td>1.58분 (약 1분 35초)</td></tr>
+          <tr class="highlight"><td class="em">비교안</td><td>15명</td><td>7일</td><td>105</td><td>13.45세대</td><td>30.7분</td><td>1.02분 (약 61초)</td></tr>
+        </tbody>
+      </table>
+      <p class="note">※ 모든 표시값은 원 계산값을 구한 뒤 마지막 단계에서 반올림했다.</p>
+    </div>
+
+    <h2>3. 계산 검증</h2>
+    <div class="panel">
+      <table>
+        <thead><tr><th>계산 항목</th><th>계산식</th><th>기준안</th><th>비교안</th></tr></thead>
+        <tbody>
+          <tr><td>총 하자 수</td><td>1,412 × 30</td><td colspan="2">42,360개</td></tr>
+          <tr><td>총 인원-일수</td><td>작업인원 × 점검기간</td><td>154 인일</td><td>105 인일</td></tr>
+          <tr><td>하루 1인당 세대수</td><td>1,412 ÷ 총 인원-일수</td><td>9.1688세대</td><td>13.4476세대</td></tr>
+          <tr><td>세대당 체류시간</td><td>480 ÷ 하루 세대수 − 5</td><td>47.3513분</td><td>30.6941분</td></tr>
+          <tr><td>하자 1개당 시간</td><td>세대당 체류시간 ÷ 30</td><td>1.5784분</td><td>1.0231분</td></tr>
+          <tr><td>1인·1일 하자 처리량</td><td>42,360 ÷ 총 인원-일수</td><td>275.1개</td><td>403.4개</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>4. 핵심 비교</h2>
+    <div class="summary">
+      <div class="metric"><span>총 인원-일수</span><strong>31.8% 감소</strong><small>154 → 105 인일</small></div>
+      <div class="metric"><span>1인당 일일 처리량</span><strong>46.6% 증가</strong><small>275.1 → 403.4개</small></div>
+      <div class="metric"><span>세대당 체류시간</span><strong>35.2% 감소</strong><small>47.4 → 30.7분</small></div>
+    </div>
+
+    <h2>5. 운영 판단</h2>
+    <div class="panel">
+      <div class="callout"><strong>비교안은 일정 단축 효과가 크지만, 하자 1건당 약 61초 안에 촬영·위치 지정·의견 입력·AI 확인까지 완료해야 한다.</strong> 따라서 모바일 입력 최소화와 오프라인 우선 저장이 실제 처리능력 달성의 전제조건이다.</div>
+      <ul>
+        <li>사진 촬영을 시작점으로 하고 동·호수, 평형, 공간은 사전 조회값으로 자동 입력한다.</li>
+        <li>AI가 공종·하자부위·상세부위·원인을 제안하고 점검자는 승인 또는 최소 수정만 수행한다.</li>
+        <li>통신 불량 시 사진과 메타데이터를 단말에 즉시 저장하고 연결 회복 후 자동 동기화한다.</li>
+        <li>재촬영, 중복 하자, 공용부 이동, 휴게 및 최종 검수 시간을 포함한 현장 파일럿으로 목표 처리량을 재검증한다.</li>
+        <li>품질 지표는 단순 처리 건수뿐 아니라 재촬영률, 분류 수정률, 누락률, 동기화 실패율을 함께 관리한다.</li>
+      </ul>
+    </div>
+
+    <footer>AI하자점검 개발가이드 · 하자 작업량 비교분석 v1.0</footer>
+  </div>
+</body>
+</html>

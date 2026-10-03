@@ -256,10 +256,10 @@ def test_pytorch_tiny_model_export_smoke_when_full_stack_is_installed(tmp_path) 
         "apartment-defect",
         "smoke-1.0.0",
     )
-    assert validate_model_package(package).valid
+    assert validate_model_package(package.parent).valid
     registry = ModelRegistry(tmp_path / "registry")
     registry.register(
-        package,
+        package.parent,
         "apartment-defect",
         "smoke-1.0.0",
         stage="production",

@@ -1,0 +1,28 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 Android·PostgreSQL 동기화 연결 구현보고서 v2.4</title><style>
+body{margin:0;font-family:"Malgun Gothic",sans-serif;color:#172033;line-height:1.65}header{padding:42px 24px;background:linear-gradient(135deg,#10233f,#1769aa);color:#fff}
+main{max-width:1050px;margin:auto;padding:30px 22px 60px}h1{margin:0 0 8px}h2{color:#10233f;border-bottom:2px solid #d8e0ea;padding-bottom:8px}
+.card{background:#f4f7fb;border:1px solid #d8e0ea;border-radius:14px;padding:18px;margin:14px 0}.ok{color:#08783e;font-weight:700}.wait{color:#a15c00;font-weight:700}
+code,pre{background:#e8edf3;border-radius:5px}code{padding:2px 5px}pre{padding:14px;overflow:auto}table{width:100%;border-collapse:collapse}
+th,td{border:1px solid #d8e0ea;padding:10px;text-align:left}th{background:#eaf1f8}</style></head><body>
+<header><h1>Android·PostgreSQL 동기화 연결 구현</h1><div>AI하자점검 개발가이드 · Integration v2.4 · 2026-07-24</div></header>
+<main><h2>1. 구현 결과</h2><div class="card">Android의 기존 로컬 우선 저장·재시도 구조를 유지하면서
+새 <code>/v2/field</code> PostgreSQL API 계약으로 전환했다. Room 파괴 마이그레이션 없이 기존
+<code>sync_queue.entityId</code>를 하자 client UUID로 활용한다.</div>
+<h2>2. 단말 동기화 순서</h2><table><tr><th>순서</th><th>동작</th></tr>
+<tr><td>1</td><td>동·호수로 <code>/households/resolve</code> 호출</td></tr>
+<tr><td>2</td><td>로컬 세션 ID·세대명으로 안정적인 session client UUID 생성</td></tr>
+<tr><td>3</td><td>서버 점검 세션 생성 또는 기존 세션 재사용</td></tr>
+<tr><td>4</td><td>인트로 공간 좌표·앵커 위치·방위 동기화</td></tr>
+<tr><td>5</td><td>근접·광각 이미지 업로드</td></tr>
+<tr><td>6</td><td>하자 client UUID, RAW/STT 의견, 최종 분류를 field batch로 전송</td></tr>
+<tr><td>7</td><td>서버 revision 저장, 충돌 또는 재시도 상태를 로컬 큐에 기록</td></tr></table>
+<h2>3. 보안·환경</h2><ul>
+<li>Debug 빌드만 사설 LAN HTTP 허용</li><li>Release 빌드는 계속 HTTPS 강제</li>
+<li>현재 개발 PC 주소: <code>192.168.0.205:8000</code></li>
+<li>운영 RDS 직접 연결 없음 — Android는 FastAPI만 호출</li></ul>
+<h2>4. 검증</h2><div class="card"><span class="ok">백엔드 계약 11 passed · Android BUILD SUCCESSFUL</span><br>
+동기화 단위 테스트와 LAN API URL이 주입된 debug APK 패키징을 통과했다.</div>
+<h2>5. 남은 실기기 Gate</h2><div class="card"><span class="wait">S25 Ultra Wi‑Fi/LAN 동기화 시험</span><br>
+PC 서버 기동, Windows 방화벽 8000 포트 허용, USB 재연결 후 APK 설치와 실제 하자 1건 전송을 확인한다.</div>
+</main></body></html>

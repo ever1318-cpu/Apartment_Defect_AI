@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI하자점검 AI 분류 어시스턴트 UI/UX v2.0 구현명세서</title>
+<style>
+:root{
+  --orange:#f57c00;--orange-dark:#e65100;--teal:#00897b;--purple:#6a1b9a;
+  --purple2:#4f46b8;--blue:#1a5490;--ink:#17212b;--sub:#637083;
+  --line:#dbe2ea;--bg:#eef2f6;--paper:#fff;--p1:#c0392b;--p2:#e67e22;--p3:#27ae60;
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,"Noto Sans KR","Malgun Gothic",sans-serif;line-height:1.58}
+a{color:inherit}.wrap{width:min(1240px,calc(100% - 32px));margin:auto}
+.hero{background:linear-gradient(135deg,#38105f,var(--purple) 52%,var(--blue));color:#fff;padding:52px 0 44px}
+.hero small{letter-spacing:.12em;opacity:.8}.hero h1{font-size:clamp(27px,4vw,46px);margin:10px 0}.hero p{max-width:800px;margin:0;opacity:.9}
+.pill{display:inline-block;margin:18px 7px 0 0;padding:5px 11px;border:1px solid #ffffff55;border-radius:20px;font-size:12px}
+.layout{display:grid;grid-template-columns:230px 1fr;gap:26px;padding:28px 0 60px}
+.toc{position:sticky;top:14px;align-self:start;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.toc strong{display:block;margin-bottom:9px}.toc a{display:block;text-decoration:none;color:var(--sub);font-size:13px;padding:7px;border-radius:8px}
+.toc a:hover{background:#f3e5f5;color:var(--purple)}
+section{background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:18px;box-shadow:0 8px 24px #17212b0a}
+h2{font-size:23px;margin:0 0 14px}h3{font-size:16px;margin:20px 0 8px}.lead{font-size:17px;color:#303b49}
+.notice{border-left:4px solid var(--purple);background:#f7effb;padding:13px 15px;border-radius:8px}
+.flow{display:flex;align-items:center;gap:7px;overflow:auto;padding:8px 0 3px}
+.flow span{white-space:nowrap;padding:9px 12px;border-radius:20px;background:#f3e5f5;color:var(--purple);font-weight:800;font-size:12px}
+.flow b{color:#a8b1bc}
+.screens{display:grid;grid-template-columns:repeat(2,minmax(300px,1fr));gap:22px}
+.screen-card{border:1px solid var(--line);border-radius:18px;padding:15px;background:#fafbfd}
+.screen-card>h3{margin:0 0 4px}.screen-card>p{font-size:12px;color:var(--sub);margin:0 0 12px}
+.phone{width:min(100%,390px);margin:auto;border:9px solid #20262e;border-radius:31px;background:#fff;overflow:hidden;box-shadow:0 18px 35px #17212b25}
+.status{height:25px;background:#20262e;color:#fff;font-size:9px;text-align:center;padding-top:5px}
+.appbar{background:linear-gradient(90deg,var(--purple),var(--blue));color:#fff;padding:10px 12px;font-weight:900;font-size:13px}
+.appbar small{display:block;font-size:10px;font-weight:500;opacity:.83}
+.stage{padding:8px;background:#fafbfc;min-height:650px}
+.floor-head{display:flex;justify-content:space-between;font-size:10px;font-weight:800;margin-bottom:4px}
+.count{background:var(--purple);color:#fff;border-radius:12px;padding:1px 7px}
+.floor{height:115px;border:1px solid #cfd8e2;border-radius:7px;position:relative;overflow:hidden;background:
+ linear-gradient(90deg,transparent 49%,#aeb9c655 50%,transparent 51%),
+ linear-gradient(transparent 49%,#aeb9c655 50%,transparent 51%),#eef2f7}
+.room{position:absolute;font-size:8px;color:#4f5b68}.living{left:8%;top:22%}.kitchen{right:9%;top:19%}.bed{right:10%;bottom:15%}
+.pin{position:absolute;width:10px;height:10px;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px #0005}.pin.now{width:13px;height:13px;background:var(--purple);box-shadow:0 0 0 5px #6a1b9a33}
+.person{position:absolute;width:9px;height:9px;border-radius:50%;background:#3498db;border:2px solid #fff}
+.compass{position:absolute;right:4px;top:4px;width:38px;height:38px;border:2px solid #34495e;border-radius:50%;background:#fff;box-shadow:0 2px 5px #0002}
+.compass:before{content:"";position:absolute;left:15px;top:4px;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:14px solid #d32f2f}
+.compass:after{content:"";position:absolute;left:15px;bottom:4px;border-left:3px solid transparent;border-right:3px solid transparent;border-top:14px solid #546e7a}
+.compass b{position:absolute;left:50%;top:-2px;transform:translateX(-50%);font-size:8px;color:#d32f2f}
+.legend{display:flex;gap:8px;font-size:8px;margin:3px 0 6px}.legend i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:2px}
+.camera{height:290px;background:linear-gradient(135deg,#425b70,#8096a7);border-radius:7px;position:relative;overflow:hidden}
+.live{position:absolute;left:7px;top:7px;background:var(--purple);color:#fff;padding:2px 7px;border-radius:9px;font-size:9px;font-weight:900}
+.grid-v,.grid-h{position:absolute;background:#fff4}.grid-v{top:0;bottom:0;width:1px}.grid-h{left:0;right:0;height:1px}
+.box{position:absolute;left:24%;top:24%;width:46%;height:34%;border:2px solid #e8ff55}.box label{position:absolute;top:-17px;left:-2px;background:#dfff43;color:#182018;font-size:8px;padding:1px 4px}
+.focus{position:absolute;left:50%;top:62%;transform:translate(-50%,-50%);width:55px;height:55px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 6px #ffffff30}
+.shutter{position:absolute;bottom:13px;left:50%;transform:translateX(-50%);width:56px;height:56px;border:5px solid #fff;border-radius:50%;background:#ffffff33}
+.zoom{position:absolute;right:8px;top:45px;display:grid;gap:5px;color:#fff;font-size:9px}.zoom b{background:#0007;border-radius:10px;padding:3px 5px}.zoom .on{background:var(--orange)}
+.hint{margin-top:5px;background:#f3e5f5;border:1px solid #ce93d8;color:#51206c;border-radius:6px;padding:6px;font-size:9px}
+.photo{height:110px;background:linear-gradient(135deg,#526e83,#9aafbd);border-radius:7px;margin:6px 0;position:relative}
+.photo:after{content:"촬영 이미지";position:absolute;left:6px;bottom:5px;background:#0008;color:#fff;font-size:8px;padding:1px 5px;border-radius:4px}
+.panel{border:1.5px solid var(--purple);background:#f8f1fb;border-radius:9px;padding:8px;margin:6px 0}.panel h4{color:var(--purple);margin:0 0 4px;font-size:11px}
+.candidate{display:flex;justify-content:space-between;background:#fff;border-left:4px solid var(--purple);padding:6px;margin-top:4px;font-size:9px}.candidate strong{color:var(--purple)}
+.bar{height:5px;background:#e1e6ec;border-radius:5px;overflow:hidden;margin:4px 0}.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--purple),#ab47bc)}
+.mapping{background:#e8f5e9;border-radius:6px;padding:6px;font-size:9px}
+.opinion{border:1px solid var(--line);border-radius:7px;padding:7px;margin:6px 0;font-size:9px}.opinion b{color:var(--orange-dark)}
+.btn{width:100%;border:0;border-radius:8px;padding:10px;color:#fff;font-weight:900;background:var(--purple);margin-top:7px}.btn.orange{background:var(--orange)}.btn.gray{background:#6f7b89}
+.heat{height:120px;border-radius:7px;background:radial-gradient(ellipse at 48% 47%,#ff2d2dbb,#ffad323f 30%,transparent 55%),linear-gradient(135deg,#506d83,#94a9b8)}
+.reason{background:#f3e5f5;border-left:3px solid var(--purple);padding:7px;font-size:9px;margin:6px 0}
+.similar{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.similar div{height:55px;border-radius:5px;background:linear-gradient(135deg,#c8a796,#806351);color:#fff;font-size:8px;display:flex;align-items:end;justify-content:center}
+.search{width:100%;border:1.5px solid var(--purple);border-radius:7px;padding:8px;margin:7px 0}
+.tree{border:1px solid var(--line);border-radius:7px;padding:6px;font-size:9px}.tree div{padding:5px}.tree .ai{background:#f3e5f5;border-left:3px solid var(--purple)}.tree .selected{background:var(--blue);color:#fff;margin-left:12px;border-radius:4px}
+.low{border:1.5px solid var(--p2);background:#fff3e0;border-radius:9px;padding:8px;margin:7px 0;color:#b45d0b;font-size:10px;font-weight:900}
+.question{background:#eef7fa;border-radius:7px;padding:8px;font-size:10px}.answers{display:flex;gap:5px;margin-top:6px}.answers button{flex:1;border:1px solid #c9d5e2;background:#fff;border-radius:6px;padding:7px;font-size:9px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{border-bottom:1px solid var(--line);padding:10px;text-align:left;vertical-align:top}th{background:#f6f8fa}
+.state{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.state div{padding:10px;border-radius:10px;background:#f3e5f5;color:var(--purple);font-size:11px;font-weight:900;text-align:center}
+code{background:#f1f3f5;padding:2px 5px;border-radius:4px;color:#5c2477}
+.checklist{columns:2}.checklist li{break-inside:avoid;margin:7px 0}
+footer{padding:25px;text-align:center;color:var(--sub);font-size:12px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.toc{position:static}.screens{grid-template-columns:1fr}.state{grid-template-columns:1fr 1fr}.checklist{columns:1}}
+@media print{body{background:#fff}.toc{display:none}.layout{display:block}.screen-card{break-inside:avoid}.hero{padding:25px 0}section{box-shadow:none}}
+</style>
+</head>
+<body>
+<header class="hero"><div class="wrap">
+  <small>AI DEFECT INSPECTION · ANDROID IMPLEMENTATION SPEC</small>
+  <h1>AI 분류 어시스턴트 UI/UX v2.0 구현명세서</h1>
+  <p>세대 자동조회 인트로와 AI 분류 어시스턴트 UI v0.3을 연결해, 점검 ID 입력부터 공간 선택·촬영·입주자 의견·AI 분석·분류 수정·최종 확정까지 하나의 전체 화면 흐름으로 구현하기 위한 기준 문서입니다.</p>
+  <span class="pill">기준 UI v0.3</span><span class="pill">구현 명세 v2.0</span><span class="pill">2026-07-24</span>
+</div></header>
+
+<div class="wrap layout">
+<nav class="toc"><strong>목차</strong>
+  <a href="#goal">1. 구현 목표</a><a href="#flow">2. 화면 흐름</a><a href="#screens">3. 전체 화면 목업</a>
+  <a href="#components">4. 공통 컴포넌트</a><a href="#states">5. 상태 전이</a><a href="#data">6. 데이터 계약</a>
+  <a href="#rules">7. UX·접근성 규칙</a><a href="#acceptance">8. 구현 검수 기준</a><a href="#scope">9. 단계별 범위</a>
+</nav>
+<main>
+
+<section id="goal">
+  <h2>1. 구현 목표</h2>
+  <p class="lead"><b>입력자는 점검 ID 또는 세대소유주 한 항목만 입력하고, 앱이 DB에서 세대와 도면을 준비한 뒤 AI 점검 흐름을 시작합니다.</b></p>
+  <div class="notice"><code>HouseholdIntroFlow</code>에서 세대·도면·공간을 자동 준비한 뒤 <code>AiAssistantFlow</code>로 전달합니다. 모든 AI 단계에서 Mini-Floorplan, 나침반, 현재 핀과 방위 텍스트가 유지되며 AI 결과는 언제나 “추천”으로 표시합니다.</div>
+</section>
+
+<section id="flow">
+  <h2>2. 화면 흐름</h2>
+  <div class="flow"><span>⓪ 세대 자동조회</span><b>→</b><span>공간 선택</span><b>→</b><span>① Live Detection</span><b>→</b><span>② 캡처·Top-3</span><b>→</b><span>③ 판정 근거</span><b>↔</b><span>④ Taxonomy 수정</span><b>→</b><span>⑤ 확정</span></div>
+  <p>점검 ID·동호수·세대소유주 입력이 멈추면 DB를 자동 조회하고, 도면이 없으면 초기 기본값을 적용합니다. 신뢰도가 낮으면 ②에서 ⑤ 저확신도 화면으로 분기합니다.</p>
+</section>
+
+<section id="screens">
+<h2>3. 구현 대상 전체 화면</h2>
+<div class="notice" style="margin-bottom:16px"><b>⓪ 세대 자동조회 인트로</b> — 단일 입력창에서 점검 ID·동호수·세대소유주를 인식하고 300ms 후 DB를 자동 조회합니다. 단지 안내도와 세대 평면도를 표시하고 거실·방1·방2·주방·베란다·현관·화장실 중 점검 공간을 선택하면 아래 AI 화면으로 이동합니다. 등록 이미지가 없으면 앱 내장 기본 안내도와 표준 평면도를 사용하며 fallback 상태를 명시합니다.</div>
+<div class="screens">
+
+<article class="screen-card"><h3>① Live Detection · 뷰파인더</h3><p>카메라 촬영과 공간 문맥을 동시에 유지합니다.</p>
+<div class="phone"><div class="status">● AI LIVE · 13:48</div><div class="appbar">① Live Detection · 뷰파인더<small>1503호 · 거실 · 남향</small></div><div class="stage">
+  <div class="floor-head"><span>🗺 A101-1503호 · 남향(S)</span><span class="count">누적 8</span></div>
+  <div class="floor"><div class="compass"><b>N</b></div><span class="room living">거실(남)</span><span class="room kitchen">주방(북)</span><span class="room bed">침실(동)</span>
+    <i class="pin" style="left:18%;top:25%;background:var(--p3)"></i><i class="pin" style="left:62%;top:30%;background:var(--p2)"></i><i class="pin now" style="left:34%;top:49%"></i><i class="person" style="left:39%;top:60%"></i></div>
+  <div class="legend"><span><i style="background:#3498db"></i>검수자</span><span><i style="background:var(--purple)"></i>지금</span><span><i style="background:var(--p1)"></i>P1</span><span><i style="background:var(--p2)"></i>P2</span><span><i style="background:var(--p3)"></i>P3</span></div>
+  <div class="camera"><span class="live">AI LIVE</span><i class="grid-v" style="left:33%"></i><i class="grid-v" style="left:66%"></i><i class="grid-h" style="top:33%"></i><i class="grid-h" style="top:66%"></i>
+    <div class="box"><label>FIN.WLP · LFT 87%</label></div><div class="focus"></div><div class="zoom"><b>3×</b><b>2×</b><b class="on">1×</b><b>0.5×</b></div><div class="shutter"></div></div>
+  <div class="hint"><b>💡 방위 안내</b> 거실 남측 벽 · 강한 일조 → 변색 후보 함께 검토</div>
+</div></div></article>
+
+<article class="screen-card"><h3>② 캡처 직후 어시스턴트</h3><p>이미지·입주자 의견·Top-3를 비교하고 원탭 확정합니다.</p>
+<div class="phone"><div class="status">● POST CAPTURE</div><div class="appbar">② 캡처 직후 어시스턴트<small>Top-3 후보 · 사용자 최종 확인</small></div><div class="stage">
+  <div class="floor-head"><span>🗺 1503호 · 남향</span><span class="count">누적 9</span></div><div class="floor"><div class="compass"><b>N</b></div><span class="room living">거실(남)</span><span class="room kitchen">주방</span><i class="pin now" style="left:34%;top:49%"></i><i class="person" style="left:39%;top:60%"></i></div>
+  <div class="photo"></div><div class="opinion"><b>입주자 의견 ▾</b><br>“거실 남쪽 벽지가 울고 들떠 보여요.”</div>
+  <div class="panel"><h4>🤖 AI 판독</h4><div class="candidate"><span><b>1</b> FIN.WLP · LFT 들뜸</span><strong>94%</strong></div><div class="bar"><i style="width:94%"></i></div>
+    <div class="candidate"><span><b>2</b> FIN.WLP · TON 톤차이</span><strong>5%</strong></div><div class="candidate"><span><b>3</b> FIN.PNT · CRK 균열</span><strong>1%</strong></div></div>
+  <div class="mapping"><b>자동 매핑</b> T02 도배 · P3 · 거실 남측벽(S)</div><button class="btn">✓ 원탭 확정</button><button class="btn gray">분류 수정·근거 보기</button>
+</div></div></article>
+
+<article class="screen-card"><h3>③ 판정 근거</h3><p>Grad-CAM·자연어 근거·유사사례를 분리해 보여줍니다.</p>
+<div class="phone"><div class="status">● EXPLAIN</div><div class="appbar">③ 판정 근거<small>Grad-CAM · 유사 사례 · 방위</small></div><div class="stage">
+  <div class="floor-head"><span>🗺 1503호 · 남향</span><span class="count">누적 9</span></div><div class="floor"><div class="compass"><b>N</b></div><span class="room living">거실(남)</span><i class="pin now" style="left:34%;top:49%"></i></div>
+  <h3>AI가 본 영역</h3><div class="heat"></div><div class="reason"><b>판정 근거</b><br>표면 곡률과 반사 이상이 들뜸 사례와 유사합니다. 남측 강일조는 보조 힌트로만 사용했습니다.</div>
+  <h3>같은 부위·방위의 유사 사례</h3><div class="similar"><div>S · 92%</div><div>S · 88%</div><div>S · 85%</div></div>
+  <button class="btn">이 분류로 확정</button><button class="btn gray">Taxonomy 수정</button>
+</div></div></article>
+
+<article class="screen-card"><h3>④ Taxonomy 수정</h3><p>AI 추천 노드와 사용자 선택을 구분하며 코드체계 안에서 수정합니다.</p>
+<div class="phone"><div class="status">● TAXONOMY</div><div class="appbar">④ Taxonomy 수정<small>공종 · 부재 · 현상 · 상세 부위</small></div><div class="stage">
+  <div class="floor-head"><span>🗺 1503호 · 남향</span><span class="count">누적 9</span></div><div class="floor"><div class="compass"><b>N</b></div><span class="room living">거실</span><i class="pin now" style="left:34%;top:49%"></i></div>
+  <input class="search" placeholder="🔍 코드 또는 명칭 검색">
+  <h3>부재 Element</h3><div class="tree"><div class="ai"><b>▼ FIN 마감</b> · ✨ AI 추천</div><div class="selected">FIN.WLP · 벽지 ✓</div><div>　FIN.PNT · 도장</div><div>▶ WIN 창호</div></div>
+  <h3>현상 Symptom</h3><div class="tree"><div class="selected">LFT · 들뜸 94% ✓</div><div class="ai">TON · 톤차이 5%</div></div>
+  <div class="hint"><b>방위 힌트</b> 남향은 DIS/UNV 후보를 함께 확인하되 자동 확정하지 않습니다.</div><button class="btn orange">수정 내용 적용</button>
+</div></div></article>
+
+<article class="screen-card"><h3>⑤ 저확신도 추가확인</h3><p>추가 질문은 최대 2회이며 항상 탈출 경로를 제공합니다.</p>
+<div class="phone"><div class="status">● LOW CONFIDENCE</div><div class="appbar">⑤ AI 저확신도<small>추가 확인 · 재촬영 · 직접 분류</small></div><div class="stage">
+  <div class="floor-head"><span>🗺 1503호 · 북측 주방</span><span class="count">누적 9</span></div><div class="floor"><div class="compass"><b>N</b></div><span class="room kitchen">주방(북)</span><i class="pin now" style="left:25%;top:67%;background:var(--p2)"></i></div>
+  <div class="photo"></div><div class="low">🤔 신뢰도 58%<div class="bar"><i style="width:58%;background:var(--p2)"></i></div></div>
+  <div class="question"><b>AI 추가 질문 1/2</b><br>현재 부위를 만졌을 때 축축한 느낌이 있습니까?<div class="answers"><button>축축함<br>결로 후보</button><button>건조함<br>오염 후보</button></div></div>
+  <button class="btn">📷 다시 촬영</button><button class="btn orange">직접 분류</button><button class="btn gray">담당자 검토 요청</button>
+</div></div></article>
+
+</div></section>
+
+<section id="components"><h2>4. 공통 Compose 컴포넌트</h2>
+<table><thead><tr><th>컴포넌트</th><th>책임</th><th>주요 입력</th></tr></thead><tbody>
+<tr><td><code>HouseholdIntroScreen</code></td><td>점검 ID·소유주 자동조회, 도면 fallback, 공간 선택</td><td>identityQuery, household, siteMap, floorplan, rooms</td></tr>
+<tr><td><code>AiAssistantScaffold</code></td><td>AI 헤더, 스크롤 본문, 고정 하단 행동 영역</td><td>stage, title, primaryAction</td></tr>
+<tr><td><code>MiniFloorplanCompassHeader</code></td><td>평면도, 나침반, 핀, 검수자, 누적 건수</td><td>floorplan, heading, northOffset, pins, inspector</td></tr>
+<tr><td><code>LiveDetectionOverlay</code></td><td>그리드, 검출 상자, 초점, 줌, AI LIVE 상태</td><td>detections, zoom, focusState, enabled</td></tr>
+<tr><td><code>CandidateRankingPanel</code></td><td>Top-3 후보와 신뢰도, 선택 상태</td><td>candidates, selectedId</td></tr>
+<tr><td><code>EvidencePanel</code></td><td>Grad-CAM, 근거, 유사사례와 없음 상태</td><td>heatmapUri, rationale, similarCases</td></tr>
+<tr><td><code>TaxonomyTree</code></td><td>검색, 계층 탐색, AI 추천과 사용자 수정 표시</td><td>nodes, query, aiNode, selectedNode</td></tr>
+<tr><td><code>LowConfidenceDialog</code></td><td>추가 질문, 재촬영·직접분류·검토 요청</td><td>confidence, question, options, count</td></tr>
+</tbody></table></section>
+
+<section id="states"><h2>5. 상태 전이</h2>
+<div class="state"><div>HOUSEHOLD</div><div>SPACE_READY</div><div>LIVE</div><div>ANALYZING</div><div>CONFIRMED</div></div>
+<table><thead><tr><th>조건</th><th>다음 상태</th><th>기본 행동</th></tr></thead><tbody>
+<tr><td>점검 ID·소유주 입력 300ms 중지</td><td>HOUSEHOLD → SPACE_READY</td><td>DB 자동조회, 정상 시 팝업 없이 도면 표시</td></tr>
+<tr><td>세대·호수별 도면 없음</td><td>SPACE_READY</td><td>기본 안내도·표준 평면도 자동 적용</td></tr>
+<tr><td>공간 선택 완료</td><td>LIVE</td><td>세대·도면·room context를 촬영 화면으로 전달</td></tr>
+<tr><td>촬영 전</td><td>LIVE</td><td>셔터 또는 일반 촬영 폴백</td></tr>
+<tr><td>촬영 완료·업로드 중</td><td>CAPTURED → ANALYZING</td><td>진행률 표시, 중복 요청 방지</td></tr>
+<tr><td>신뢰도 ≥80%, 이미지·의견 일치</td><td>REVIEW</td><td>원탭 확정 강조</td></tr>
+<tr><td>신뢰도 60–79% 또는 의견 충돌</td><td>LOW_CONFIDENCE</td><td>후보 비교·추가 질문 1회</td></tr>
+<tr><td>신뢰도 &lt;60%</td><td>LOW_CONFIDENCE</td><td>재촬영·직접 분류 우선</td></tr>
+<tr><td>사용자 수정</td><td>TAXONOMY</td><td>변경 전·후 감사 로그 저장</td></tr>
+<tr><td>사용자 최종 선택</td><td>CONFIRMED</td><td>원문·AI 추천·최종값 분리 저장</td></tr>
+</tbody></table></section>
+
+<section id="data"><h2>6. 화면 데이터 계약</h2>
+<table><thead><tr><th>영역</th><th>필수 필드</th><th>없을 때 처리</th></tr></thead><tbody>
+<tr><td>조회 식별자</td><td>inspectionId 또는 ownerQuery, householdId</td><td>일치 없음·동명이인일 때만 사용자 선택 요청</td></tr>
+<tr><td>도면 출처</td><td>siteMapId, floorplanId, sourceType, version</td><td>sourceType=DEFAULT로 초기 이미지 자동 적용</td></tr>
+<tr><td>공간</td><td>householdId, roomId, floorplanId, inspectorX/Y</td><td>평면도 접기, 공간명 직접 선택</td></tr>
+<tr><td>방위</td><td>headingDeg, northOffsetDeg, wallDirection</td><td>회색 나침반, 앵커 재설정 유도</td></tr>
+<tr><td>이미지</td><td>wideImageId, closeImageId, localPreviewUri</td><td>재촬영, 업로드 재시도</td></tr>
+<tr><td>AI 후보</td><td>rank, codes, labelPath, confidence, rationale</td><td>직접 분류 화면 제공</td></tr>
+<tr><td>설명</td><td>heatmapUri, similarCases, modelVersion</td><td>가짜 시각화 금지, 자료 없음 표시</td></tr>
+<tr><td>사용자 의견</td><td>residentOpinion, answers, selectedCandidate, finalPath</td><td>원문 입력 또는 담당자 검토</td></tr>
+</tbody></table></section>
+
+<section id="rules"><h2>7. UX·접근성 규칙</h2>
+<ul>
+<li>입력창은 점검 ID 또는 세대소유주 하나만 제공하고 별도 불러오기 버튼을 두지 않습니다.</li>
+<li>소유주 검색 결과는 마스킹하며, 동명이인일 때만 최소 세대 선택을 요청합니다.</li>
+<li>Orange=사용자 주 행동, Teal=앵커·위치, Purple=AI, P1/P2/P3=위험도 역할을 바꾸지 않습니다.</li>
+<li>나침반은 평면도 우측 상단 4dp, 앱 38dp, N은 빨강으로 고정합니다.</li>
+<li>주 행동 버튼은 화면당 하나만 강하게 표시하고 보조 행동은 회색 또는 외곽선으로 둡니다.</li>
+<li>신뢰도는 색만으로 표현하지 않고 숫자, 막대, 상태 문구를 함께 제공합니다.</li>
+<li>터치 영역은 최소 48dp, 본문은 14sp 이상, 정보 라벨은 11sp 미만으로 내리지 않습니다.</li>
+<li>TalkBack은 “AI 추천”, “사용자 최종 선택”, “북쪽 방향”, “신뢰도”를 구분해 읽습니다.</li>
+<li>네트워크·AI 실패 시 촬영 이미지와 의견을 보존하고 직접 분류로 계속 진행할 수 있어야 합니다.</li>
+</ul></section>
+
+<section id="acceptance"><h2>8. 구현 검수 기준</h2>
+<ul class="checklist">
+<li>□ 단일 입력 후 300ms DB 자동조회</li><li>□ 세대소유주 검색 결과 마스킹</li>
+<li>□ 단지·세대 도면 자동 표시와 fallback 구분</li><li>□ 선택 room context가 촬영 화면으로 전달</li>
+<li>□ 5개 화면이 전체 화면 내비게이션으로 연결됨</li><li>□ 모든 화면에서 평면도·나침반 문맥 유지</li>
+<li>□ Live AI 비활성 시 일반 촬영 가능</li><li>□ Top-3 선택과 원탭 확정 동작</li>
+<li>□ 입주자 원문이 접이식 카드에 보존됨</li><li>□ Grad-CAM 미제공 시 정직한 없음 상태</li>
+<li>□ Taxonomy 검색·선택·변경 로그 생성</li><li>□ 저확신도 질문 최대 2회 제한</li>
+<li>□ 다시 촬영·직접 분류·담당자 검토 제공</li><li>□ 회전·프로세스 복원 후 상태 유지</li>
+<li>□ S25 Ultra 큰 글꼴에서 잘림 없음</li><li>□ 원문·AI 추천·최종값 별도 저장</li>
+</ul></section>
+
+<section id="scope"><h2>9. 단계별 구현 범위</h2>
+<h3>1차 · 세대 인트로, 화면 골격과 기존 API 연결</h3><p>단일 입력 자동조회, 단지·평면도 fallback, 공간 선택, 공통 Scaffold, 평면도·나침반, 캡처 직후 Top-3, Taxonomy 수정, 저확신도 질문과 기존 의견·후보·확정 API를 구현합니다.</p>
+<h3>2차 · 이미지 설명과 Live Detection</h3><p>기능 플래그 아래 실시간 검출 오버레이, Grad-CAM, 유사사례를 연결합니다. 데이터가 없으면 비활성 상태를 유지합니다.</p>
+<h3>3차 · 운영 정책과 최적화</h3><p>실사용 로그로 신뢰도 기준을 조정하고, 방위 기반 힌트 검증, 배터리·발열·네트워크 최적화, 접근성 E2E를 완료합니다.</p>
+<div class="notice"><b>구현 승인 기준:</b> 본 문서의 5화면 구조, 접이식 입주자 의견, 초기 신뢰도 분기 80%/60%를 기준안으로 사용합니다.</div>
+</section>
+
+</main></div>
+<footer>AI하자점검 개발가이드 · AI 분류 어시스턴트 UI/UX v2.0 구현명세 · 2026-07-24</footer>
+</body>
+</html>
